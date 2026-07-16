@@ -379,6 +379,54 @@ func TestWriteBinaryStream_WriteErrorStopsConsuming(t *testing.T) {
 	require.Empty(t, w.Body.Bytes())
 }
 
+func TestWriteNonStreamingResponse_ForwardsSafeHeaders(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/alpha/search", nil)
+
+	writeNonStreamingResponse(c, &httpclient.Response{
+		StatusCode: http.StatusOK,
+		Headers: http.Header{
+			"Content-Type":        []string{"application/json"},
+			"X-Request-Id":        []string{"req-123"},
+			"X-Ratelimit-Limit":   []string{"100"},
+			"Connection":          []string{"keep-alive, X-Connection-Scoped"},
+			"X-Connection-Scoped": []string{"remove-me"},
+			"Authorization":       []string{"Bearer secret"},
+			"Set-Cookie":          []string{"session=secret"},
+		},
+		Body: []byte(`{"output":"ok"}`),
+	}, true)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.JSONEq(t, `{"output":"ok"}`, w.Body.String())
+	require.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	require.Equal(t, "req-123", w.Header().Get("X-Request-Id"))
+	require.Equal(t, "100", w.Header().Get("X-Ratelimit-Limit"))
+	require.Empty(t, w.Header().Get("Connection"))
+	require.Empty(t, w.Header().Get("X-Connection-Scoped"))
+	require.Empty(t, w.Header().Get("Authorization"))
+	require.Empty(t, w.Header().Get("Set-Cookie"))
+}
+
+func TestWriteNonStreamingResponse_DoesNotForwardHeadersByDefault(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+
+	writeNonStreamingResponse(c, &httpclient.Response{
+		StatusCode: http.StatusOK,
+		Headers: http.Header{
+			"Content-Type": []string{"application/json"},
+			"X-Upstream":   []string{"not-forwarded"},
+		},
+		Body: []byte(`{"output":"ok"}`),
+	}, false)
+
+	require.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	require.Empty(t, w.Header().Get("X-Upstream"))
+}
+
 func TestFormatStreamError_PlainError(t *testing.T) {
 	err := errors.New("something went wrong")
 	result := FormatStreamError(context.Background(), err)

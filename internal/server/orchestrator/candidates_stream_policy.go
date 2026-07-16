@@ -26,6 +26,12 @@ func (s *StreamPolicySelector) Select(ctx context.Context, req *llm.Request) ([]
 	if len(candidates) == 0 {
 		return candidates, nil
 	}
+	// Alpha Search always uses a non-streaming HTTP JSON endpoint. A channel's
+	// stream policy describes its completion transport and must not make this
+	// auxiliary Codex endpoint unavailable.
+	if req != nil && req.RequestType == llm.RequestTypeAlphaSearch {
+		return candidates, nil
+	}
 
 	if req.Stream != nil && *req.Stream {
 		filtered := lo.Filter(candidates, func(c *ChannelModelsCandidate, _ int) bool {

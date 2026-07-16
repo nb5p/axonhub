@@ -68,6 +68,10 @@ func hasResponseContent(resp *llm.Response) bool {
 		return false
 	}
 
+	if resp.RequestType == llm.RequestTypeAlphaSearch && len(resp.TransformerMetadata) > 0 {
+		return true
+	}
+
 	if resp.Moderation != nil && len(resp.Moderation.Results) > 0 {
 		return true
 	}

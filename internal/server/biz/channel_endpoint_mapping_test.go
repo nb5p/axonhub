@@ -97,6 +97,7 @@ func TestDefaultEndpointsForChannelType_UseLLMAPIFormatValues(t *testing.T) {
 			typ:  channel.TypeCodex,
 			expected: []string{
 				llm.APIFormatOpenAIResponse.String(),
+				llm.APIFormatOpenAICodexAlphaSearch.String(),
 				llm.APIFormatOpenAIImageGeneration.String(),
 				llm.APIFormatOpenAIImageEdit.String(),
 			},
@@ -283,6 +284,7 @@ func TestSupportedAPIFormats_UsesLLMAPIFormatValues(t *testing.T) {
 		llm.APIFormatOpenAICompletion.String(),
 		llm.APIFormatOpenAIResponse.String(),
 		llm.APIFormatOpenAIResponseCompact.String(),
+		llm.APIFormatOpenAICodexAlphaSearch.String(),
 		llm.APIFormatOpenAIEmbedding.String(),
 		llm.APIFormatOpenAIImageGeneration.String(),
 		llm.APIFormatOpenAIImageEdit.String(),

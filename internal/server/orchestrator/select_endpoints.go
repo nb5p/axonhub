@@ -19,6 +19,10 @@ var compactCapableAPIFormats = map[string]struct{}{
 	"openai/responses_compact": {},
 }
 
+var alphaSearchCapableAPIFormats = map[string]struct{}{
+	"openai/codex_alpha_search": {},
+}
+
 // completionCapableAPIFormats lists API formats for completion requests.
 var completionCapableAPIFormats = map[string]struct{}{
 	"openai/completions": {},
@@ -89,6 +93,8 @@ func SelectAPIFormat(endpoints []objects.ChannelEndpoint, req *llm.Request) stri
 		allowed = chatCapableAPIFormats
 	case llm.RequestTypeCompact:
 		allowed = compactCapableAPIFormats
+	case llm.RequestTypeAlphaSearch:
+		allowed = alphaSearchCapableAPIFormats
 	case llm.RequestTypeCompletion:
 		allowed = completionCapableAPIFormats
 	case llm.RequestTypeEmbedding:

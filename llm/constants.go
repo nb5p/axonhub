@@ -3,13 +3,14 @@ package llm
 type RequestType string
 
 const (
-	RequestTypeChat       RequestType = "chat"
-	RequestTypeEmbedding  RequestType = "embedding"
-	RequestTypeRerank     RequestType = "rerank"
-	RequestTypeImage      RequestType = "image"
-	RequestTypeVideo      RequestType = "video"
-	RequestTypeCompact    RequestType = "compact"
-	RequestTypeCompletion RequestType = "completion"
+	RequestTypeChat        RequestType = "chat"
+	RequestTypeEmbedding   RequestType = "embedding"
+	RequestTypeRerank      RequestType = "rerank"
+	RequestTypeImage       RequestType = "image"
+	RequestTypeVideo       RequestType = "video"
+	RequestTypeCompact     RequestType = "compact"
+	RequestTypeAlphaSearch RequestType = "alpha_search"
+	RequestTypeCompletion  RequestType = "completion"
 
 	// RequestTypeSpeech is the text-to-speech (TTS) request type, maps to /v1/audio/speech.
 	RequestTypeSpeech RequestType = "speech"
@@ -28,15 +29,16 @@ func (r RequestType) String() string {
 type APIFormat string
 
 const (
-	APIFormatOpenAIChatCompletion  APIFormat = "openai/chat_completions"
-	APIFormatOpenAICompletion      APIFormat = "openai/completions"
-	APIFormatOpenAIResponse        APIFormat = "openai/responses"
-	APIFormatOpenAIResponseCompact APIFormat = "openai/responses_compact"
-	APIFormatOpenAIImageGeneration APIFormat = "openai/image_generation"
-	APIFormatOpenAIImageEdit       APIFormat = "openai/image_edit"
-	APIFormatOpenAIImageVariation  APIFormat = "openai/image_variation"
-	APIFormatOpenAIEmbedding       APIFormat = "openai/embeddings"
-	APIFormatOpenAIVideo           APIFormat = "openai/video"
+	APIFormatOpenAIChatCompletion   APIFormat = "openai/chat_completions"
+	APIFormatOpenAICompletion       APIFormat = "openai/completions"
+	APIFormatOpenAIResponse         APIFormat = "openai/responses"
+	APIFormatOpenAIResponseCompact  APIFormat = "openai/responses_compact"
+	APIFormatOpenAICodexAlphaSearch APIFormat = "openai/codex_alpha_search"
+	APIFormatOpenAIImageGeneration  APIFormat = "openai/image_generation"
+	APIFormatOpenAIImageEdit        APIFormat = "openai/image_edit"
+	APIFormatOpenAIImageVariation   APIFormat = "openai/image_variation"
+	APIFormatOpenAIEmbedding        APIFormat = "openai/embeddings"
+	APIFormatOpenAIVideo            APIFormat = "openai/video"
 
 	APIFormatOpenAISpeech        APIFormat = "openai/audio_speech"
 	APIFormatOpenAITranscription APIFormat = "openai/audio_transcriptions"

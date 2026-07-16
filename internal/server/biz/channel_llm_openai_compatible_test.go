@@ -184,6 +184,10 @@ func TestCodexOAuthWebSocketEndpointBuildsWithoutAPIKey(t *testing.T) {
 	require.True(t, ok)
 	require.True(t, primary.TokenProvider() == override.TokenProvider())
 
+	alphaSearch, err := BuildOutboundByAPIFormat(built, llm.APIFormatOpenAICodexAlphaSearch.String())
+	require.NoError(t, err)
+	require.True(t, primary == alphaSearch)
+
 	custom, ok := outbound.(pipeline.ChannelCustomizedExecutor)
 	require.True(t, ok)
 	require.NotNil(t, custom.CustomizeExecutor(nil))

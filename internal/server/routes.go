@@ -178,6 +178,7 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 		openaiGroup.POST("/completions", handlers.OpenAI.Completion)
 		openaiGroup.POST("/responses/compact", handlers.OpenAI.CompactResponse)
 		openaiGroup.POST("/responses", handlers.OpenAI.CreateResponse)
+		openaiGroup.POST("/alpha/search", handlers.OpenAI.AlphaSearch)
 		openaiGroup.GET("/models", handlers.OpenAI.ListModels)
 		openaiGroup.GET("/models/*model", handlers.OpenAI.RetrieveModel)
 		openaiGroup.POST("/embeddings", handlers.OpenAI.CreateEmbedding)
@@ -198,6 +199,11 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 
 		// Compatible with OpenAI API
 		openaiGroup.POST("/rerank", handlers.Jina.Rerank)
+	}
+
+	{
+		codexDirectGroup := apiGroup.Group("/backend-api/codex")
+		codexDirectGroup.POST("/alpha/search", handlers.OpenAI.AlphaSearch)
 	}
 
 	{

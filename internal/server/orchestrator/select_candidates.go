@@ -62,6 +62,10 @@ func selectCandidates(inbound *PersistentInboundTransformer, quotaProvider Provi
 			selector = WithAnthropicNativeToolsSelector(selector)
 		}
 
+		if llmRequest.RequestType == llm.RequestTypeAlphaSearch {
+			selector = WithCodexAlphaSearchSelector(selector)
+		}
+
 		selector = WithStreamPolicySelector(selector)
 
 		quotaSelector := WithProviderQuotaSelector(selector, quotaProvider, systemService)

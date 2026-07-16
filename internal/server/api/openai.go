@@ -22,6 +22,7 @@ import (
 	"github.com/looplj/axonhub/llm/httpclient"
 	"github.com/looplj/axonhub/llm/transformer"
 	"github.com/looplj/axonhub/llm/transformer/openai"
+	"github.com/looplj/axonhub/llm/transformer/openai/codex"
 	"github.com/looplj/axonhub/llm/transformer/openai/responses"
 )
 
@@ -54,6 +55,7 @@ type OpenAIHandlers struct {
 	CompletionHandlers         *ChatCompletionHandlers
 	ResponseCompletionHandlers *ChatCompletionHandlers
 	CompactHandlers            *ChatCompletionHandlers
+	AlphaSearchHandlers        *ChatCompletionHandlers
 	EmbeddingHandlers          *ChatCompletionHandlers
 	ModerationHandlers         *ChatCompletionHandlers
 	ImageGenerationHandlers    *ChatCompletionHandlers
@@ -144,6 +146,24 @@ func NewOpenAIHandlers(params OpenAIHandlersParams) *OpenAIHandlers {
 				params.ChannelLimiterManager,
 				params.ProviderQuotaStatusProvider,
 			),
+		},
+		AlphaSearchHandlers: &ChatCompletionHandlers{
+			ChatCompletionOrchestrator: orchestrator.NewChatCompletionOrchestrator(
+				params.ChannelService,
+				params.DefaultSelector,
+				params.RequestService,
+				params.HttpClient,
+				codex.NewAlphaSearchInboundTransformer(),
+				params.SystemService,
+				params.UsageLogService,
+				params.PromptService,
+				params.QuotaService,
+				params.PromptProtectionRuleService,
+				params.LiveStreamRegistry,
+				params.ChannelLimiterManager,
+				params.ProviderQuotaStatusProvider,
+			),
+			ForwardResponseHeaders: true,
 		},
 		EmbeddingHandlers: &ChatCompletionHandlers{
 			ChatCompletionOrchestrator: orchestrator.NewChatCompletionOrchestrator(
@@ -322,6 +342,10 @@ func (handlers *OpenAIHandlers) CreateResponse(c *gin.Context) {
 
 func (handlers *OpenAIHandlers) CompactResponse(c *gin.Context) {
 	handlers.CompactHandlers.ChatCompletion(c)
+}
+
+func (handlers *OpenAIHandlers) AlphaSearch(c *gin.Context) {
+	handlers.AlphaSearchHandlers.ChatCompletion(c)
 }
 
 func (handlers *OpenAIHandlers) CreateEmbedding(c *gin.Context) {

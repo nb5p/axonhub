@@ -204,6 +204,17 @@ func TestStreamPolicySelector_Select(t *testing.T) {
 			apiFormat:  llm.APIFormatOpenAIResponseCompact,
 		},
 		{
+			name:      "alpha search bypasses stream policy",
+			reqStream: lo.ToPtr(false),
+			candidates: []*ChannelModelsCandidate{
+				newCandidate("require", objects.CapabilityPolicyRequire),
+			},
+			wantCount:  1,
+			wantModels: []string{"require"},
+			reqType:    llm.RequestTypeAlphaSearch,
+			apiFormat:  llm.APIFormatOpenAICodexAlphaSearch,
+		},
+		{
 			name:      "mixed candidates for supported non-stream request keep native candidates ahead of require fallback",
 			reqStream: nil,
 			candidates: []*ChannelModelsCandidate{

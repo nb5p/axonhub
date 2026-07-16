@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	codexBaseURL = "https://chatgpt.com/backend-api/codex#"
-	codexAPIURL  = "https://chatgpt.com/backend-api/codex/responses"
+	codexBaseURL                   = "https://chatgpt.com/backend-api/codex#"
+	codexAPIURL                    = "https://chatgpt.com/backend-api/codex/responses"
+	alphaSearchResponseMetadataKey = "codex_alpha_search_response"
 )
 
 // OutboundTransformer implements transformer.Outbound for Codex proxy.
@@ -32,8 +33,10 @@ const (
 //
 //nolint:containedctx // It is used as a transformer.
 type OutboundTransformer struct {
-	tokens    oauth.TokenGetter
-	transport string
+	tokens          oauth.TokenGetter
+	transport       string
+	baseURL         string
+	alphaSearchPath string
 
 	// reuse existing Responses outbound for payload building.
 	responsesOutbound *responses.OutboundTransformer
@@ -48,9 +51,10 @@ var (
 )
 
 type Params struct {
-	TokenProvider oauth.TokenGetter
-	BaseURL       string
-	Transport     string
+	TokenProvider   oauth.TokenGetter
+	BaseURL         string
+	Transport       string
+	AlphaSearchPath string
 }
 
 func NewOutboundTransformer(params Params) (*OutboundTransformer, error) {
@@ -78,6 +82,8 @@ func NewOutboundTransformer(params Params) (*OutboundTransformer, error) {
 	return &OutboundTransformer{
 		tokens:            params.TokenProvider,
 		transport:         params.Transport,
+		baseURL:           baseURL,
+		alphaSearchPath:   params.AlphaSearchPath,
 		responsesOutbound: ro,
 	}, nil
 }
@@ -101,6 +107,9 @@ func (t *OutboundTransformer) TransformError(ctx context.Context, rawErr *httpcl
 func (t *OutboundTransformer) TransformRequest(ctx context.Context, llmReq *llm.Request) (*httpclient.Request, error) {
 	if llmReq == nil {
 		return nil, errors.New("request is nil")
+	}
+	if llmReq.RequestType == llm.RequestTypeAlphaSearch {
+		return t.transformAlphaSearchRequest(ctx, llmReq)
 	}
 
 	rawSessionID := ""
@@ -248,6 +257,9 @@ func (t *OutboundTransformer) TransformRequest(ctx context.Context, llmReq *llm.
 }
 
 func (t *OutboundTransformer) TransformResponse(ctx context.Context, httpResp *httpclient.Response) (*llm.Response, error) {
+	if httpResp != nil && httpResp.Request != nil && httpResp.Request.RequestType == llm.RequestTypeAlphaSearch.String() {
+		return transformAlphaSearchResponse(httpResp)
+	}
 	if httpResp != nil && httpResp.Request != nil && httpResp.Request.RequestType == llm.RequestTypeImage.String() {
 		if httpResp.StatusCode >= 400 {
 			return nil, fmt.Errorf("codex image HTTP error %d: %s", httpResp.StatusCode, httpResp.Body)
@@ -285,6 +297,7 @@ func (t *OutboundTransformer) CustomizeExecutor(executor pipeline.Executor) pipe
 
 	return &codexExecutor{
 		inner:       inner,
+		httpInner:   executor,
 		transformer: t,
 	}
 }
@@ -330,10 +343,14 @@ func (t *OutboundTransformer) Stop() {
 
 type codexExecutor struct {
 	inner       pipeline.Executor
+	httpInner   pipeline.Executor
 	transformer *OutboundTransformer
 }
 
 func (e *codexExecutor) Do(ctx context.Context, request *httpclient.Request) (*httpclient.Response, error) {
+	if request.RequestType == llm.RequestTypeAlphaSearch.String() {
+		return e.httpInner.Do(ctx, request)
+	}
 	if request.RequestType == string(llm.RequestTypeCompact) {
 		return e.inner.Do(ctx, request)
 	}

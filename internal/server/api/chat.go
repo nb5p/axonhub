@@ -29,6 +29,7 @@ type StreamWriter func(c *gin.Context, stream streams.Stream[*httpclient.StreamE
 type ChatCompletionHandlers struct {
 	ChatCompletionOrchestrator *orchestrator.ChatCompletionOrchestrator
 	StreamWriter               StreamWriter
+	ForwardResponseHeaders     bool
 }
 
 func NewChatCompletionHandlers(orchestrator *orchestrator.ChatCompletionOrchestrator) *ChatCompletionHandlers {
@@ -43,6 +44,7 @@ func (handlers *ChatCompletionHandlers) WithStreamWriter(writer StreamWriter) *C
 	return &ChatCompletionHandlers{
 		ChatCompletionOrchestrator: handlers.ChatCompletionOrchestrator,
 		StreamWriter:               writer,
+		ForwardResponseHeaders:     handlers.ForwardResponseHeaders,
 	}
 }
 
@@ -82,14 +84,7 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 	}
 
 	if result.ChatCompletion != nil {
-		resp := result.ChatCompletion
-
-		contentType := "application/json"
-		if ct := resp.Headers.Get("Content-Type"); ct != "" {
-			contentType = ct
-		}
-
-		c.Data(resp.StatusCode, contentType, resp.Body)
+		writeNonStreamingResponse(c, result.ChatCompletion, handlers.ForwardResponseHeaders)
 
 		return
 	}
@@ -113,6 +108,53 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 
 		streamWriter(c, newUpstreamErrorStream(ctx, result.ChatCompletionStream, handlers.ChatCompletionOrchestrator.SystemService))
 	}
+}
+
+var blockedForwardResponseHeaders = map[string]struct{}{
+	"Connection":          {},
+	"Content-Length":      {},
+	"Keep-Alive":          {},
+	"Proxy-Authenticate":  {},
+	"Proxy-Authorization": {},
+	"Set-Cookie":          {},
+	"Te":                  {},
+	"Trailer":             {},
+	"Transfer-Encoding":   {},
+	"Upgrade":             {},
+	"Www-Authenticate":    {},
+}
+
+func writeNonStreamingResponse(c *gin.Context, resp *httpclient.Response, forwardHeaders bool) {
+	if forwardHeaders {
+		connectionHeaders := make(map[string]struct{})
+		for _, value := range resp.Headers.Values("Connection") {
+			for token := range strings.SplitSeq(value, ",") {
+				if key := http.CanonicalHeaderKey(strings.TrimSpace(token)); key != "" {
+					connectionHeaders[key] = struct{}{}
+				}
+			}
+		}
+
+		for key, values := range resp.Headers {
+			canonicalKey := http.CanonicalHeaderKey(key)
+			_, blocked := blockedForwardResponseHeaders[canonicalKey]
+			_, connectionScoped := connectionHeaders[canonicalKey]
+			if blocked || connectionScoped || httpclient.IsSensitiveHeader(canonicalKey) {
+				continue
+			}
+
+			for _, value := range values {
+				c.Writer.Header().Add(canonicalKey, value)
+			}
+		}
+	}
+
+	contentType := "application/json"
+	if ct := resp.Headers.Get("Content-Type"); ct != "" {
+		contentType = ct
+	}
+
+	c.Data(resp.StatusCode, contentType, resp.Body)
 }
 
 // StreamErrorFormatter formats a stream error into a JSON-serializable object for SSE error events.

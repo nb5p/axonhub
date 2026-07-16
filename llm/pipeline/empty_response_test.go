@@ -29,6 +29,13 @@ func TestHasResponseContent(t *testing.T) {
 		require.False(t, hasResponseContent(&llm.Response{}))
 	})
 
+	t.Run("codex alpha search raw response", func(t *testing.T) {
+		require.True(t, hasResponseContent(&llm.Response{
+			RequestType:         llm.RequestTypeAlphaSearch,
+			TransformerMetadata: map[string]any{"raw": struct{}{}},
+		}))
+	})
+
 	t.Run("message text content", func(t *testing.T) {
 		require.True(t, hasResponseContent(&llm.Response{
 			Choices: []llm.Choice{{
