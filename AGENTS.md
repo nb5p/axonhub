@@ -2,6 +2,11 @@
 
 This file provides guidance to AI coding assistants when working with code in this repository.
 
+> **Mandatory local rules:** After reading this file, you MUST read
+> [`AGENTS.local.md`](AGENTS.local.md) in full before analyzing or modifying the
+> repository. Both files apply; if `AGENTS.local.md` is missing, stop before any
+> mutating action and report the problem to the user.
+
 > **Detailed rules are split into focused files under `.agent/rules/`**. See [Rules Index](#rules-index) below.
 
 ## Global Rules
