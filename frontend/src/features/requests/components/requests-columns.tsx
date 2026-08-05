@@ -12,6 +12,7 @@ import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { TapTooltip } from '@/components/ui/tap-tooltip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
 import { useGeneralSettings, useSecuritySettings, useUpdateSecuritySettings } from '@/features/system/data/system';
@@ -119,10 +120,37 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         const executions = request.executions?.edges?.flatMap((edge) => (edge.node ? [edge.node] : [])) ?? [];
         const reasoningEffort = executions[0]?.reasoningEffort ?? request.reasoningEffort;
         const passThroughApplied = executions.some((execution) => execution.passThroughApplied);
+        const originalModelID = request.modelID || t('requests.columns.unknown');
+        const executionModelIDs = Array.from(new Set(executions.map((execution) => execution.modelID || ''))).filter(
+          (modelID) => modelID && modelID !== request.modelID
+        );
 
         return (
           <div className='flex min-w-[160px] flex-col gap-1'>
-            <span className='font-mono text-xs font-medium'>{request.modelID || t('requests.columns.unknown')}</span>
+            {executionModelIDs.length > 0 ? (
+              <TapTooltip
+                content={
+                  <div className='flex items-center gap-2 p-2'>
+                    <span className='text-muted-foreground text-xs whitespace-nowrap'>{t('requests.columns.executedModelId')}:</span>
+                    <span className='rounded bg-amber-100 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'>
+                      {executionModelIDs[0]}
+                    </span>
+                  </div>
+                }
+                contentProps={{ side: 'right', className: 'border-amber-200 bg-white dark:bg-zinc-900' }}
+              >
+                <button
+                  type='button'
+                  data-testid='request-model-route-trigger'
+                  className='flex w-fit cursor-help items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-800/50 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50'
+                >
+                  <span>{originalModelID}</span>
+                  <IconRoute className='h-3.5 w-3.5 opacity-80' />
+                </button>
+              </TapTooltip>
+            ) : (
+              <span className='font-mono text-xs font-medium'>{originalModelID}</span>
+            )}
             <div className='flex items-center gap-1.5'>
               {reasoningEffort && (
                 <Badge className='border-sky-200 bg-sky-100 text-sky-800 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-300'>
@@ -252,20 +280,8 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
                 <div className='flex min-w-[120px] items-center gap-1.5'>
                   <span className='font-mono text-xs'>{channel.name}</span>
                   {hasExecutionPath && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type='button'
-                          variant='ghost'
-                          size='icon-sm'
-                          className='h-6 w-6 shrink-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/30 dark:hover:text-rose-200'
-                          onClick={() => openDetail(request.id)}
-                          aria-label={t('requests.tooltips.executionChain')}
-                        >
-                          <IconArrowsJoin2 className='h-3.5 w-3.5' />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side='right' className='max-w-xs p-2'>
+                    <TapTooltip
+                      content={
                         <div className='space-y-1.5'>
                           <p className='text-xs font-medium'>{t('requests.tooltips.executionChain')}</p>
                           {[...executions].reverse().map((execution, index) => (
@@ -277,8 +293,21 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
                             </div>
                           ))}
                         </div>
-                      </TooltipContent>
-                    </Tooltip>
+                      }
+                      contentProps={{ side: 'right', className: 'max-w-xs p-2' }}
+                      onActivate={() => openDetail(request.id)}
+                    >
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon-sm'
+                        data-testid='request-channel-route-trigger'
+                        className='h-6 w-6 shrink-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/30 dark:hover:text-rose-200'
+                        aria-label={t('requests.tooltips.executionChain')}
+                      >
+                        <IconArrowsJoin2 className='h-3.5 w-3.5' />
+                      </Button>
+                    </TapTooltip>
                   )}
                 </div>
               );
