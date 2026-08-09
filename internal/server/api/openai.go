@@ -44,6 +44,7 @@ type OpenAIHandlersParams struct {
 	ChannelLimiterManager       *orchestrator.ChannelLimiterManager
 	ProviderQuotaStatusProvider orchestrator.ProviderQuotaStatusProvider
 	Client                      *ent.Client
+	SSEKeepAliveConfig          SSEKeepAliveConfig
 }
 
 type OpenAIHandlers struct {
@@ -78,7 +79,7 @@ func NewOpenAIHandlers(params OpenAIHandlersParams) *OpenAIHandlers {
 	videoInbound := openai.NewVideoInboundTransformer()
 	speechInbound := openai.NewSpeechInboundTransformer()
 
-	return &OpenAIHandlers{
+	handlers := &OpenAIHandlers{
 		ChatCompletionHandlers: &ChatCompletionHandlers{
 			ChatCompletionOrchestrator: orchestrator.NewChatCompletionOrchestrator(
 				params.ChannelService,
@@ -326,6 +327,21 @@ func NewOpenAIHandlers(params OpenAIHandlersParams) *OpenAIHandlers {
 			),
 		},
 	}
+
+	for _, handler := range []*ChatCompletionHandlers{
+		handlers.ChatCompletionHandlers,
+		handlers.CompletionHandlers,
+		handlers.ResponseCompletionHandlers,
+		handlers.CompactHandlers,
+		handlers.SpeechHandlers,
+		handlers.TranscriptionHandlers,
+		handlers.TranslationHandlers,
+	} {
+		handler.sseKeepAlive = params.SSEKeepAliveConfig
+		handler.sseHeartbeatFormat = sseHeartbeatOpenAI
+	}
+
+	return handlers
 }
 
 func (handlers *OpenAIHandlers) ChatCompletion(c *gin.Context) {
