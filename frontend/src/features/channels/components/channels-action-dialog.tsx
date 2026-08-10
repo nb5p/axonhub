@@ -3038,6 +3038,18 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                               </div>
 
                               <div className='flex items-center gap-1'>
+                                {/* Copy button */}
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='sm'
+                                  className='h-7 w-7 p-0'
+                                  onClick={() => void handleCopyApiKey(key)}
+                                  aria-label={t('channels.dialogs.keyManagement.copy')}
+                                >
+                                  <Copy className='h-4 w-4' />
+                                </Button>
+
                                 {/* Disable / Enable button — only for keys saved in backend */}
                                 {isSavedKey &&
                                   (isDisabled ? (
@@ -3117,25 +3129,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                                       </PopoverContent>
                                     </Popover>
                                   ))}
-
-                                {/* Copy button */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type='button'
-                                      variant='ghost'
-                                      size='sm'
-                                      className='h-7 w-7 p-0'
-                                      onClick={() => void handleCopyApiKey(key)}
-                                      aria-label={t('channels.dialogs.keyManagement.copy')}
-                                    >
-                                      <Copy className='h-4 w-4' />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{t('channels.dialogs.keyManagement.copy')}</p>
-                                  </TooltipContent>
-                                </Tooltip>
 
                                 {/* Delete button */}
                                 {isLastKey ? (

@@ -500,14 +500,15 @@ export function ChannelsAPIKeyManagementDialog({ open, onOpenChange }: ChannelsA
                                 </TooltipTrigger>
                                 <TooltipContent>{t('channels.dialogs.keyManagement.test')}</TooltipContent>
                               </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size='sm' variant='ghost' className='h-7 w-7 p-0' onClick={handleCopy}>
-                                    <IconCopy className='h-4 w-4' />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{t('channels.dialogs.keyManagement.copy')}</TooltipContent>
-                              </Tooltip>
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                className='h-7 w-7 p-0'
+                                onClick={handleCopy}
+                                aria-label={t('channels.dialogs.keyManagement.copy')}
+                              >
+                                <IconCopy className='h-4 w-4' />
+                              </Button>
 
                               {isDisabled ? (
                                 <Popover open={confirmEnableKey === key} onOpenChange={(o) => setConfirmEnableKey(o ? key : null)}>
