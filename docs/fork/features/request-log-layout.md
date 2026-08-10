@@ -18,10 +18,12 @@ local:
   commits:
     - d476d57b5f4ff6b29d890e844baee2566ab568ab
     - 81c62c6e190ee7c5868173577301cc131bd9c1d9
+    - 1afef2bec18329f7ccf987cd21cf1664896f1423
   modules:
     - frontend/src/features/requests/components/requests-columns.tsx
     - frontend/src/features/requests/components/requests-table.tsx
     - frontend/src/features/requests/data/requests.ts
+    - frontend/src/locales
 upstream:
   repository: https://github.com/looplj/axonhub
   pull_request: null
@@ -39,7 +41,7 @@ database:
 
 ## 目的
 
-恢复请求日志中的请求序号，将序号、状态和时间组织在同一列，并让模型、渠道列按内容自适应宽度且保留可读的最小宽度。
+恢复请求日志中的请求序号，将序号、状态和时间组织在同一列，并让表格在保留各列内容最小宽度的同时填满宽屏容器。
 
 ## 来源与采用范围
 
@@ -49,7 +51,9 @@ database:
 
 - 请求查询读取 ID，序号使用与完成状态一致的深绿色。
 - 模型和渠道列使用内容固有宽度，分别保留最小宽度。
-- 表格使用内容宽度布局，避免剩余空间被平均分配到模型列。
+- 表格以内容宽度布局，并以容器宽度作为下限；宽屏填满容器，窄屏保持内容宽度并横向滚动。
+- “调用方”列改名为“密钥”，并移动到客户端 IP 与渠道之间。
+- 在用量右侧恢复独立的缓存命中率列；输入不少于 40,000 Token 且命中率低于 80% 时使用红色提醒。
 
 ## 与来源的差异
 
@@ -67,9 +71,11 @@ database:
 
 - TypeScript 检查通过。
 - Vite 前端构建通过。
+- 浏览器布局回归验证：1500、1550、1580、1590px 视口下表格右侧空白均为 0；1280px 视口保留横向滚动。
 
 ## 更新历史
 
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `d476d57b5f4ff6b29d890e844baee2566ab568ab`, `81c62c6e190ee7c5868173577301cc131bd9c1d9` | 恢复请求序号并修正颜色和自适应列宽。 |
+| 2026-08-11 | 本地反馈与上游历史缓存命中率逻辑 | `1afef2bec18329f7ccf987cd21cf1664896f1423` | 修复宽屏右侧空白，调整密钥列，并恢复缓存命中率。 |
