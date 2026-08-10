@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Ban, FileText } from 'lucide-react';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { extractNumberID } from '@/lib/utils';
 import { formatDuration } from '@/utils/format-duration';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -95,9 +96,18 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       cell: ({ row }) => {
         const request = row.original;
         return (
-          <div className='flex min-w-[142px] flex-col gap-1'>
-            <span className='text-sm font-medium'>{format(new Date(request.createdAt), 'yyyy-MM-dd HH:mm:ss', { locale })}</span>
-            <Badge className={`${getStatusColor(request.status)} w-fit`}>{t(`requests.status.${request.status}`)}</Badge>
+          <div className='flex min-w-[160px] flex-col gap-1'>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={() => openDetail(request.id)}
+                className='text-primary cursor-pointer font-mono text-xs hover:underline'
+              >
+                #{extractNumberID(request.id)}
+              </button>
+              <Badge className={`${getStatusColor(request.status)} w-fit whitespace-nowrap`}>{t(`requests.status.${request.status}`)}</Badge>
+            </div>
+            <span className='text-muted-foreground text-sm'>{format(new Date(request.createdAt), 'yyyy-MM-dd HH:mm:ss', { locale })}</span>
           </div>
         );
       },
@@ -115,6 +125,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.model')} />,
       enableSorting: false,
       enableHiding: false,
+      meta: { className: 'w-auto min-w-[160px]' },
       cell: ({ row }) => {
         const request = row.original;
         const executions = request.executions?.edges?.flatMap((edge) => (edge.node ? [edge.node] : [])) ?? [];
@@ -126,7 +137,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         );
 
         return (
-          <div className='flex min-w-[160px] flex-col gap-1'>
+          <div className='flex w-auto min-w-[160px] flex-col gap-1'>
             {executionModelIDs.length > 0 ? (
               <TapTooltip
                 content={
@@ -264,6 +275,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.channel')} />,
             enableSorting: false,
             enableHiding: true,
+            meta: { className: 'w-auto min-w-[120px]' },
             cell: ({ row }) => {
               const request = row.original;
               const executions = request.executions?.edges?.flatMap((edge) => (edge.node ? [edge.node] : [])) ?? [];
@@ -277,7 +289,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
               if (!channel) return <span className='text-muted-foreground font-mono text-xs'>-</span>;
 
               return (
-                <div className='flex min-w-[120px] items-center gap-1.5'>
+                <div className='flex w-auto min-w-[120px] items-center gap-1.5'>
                   <span className='font-mono text-xs'>{channel.name}</span>
                   {hasExecutionPath && (
                     <TapTooltip
