@@ -44,8 +44,13 @@
 | `mobile-request-route-tooltip` | `none` | 是 | 无 | 仅涉及前端交互。 |
 | `mobile-ui-improvements` | `none` | 是 | 无 | 仅涉及前端 UI，且已被上游吸收。 |
 | `responses-reasoning-item-ids` | `none` | 是 | 无 | 已通过历史重写移除代码，仅保留账本记录。 |
+| `channel-api-key-copy` | `none` | 是 | 无 | 仅涉及渠道编辑界面的复制交互。 |
+| `request-log-layout` | `none` | 是 | 无 | 仅涉及请求日志查询字段和前端表格布局。 |
+| `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
+| `channel-provider-tabs-default-hidden` | `none` | 是 | 无 | 仅调整浏览器本地偏好的默认值。 |
+| `api-key-profile-access-preview` | `none` | 是 | 无 | 新增只读 GraphQL 预览查询，不修改配置或持久化结构。 |
 
-截至最后一次合入的上游基线 `dba642a08c91c9696018f6ef185435902ecf60f0`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
+截至最后一次合入的上游基线 `9dfd6ac0c21bbc5abe55827fa634e22826287d67`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
 
 ## 后续登记模板
 
