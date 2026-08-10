@@ -39,7 +39,9 @@ history_rewrites:
   - rewritten_at: 2026-08-10
     old_head: 4e790523efe3ff78963782df7bff98a53126095a
     new_head: aacc271bf6b79db56907ab4641fe56860e3deaef
-    backup_ref: backup/ai-slop-before-responses-id-rewrite-20260810
+    backup_ref: null
+    backup_ref_created: backup/ai-slop-before-responses-id-rewrite-20260810
+    backup_ref_removed_at: 2026-08-10
     removed_commits:
       - 5571aa81a49dfbafed3a9d727fb9b21a4ba9e82d
       - b4268702492ee93f365625d2467118e553d43b7b
@@ -69,7 +71,7 @@ database:
 - 纯净贡献提交为 `5571aa81` 和 `0e066896`；私有集成外壳为
   `b4268702` 和 `5e3f62f5`。
 - 原 `ai-slop` head 为 `4e790523`，重写后的代码 merge 为 `aacc271b`。
-- 可恢复引用：`backup/ai-slop-before-responses-id-rewrite-20260810`。
+- 曾建立并验证恢复引用 `backup/ai-slop-before-responses-id-rewrite-20260810`，完成核对后已删除。
 
 ## 重写结果
 

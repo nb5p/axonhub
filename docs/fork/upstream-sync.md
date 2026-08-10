@@ -14,7 +14,8 @@ last_merged_upstream_commit: dba642a08c91c9696018f6ef185435902ecf60f0
 local_merge_commit: aacc271bf6b79db56907ab4641fe56860e3deaef
 integrated_at: 2026-08-10
 integration_mode: merge
-recovery_ref: backup/ai-slop-before-responses-id-rewrite-20260810
+recovery_ref: null
+recovery_ref_history: backup/ai-slop-before-responses-id-rewrite-20260810 (created and deleted after validation on 2026-08-10)
 private_commit_marker: "🧩"
 ```
 
@@ -79,6 +80,7 @@ reconciliations:
 | 2026-08-05 | `7ed4400595c2d73ca14e0131a86657058f261852` | `e55d8e915524facef57087f4eb6952c8cd9dc127` | 已合入；保留 Codex Alpha Search，同时采用上游的新权限和移动端响应式实现。 |
 | 2026-08-06 | `d6ed9c6288ae1642a5a1e8f76db7a8abc0b223af` | `null` | 经用户批准，以该上游 commit 为直接基线重建私有历史；只重放仍有效的 Alpha Search、触摸 tooltip 和维护账本。 |
 | 2026-08-10 | `dba642a08c91c9696018f6ef185435902ecf60f0` | `aacc271bf6b79db56907ab4641fe56860e3deaef` | 经用户明确要求重写历史，保留 SSE keepalive、私有响应头转发及其他无关改动，移除 Responses item ID 修复及其集成外壳。 |
+| 2026-08-10 | `null` | `null` | 完成历史核对后删除本地恢复引用；该引用从未推送到远程。 |
 
 ### 2026-08-06 经批准的历史重建
 
