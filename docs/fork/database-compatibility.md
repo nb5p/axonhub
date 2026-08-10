@@ -43,8 +43,9 @@
 | `codex-alpha-search` | `none` | 是 | 无 | 仅涉及请求路由和 LLM 转换。 |
 | `mobile-request-route-tooltip` | `none` | 是 | 无 | 仅涉及前端交互。 |
 | `mobile-ui-improvements` | `none` | 是 | 无 | 仅涉及前端 UI，且已被上游吸收。 |
+| `responses-reasoning-item-ids` | `none` | 是 | 无 | 已通过历史重写移除代码，仅保留账本记录。 |
 
-截至最后一次合入的上游基线 `7ed4400595c2d73ca14e0131a86657058f261852`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
+截至最后一次合入的上游基线 `dba642a08c91c9696018f6ef185435902ecf60f0`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
 
 ## 后续登记模板
 
