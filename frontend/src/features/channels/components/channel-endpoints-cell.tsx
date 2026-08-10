@@ -68,7 +68,7 @@ export const ChannelEndpointsCell = memo(({ channel }: { channel: Channel }) => 
               tabIndex={0}
               aria-label={apiFormatLabel(endpoint.apiFormat)}
               className={cn(
-                'inline-flex h-6 min-w-6 cursor-help items-center justify-center rounded-md border px-1.5 font-mono text-xs font-semibold',
+                'inline-flex h-6 min-w-8 cursor-help items-center justify-center rounded-md border px-2 font-mono text-xs font-semibold',
                 endpoint.className
               )}
             >
@@ -85,7 +85,7 @@ export const ChannelEndpointsCell = memo(({ channel }: { channel: Channel }) => 
             <span
               tabIndex={0}
               aria-label={t('channels.endpoints.moreSupported', { count: remainingEndpoints.length })}
-              className='bg-muted text-muted-foreground inline-flex h-6 min-w-6 cursor-help items-center justify-center rounded-md border px-1.5 text-xs font-semibold'
+              className='bg-muted text-muted-foreground inline-flex h-6 min-w-8 cursor-help items-center justify-center rounded-md border px-2 text-xs font-semibold'
             >
               …
             </span>
