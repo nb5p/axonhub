@@ -93,3 +93,129 @@
 - 确认数据库兼容等级已经登记；不可兼容变更已经获得明确批准。
 - 确认上游贡献提交没有夹带私有规则或账本文档。
 - 保留与任务无关的用户改动和 stash，不得擅自恢复、删除或改写。
+
+## 本地蓝绿部署规则
+
+本节适用于本仓库的本地蓝绿部署，不属于准备提交给 AxonHub 上游的内容。
+
+### 适用原则
+
+- 本文件中的“蓝色”“绿色”是部署槽位，不是 Git 分支名。当前打开的仓库、当前分支和当前运行槽位三者没有必然关系。
+- 不得根据上一次会话、用户口述、容器名称或健康接口版本单独猜测当前槽位；执行重启或替换容器前必须现场读取权威状态并交叉验证。
+- 用户说“推到绿色”默认指把实现部署到绿色测试容器，不等于 `git push`，也不等于向 Forgejo 推送镜像。只有用户明确要求时才执行 Git 或镜像仓库推送。
+
+### 蓝绿环境拓扑
+
+| 项目 | 蓝色正式环境 | 绿色测试环境 |
+| --- | --- | --- |
+| 用途 | 群晖 NAS 上的稳定回退环境 | Mac 上用于验证新代码的 Docker 环境 |
+| 容器 | 群晖上的 `axonhub` | Mac 上的 `axonhub-local` |
+| 平台 | `linux/amd64` | `linux/arm64` |
+| 直连地址 | 不在本仓库中硬编码 | `http://127.0.0.1:9090` |
+| 镜像 | 正式环境镜像 | `axonhub-local:dev` |
+| Compose 控制目录 | 群晖项目目录 | `/Users/tux/Playground/AxonHub` |
+| Compose 文件 | 由群晖 Web UI 管理 | `/Users/tux/Playground/AxonHub/compose.local.yaml` |
+| 数据目录 | 群晖生产数据卷 | `/Users/tux/Playground/AxonHub/data` |
+
+统一公网入口是 `https://axon.109062.xyz:88`，流量由 Axon Switch 在蓝色和绿色之间切换。Axon Switch 源码位于 `/Users/tux/Projects/axon-switch`，其群晖容器名为 `axon-switch`。
+
+当前开发工作树通常是 `/Users/tux/Projects/axonhub`。绿色 Compose 项目目录 `/Users/tux/Playground/AxonHub` 只是绿色容器的控制与数据目录，里面可能是旧源码；它不是当前功能源码的隐式副本。
+
+### 判定当前正在承载流量的槽位
+
+#### 1. 读取权威状态
+
+Axon Switch 挂载到 Mac 的状态文件为：
+
+```text
+/Volumes/docker/axon-switch/volumes/axon-switch%data/state.json
+```
+
+只允许提取 `backends.active` 字段：
+
+```sh
+jq -r '.backends.active' \
+  '/Volumes/docker/axon-switch/volumes/axon-switch%data/state.json'
+```
+
+结果必须是 `blue` 或 `green`。状态文件还含有密码、密钥和后端信息，禁止 `cat`、完整打印、复制到日志或在回复中展示其内容。
+
+#### 2. 交叉检查健康接口
+
+```sh
+curl -fsS --max-time 10 'https://axon.109062.xyz:88/health'
+curl -fsS --max-time 10 'http://127.0.0.1:9090/health'
+```
+
+比较 `version`、`build.build_time`、`build.platform` 和 `uptime`。当状态为 `green` 时，公网健康信息应与绿色直连信息一致。健康信息只能用于交叉验证，不能取代 `backends.active`。
+
+如果状态文件不可用、字段无效或两项检查互相矛盾，必须报告“当前槽位无法可靠判定”，停止所有会中断服务的操作并请用户确认。不得以猜测继续。
+
+对用户报告时使用明确表述，例如：
+
+> 已现场验证 Axon Switch 的 `active=green`，公网与绿色直连健康信息一致。
+
+不得只说“应该是绿色”或“我记得是绿色”。
+
+### “部署到绿色”的准确含义
+
+#### 构建来源
+
+镜像必须从实现该功能的准确 Git 工作树构建。开始前记录工作树路径、分支、HEAD 和未提交状态。不要因为绿色 Compose 文件位于 Playground，就默认用 Playground 里的旧源码构建。
+
+在实现功能的工作树中可使用：
+
+```sh
+AXONHUB_SOURCE_DIR="$(git rev-parse --show-toplevel)"
+docker build \
+  --tag axonhub-local:dev \
+  --file "$AXONHUB_SOURCE_DIR/Dockerfile" \
+  "$AXONHUB_SOURCE_DIR"
+```
+
+构建镜像本身不会切换流量或重启容器。构建完成后应记录新镜像 ID，以便在重建容器后确认绿色实际使用的是刚构建的镜像。
+
+#### 重建绿色容器
+
+只有完成下节的流量安全检查后，才能执行：
+
+```sh
+docker compose \
+  --file /Users/tux/Playground/AxonHub/compose.local.yaml \
+  up --detach --no-build --force-recreate axonhub-local
+```
+
+不要在 Playground 目录直接运行 `docker compose build` 来构建当前项目中的新功能，除非已经明确把准确源码同步到了那里并核对过 HEAD。
+
+### 安全的绿色部署流程
+
+1. 确认实现功能的工作树、分支、HEAD 和 `git status`，保留与任务无关的改动。
+2. 按项目规则完成必要验证。根目录 `AGENTS.md` 禁止未经用户要求运行 lint 或 build；用户明确要求部署时，Docker 镜像构建属于部署所需构建。
+3. 从准确工作树构建 `axonhub-local:dev`。此时不要重启任何容器。
+4. 按“判定当前正在承载流量的槽位”现场读取 Axon Switch 状态并交叉检查：
+   - 如果 `active=green`：告诉用户“功能和镜像已准备好，但绿色正在承载流量”，请用户先手工切换到蓝色；停止并等待用户明确回复已经切换。
+   - 收到用户“已切换”后，必须再次现场读取状态。只有重新确认 `active=blue` 后才能继续，不能把用户回复本身当作机器状态。
+   - 如果 `active=blue`：可以继续重建绿色容器。
+   - 如果无法判定：停止，不得重启绿色。
+5. 使用固定的绿色 Compose 文件重建 `axonhub-local`。绿色部署不得重启、替换或修改蓝色正式容器。
+6. 核对绿色容器状态、实际镜像 ID、`http://127.0.0.1:9090/health` 和相关日志；有数据库变化时还要完成数据库兼容与数据检查。
+7. 告诉用户绿色已经就绪，可以手工切换测试。除非用户明确要求，不得自动把 Axon Switch 切回绿色。
+8. 切换后如需排障，再次交叉检查公网和绿色直连健康信息，确保请求确实到达绿色，而不是仅凭页面按钮状态判断。
+
+任何可能中断当前活跃槽位的动作之前，都要先告知用户“现在是哪种颜色承载流量、准备重启哪种颜色、是否需要先切换”。
+
+### SQLite 数据安全
+
+- 绿色数据目录固定为 `/Users/tux/Playground/AxonHub/data`，不得因为从另一个工作树构建镜像而更换或覆盖该目录。
+- 禁止直接复制正在运行的 SQLite 主文件来刷新绿色数据。应使用 SQLite `.backup` 或等效一致性备份，并对副本执行 `PRAGMA quick_check`。
+- 替换数据库前保留可恢复副本，明确源、目标和时间；未经用户明确要求不得删除旧副本。
+- Schema 或迁移发生变化时，先确认新版本能打开现有绿色数据库并保留回滚路径，再允许用户切到绿色。
+
+### 部署安全与交付沟通
+
+- 不得在回复、日志或提交中泄露 API Key、登录信息、TOTP 秘钥、Axon Switch 状态文件内容或 Compose 中的 secret。
+- 实现或部署功能后，必须说明功能所在工作树、分支和 commit/未提交状态。
+- 必须说明是否已构建绿色镜像，以及镜像 ID 是否与容器一致。
+- 必须说明当前槽位是现场验证的 `blue`、`green` 还是无法可靠判定，以及下一步会重启哪个容器。
+- 必须说明绿色直连健康检查和关键日志是否正常。
+- 必须说明 Git、Forgejo 或镜像仓库是否发生推送；没有推送也要明确说明。
