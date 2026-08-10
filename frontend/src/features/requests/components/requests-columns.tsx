@@ -101,7 +101,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
               <button
                 type='button'
                 onClick={() => openDetail(request.id)}
-                className='text-primary cursor-pointer font-mono text-xs hover:underline'
+                className='cursor-pointer font-mono text-xs text-green-800 hover:underline dark:text-green-300'
               >
                 #{extractNumberID(request.id)}
               </button>
@@ -125,7 +125,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.model')} />,
       enableSorting: false,
       enableHiding: false,
-      meta: { className: 'w-auto min-w-[160px]' },
+      meta: { className: 'w-max min-w-[160px]' },
       cell: ({ row }) => {
         const request = row.original;
         const executions = request.executions?.edges?.flatMap((edge) => (edge.node ? [edge.node] : [])) ?? [];
@@ -137,7 +137,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         );
 
         return (
-          <div className='flex w-auto min-w-[160px] flex-col gap-1'>
+          <div className='flex w-max min-w-[160px] flex-col gap-1'>
             {executionModelIDs.length > 0 ? (
               <TapTooltip
                 content={
@@ -275,7 +275,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.channel')} />,
             enableSorting: false,
             enableHiding: true,
-            meta: { className: 'w-auto min-w-[120px]' },
+            meta: { className: 'w-max min-w-[120px]' },
             cell: ({ row }) => {
               const request = row.original;
               const executions = request.executions?.edges?.flatMap((edge) => (edge.node ? [edge.node] : [])) ?? [];
@@ -289,7 +289,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
               if (!channel) return <span className='text-muted-foreground font-mono text-xs'>-</span>;
 
               return (
-                <div className='flex w-auto min-w-[120px] items-center gap-1.5'>
+                <div className='flex w-max min-w-[120px] items-center gap-1.5'>
                   <span className='font-mono text-xs'>{channel.name}</span>
                   {hasExecutionPath && (
                     <TapTooltip
