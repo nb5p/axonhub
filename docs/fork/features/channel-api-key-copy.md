@@ -9,7 +9,7 @@ source:
   branch: unstable
   baseline_commit: 2b78817e0620c334dd351a4fef296b49dcb7e449
   adopted_commits: []
-  last_checked_commit: 2b78817e0620c334dd351a4fef296b49dcb7e449
+  last_checked_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
   last_checked_at: 2026-08-10
   license: Apache-2.0
 local:
@@ -57,7 +57,7 @@ database:
 
 ## 上游收敛
 
-- 最近比较：`upstream/unstable@2b78817e0620c334dd351a4fef296b49dcb7e449`。
+- 最近比较：`upstream/unstable@9dfd6ac0c21bbc5abe55827fa634e22826287d67`。
 - 当前上游尚无该列表行复制按钮实现，关系为 `none`。
 
 ## 数据库兼容
@@ -69,10 +69,11 @@ database:
 
 - `git diff --check`：通过。
 - 功能分支从官方 `upstream/unstable` 创建，并以真实 merge 合入 `ai-slop`。
-- 镜像构建与绿色服务器部署结果将在本次交付中补充。
+- 镜像 `axonhub:green-9dfd6ac0-cdc76ab1` 构建成功，并已部署到本机绿色环境 `192.168.111.21:9090`；容器健康检查通过。
 
 ## 更新历史
 
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@2b78817e` | `236ff5c2`, `bb2a5a46` | 新增列表行复制按钮，并合入 `ai-slop`。 |
+| 2026-08-10 | `upstream/unstable@9dfd6ac0` | `cdc76ab1` | 同步官方 Fenno 与 Claude Code 后续变更；复制按钮功能无冲突，继续保留。 |

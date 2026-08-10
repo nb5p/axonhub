@@ -10,8 +10,8 @@
 `last_merged_upstream_commit` 只表示最近一次已经成功进入 `ai-slop` 历史的上游 commit，不代表远程上游此刻的最新 head。`local_merge_commit` 在直接以上游为重建基线时为 `null`。
 
 ```yaml
-last_merged_upstream_commit: 2b78817e0620c334dd351a4fef296b49dcb7e449
-local_merge_commit: bb2a5a469f6ffb3882f03ebf6901076e8615c916
+last_merged_upstream_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
+local_merge_commit: cdc76ab173e0dcbe8caaa19d104823b1ec5a6b40
 integrated_at: 2026-08-10
 integration_mode: merge
 recovery_ref: null
@@ -82,6 +82,7 @@ reconciliations:
 | 2026-08-10 | `dba642a08c91c9696018f6ef185435902ecf60f0` | `aacc271bf6b79db56907ab4641fe56860e3deaef` | 经用户明确要求重写历史，保留 SSE keepalive、私有响应头转发及其他无关改动，移除 Responses item ID 修复及其集成外壳。 |
 | 2026-08-10 | `null` | `null` | 完成历史核对后删除本地恢复引用；该引用从未推送到远程。 |
 | 2026-08-10 | `2b78817e0620c334dd351a4fef296b49dcb7e449` | `bb2a5a469f6ffb3882f03ebf6901076e8615c916` | 从最新 `upstream/unstable` 创建功能分支并真实合入 `ai-slop`；保留官方更新，并纳入渠道 API Key 列表复制按钮。 |
+| 2026-08-10 | `9dfd6ac0c21bbc5abe55827fa634e22826287d67` | `cdc76ab173e0dcbe8caaa19d104823b1ec5a6b40` | 纳入 Fenno 渠道及 Claude Code 缓存兼容/effort 映射更新；冲突处保留本地 Codex Alpha Search 能力。 |
 
 ### 2026-08-06 经批准的历史重建
 
