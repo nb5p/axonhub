@@ -133,6 +133,55 @@ func TestChannelService_QueryChannels_WithModelFilter(t *testing.T) {
 	}
 }
 
+func TestChannelService_QueryChannels_WithMultipleModelFilters(t *testing.T) {
+	svc, client := setupTestChannelService(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+	channels := []*ent.Channel{
+		createTestChannel(t, client, ctx, "Both", []string{"gpt-4", "claude-3-opus"}, nil),
+		createTestChannel(t, client, ctx, "GPT only", []string{"gpt-4"}, nil),
+		createTestChannel(t, client, ctx, "Claude only", []string{"claude-3-opus"}, nil),
+		createTestChannel(t, client, ctx, "Other", []string{"gemini-pro"}, nil),
+	}
+
+	tests := []struct {
+		name        string
+		matchMode   ChannelModelsMatchMode
+		expectedIDs []int
+	}{
+		{
+			name:        "defaults to matching any selected model",
+			expectedIDs: []int{channels[0].ID, channels[1].ID, channels[2].ID},
+		},
+		{
+			name:        "matches every selected model",
+			matchMode:   ChannelModelsMatchModeAll,
+			expectedIDs: []int{channels[0].ID},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn, err := svc.QueryChannels(ctx, QueryChannelsInput{
+				Models:          []string{"gpt-4", "claude-3-opus"},
+				ModelsMatchMode: tt.matchMode,
+				First:           lo.ToPtr(1),
+			})
+
+			require.NoError(t, err)
+			require.Len(t, conn.Edges, len(tt.expectedIDs))
+			require.False(t, conn.PageInfo.HasNextPage)
+
+			actualIDs := make([]int, len(conn.Edges))
+			for i, edge := range conn.Edges {
+				actualIDs[i] = edge.Node.ID
+			}
+			require.ElementsMatch(t, tt.expectedIDs, actualIDs)
+		})
+	}
+}
+
 func TestChannelService_QueryChannels_ModelFilterNoPagination(t *testing.T) {
 	svc, client := setupTestChannelService(t)
 	defer client.Close()

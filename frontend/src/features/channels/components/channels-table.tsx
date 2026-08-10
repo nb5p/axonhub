@@ -25,6 +25,7 @@ import { ChannelExpandedRow } from './channel-expanded-row';
 import { useChannels } from '../context/channels-context';
 import { Channel, ChannelConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
+import { ChannelModelsMatchMode } from '../data/channels';
 
 const MotionTableRow = motion.create(TableRow);
 const MotionExpandedRow = motion.create(TableRow);
@@ -47,7 +48,8 @@ interface DataTableProps {
   typeFilter: string[];
   statusFilter: string[];
   tagFilter: string;
-  modelFilter: string;
+  modelFilter: string[];
+  modelMatchMode: ChannelModelsMatchMode;
   selectedTypeTab?: string;
   showErrorOnly?: boolean;
   onExitErrorOnlyMode?: () => void;
@@ -61,7 +63,8 @@ interface DataTableProps {
   onTypeFilterChange: (filters: string[]) => void;
   onStatusFilterChange: (filters: string[]) => void;
   onTagFilterChange: (filter: string) => void;
-  onModelFilterChange: (filter: string) => void;
+  onModelFilterChange: (filter: string[]) => void;
+  onModelMatchModeChange: (mode: ChannelModelsMatchMode) => void;
   onHealthColumnVisibilityChange?: (visible: boolean) => void;
   canWrite?: boolean;
 }
@@ -83,6 +86,7 @@ export function ChannelsTable({
   statusFilter,
   tagFilter,
   modelFilter,
+  modelMatchMode,
   selectedTypeTab = 'all',
   showErrorOnly,
   sorting,
@@ -97,6 +101,7 @@ export function ChannelsTable({
   onStatusFilterChange,
   onTagFilterChange,
   onModelFilterChange,
+  onModelMatchModeChange,
   onHealthColumnVisibilityChange,
   canWrite = true,
 }: DataTableProps) {
@@ -135,7 +140,7 @@ export function ChannelsTable({
     if (tagFilter) {
       newColumnFilters.push({ id: 'tags', value: tagFilter });
     }
-    if (modelFilter) {
+    if (modelFilter.length > 0) {
       newColumnFilters.push({ id: 'model', value: modelFilter });
     }
 
@@ -164,14 +169,14 @@ export function ChannelsTable({
       const typeFilterValue = newFilters.find((filter) => filter.id === 'provider')?.value as string[];
       const statusFilterValue = newFilters.find((filter) => filter.id === 'status')?.value as string[];
       const tagFilterValue = newFilters.find((filter) => filter.id === 'tags')?.value as string;
-      const modelFilterValue = newFilters.find((filter) => filter.id === 'model')?.value as string;
+      const modelFilterValue = newFilters.find((filter) => filter.id === 'model')?.value as string[];
 
       // Update server filters only if changed
       const newNameFilter = nameFilterValue || '';
       const newTypeFilter = Array.isArray(typeFilterValue) ? typeFilterValue : [];
       const newStatusFilter = Array.isArray(statusFilterValue) ? statusFilterValue : [];
       const newTagFilter = tagFilterValue || '';
-      const newModelFilter = modelFilterValue || '';
+      const newModelFilter = Array.isArray(modelFilterValue) ? modelFilterValue : [];
 
       if (newNameFilter !== nameFilter) {
         onNameFilterChange(newNameFilter);
@@ -189,7 +194,7 @@ export function ChannelsTable({
         onTagFilterChange(newTagFilter);
       }
 
-      if (newModelFilter !== modelFilter) {
+      if (JSON.stringify(newModelFilter) !== JSON.stringify(modelFilter)) {
         onModelFilterChange(newModelFilter);
       }
     },
@@ -293,6 +298,8 @@ export function ChannelsTable({
         selectedTypeTab={selectedTypeTab}
         showErrorOnly={showErrorOnly}
         onExitErrorOnlyMode={onExitErrorOnlyMode}
+        modelMatchMode={modelMatchMode}
+        onModelMatchModeChange={onModelMatchModeChange}
       />
       <div className='shadow-soft relative mt-4 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)]'>
         <div className='min-w-max'>

@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"slices"
 
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent/dialect/sql"
@@ -12,14 +13,33 @@ import (
 
 // QueryChannelsInput represents the input for querying channels with additional filters.
 type QueryChannelsInput struct {
-	After   *entgql.Cursor[int]
-	First   *int
-	Before  *entgql.Cursor[int]
-	Last    *int
-	OrderBy *ent.ChannelOrder
-	Where   *ent.ChannelWhereInput
-	HasTag  *string
-	Model   *string
+	After           *entgql.Cursor[int]
+	First           *int
+	Before          *entgql.Cursor[int]
+	Last            *int
+	OrderBy         *ent.ChannelOrder
+	Where           *ent.ChannelWhereInput
+	HasTag          *string
+	Model           *string
+	Models          []string
+	ModelsMatchMode ChannelModelsMatchMode
+}
+
+// ChannelModelsMatchMode controls whether any or all selected models must be
+// supported by a channel.
+type ChannelModelsMatchMode string
+
+const (
+	ChannelModelsMatchModeAny ChannelModelsMatchMode = "any"
+	ChannelModelsMatchModeAll ChannelModelsMatchMode = "all"
+)
+
+func (m ChannelModelsMatchMode) OrDefault() ChannelModelsMatchMode {
+	if m == ChannelModelsMatchModeAll {
+		return ChannelModelsMatchModeAll
+	}
+
+	return ChannelModelsMatchModeAny
 }
 
 // QueryChannels queries channels with the specified input parameters, including model filtering.
@@ -44,15 +64,20 @@ func (svc *ChannelService) QueryChannels(ctx context.Context, input QueryChannel
 		})
 	}
 
-	// If the model is not specified, return the query result directly.
-	if input.Model == nil || *input.Model == "" {
+	models := append([]string(nil), input.Models...)
+	if input.Model != nil && *input.Model != "" && !slices.Contains(models, *input.Model) {
+		models = append(models, *input.Model)
+	}
+
+	// If no model is specified, return the query result directly.
+	if len(models) == 0 {
 		return query.Paginate(ctx, input.After, input.First, input.Before, input.Last,
 			ent.WithChannelOrder(input.OrderBy),
 		)
 	}
 
 	// When model filtering is required, we fetch all results and filter in-memory, bypassing database pagination.
-	return svc.queryChannelsWithModelFilter(ctx, query, input)
+	return svc.queryChannelsWithModelFilter(ctx, query, input, models)
 }
 
 // queryChannelsWithModelFilter performs model filtering without pagination.
@@ -61,6 +86,7 @@ func (svc *ChannelService) queryChannelsWithModelFilter(
 	ctx context.Context,
 	query *ent.ChannelQuery,
 	input QueryChannelsInput,
+	models []string,
 ) (*ent.ChannelConnection, error) {
 	// Fetch all channels from the database
 	if input.OrderBy != nil {
@@ -77,13 +103,33 @@ func (svc *ChannelService) queryChannelsWithModelFilter(
 
 	for _, channel := range channels {
 		channelObj := Channel{Channel: channel}
-		if channelObj.IsModelSupported(*input.Model) {
+		if channelMatchesModels(channelObj, models, input.ModelsMatchMode) {
 			filteredChannels = append(filteredChannels, channel)
 		}
 	}
 
 	// Build connection without pagination (ignore all pagination params for model filtering)
 	return svc.buildConnectionInMemory(filteredChannels, input.OrderBy), nil
+}
+
+func channelMatchesModels(channel Channel, models []string, matchMode ChannelModelsMatchMode) bool {
+	if matchMode.OrDefault() == ChannelModelsMatchModeAll {
+		for _, model := range models {
+			if !channel.IsModelSupported(model) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	for _, model := range models {
+		if channel.IsModelSupported(model) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // buildConnectionInMemory builds a relay-style connection from filtered channels.

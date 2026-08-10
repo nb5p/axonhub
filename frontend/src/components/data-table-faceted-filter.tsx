@@ -18,6 +18,9 @@ interface DataTableFacetedFilterProps<TData, TValue> {
     icon?: React.ComponentType<{ className?: string }>;
   }[];
   singleSelect?: boolean;
+  selectedFirst?: boolean;
+  selectionSummaryThreshold?: number;
+  selectionCountLabel?: (count: number) => string;
   footer?: React.ReactNode;
 }
 
@@ -27,6 +30,9 @@ export function DataTableFacetedFilter<TData, TValue>({
   title,
   options = [],
   singleSelect = false,
+  selectedFirst = false,
+  selectionSummaryThreshold = 2,
+  selectionCountLabel,
   footer,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const { t } = useTranslation();
@@ -34,6 +40,10 @@ export function DataTableFacetedFilter<TData, TValue>({
   const facets = column?.getFacetedUniqueValues() || new Map();
   const filterValue = column?.getFilterValue();
   const selectedValues = singleSelect ? new Set(filterValue ? [filterValue as string] : []) : new Set((filterValue || []) as string[]);
+  const orderedOptions = selectedFirst
+    ? [...options].sort((a, b) => Number(selectedValues.has(b.value)) - Number(selectedValues.has(a.value)))
+    : options;
+  const selectedCountText = selectionCountLabel?.(selectedValues.size) ?? t('common.selectedItems', { count: selectedValues.size });
 
   return (
     <Popover>
@@ -45,12 +55,12 @@ export function DataTableFacetedFilter<TData, TValue>({
             <>
               <Separator orientation='vertical' className='mx-2 h-4' />
               <Badge variant='secondary' className='rounded-sm px-1 font-normal lg:hidden'>
-                {selectedValues.size}
+                {selectionCountLabel ? selectedCountText : selectedValues.size}
               </Badge>
               <div className='hidden space-x-1 lg:flex'>
-                {selectedValues.size > 2 ? (
+                {selectedValues.size > selectionSummaryThreshold ? (
                   <Badge variant='secondary' className='rounded-sm px-1 font-normal'>
-                    {t('common.selectedItems', { count: selectedValues.size })}
+                    {selectedCountText}
                   </Badge>
                 ) : (
                   options
@@ -72,7 +82,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           <CommandList>
             <CommandEmpty>{t('common.noResultsFound')}</CommandEmpty>
             <CommandGroup>
-              {options?.map((option) => {
+              {orderedOptions.map((option) => {
                 const isSelected = selectedValues.has(option.value);
                 return (
                   <CommandItem

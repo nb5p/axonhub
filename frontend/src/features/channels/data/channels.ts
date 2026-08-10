@@ -1018,6 +1018,7 @@ export function useSaveChannelModelPrices() {
 
 // Use this hook to query channels with pagination and filtering
 export type ChannelOrderField = 'CREATED_AT' | 'UPDATED_AT' | 'ORDERING_WEIGHT' | 'NAME' | 'STATUS' | 'TYPE';
+export type ChannelModelsMatchMode = 'any' | 'all';
 
 export function useQueryChannels(
   variables?: {
@@ -1032,6 +1033,8 @@ export function useQueryChannels(
     };
     hasTag?: string;
     model?: string;
+    models?: string[];
+    modelsMatchMode?: ChannelModelsMatchMode;
   },
   options?: {
     disableAutoFetch?: boolean;
@@ -1049,6 +1052,8 @@ export function useQueryChannels(
       variables?.orderBy?.direction,
       variables?.hasTag,
       variables?.model,
+      variables?.models,
+      variables?.modelsMatchMode,
       variables?.first,
       variables?.last,
       variables?.after,

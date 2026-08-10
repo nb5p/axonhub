@@ -1003,6 +1003,21 @@ input QueryChannelInput {
   Filter channels that support the specified model.
   """
   model: String
+
+  """
+  Filter channels that support any or all of the specified models.
+  """
+  models: [String!]
+
+  """
+  Controls whether any or all selected models must be supported.
+  """
+  modelsMatchMode: ChannelModelsMatchMode
+}
+
+enum ChannelModelsMatchMode {
+  any
+  all
 }
 
 input CountChannelsByTypeInput {

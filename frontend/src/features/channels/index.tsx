@@ -12,7 +12,7 @@ import { ChannelsPrimaryButtons } from './components/channels-primary-buttons';
 import { ChannelsTable } from './components/channels-table';
 import { ChannelsTypeTabs } from './components/channels-type-tabs';
 import ChannelsProvider, { useChannels } from './context/channels-context';
-import { useQueryChannels, useChannelTypes, useErrorChannelsCount, useChannelProbeData } from './data/channels';
+import { useQueryChannels, useChannelTypes, useErrorChannelsCount, useChannelProbeData, ChannelModelsMatchMode } from './data/channels';
 import { useProvidersData } from '@/features/models/data/providers';
 
 const ChannelsDialogs = lazy(() => import('./components/channels-dialogs').then((m) => ({ default: m.ChannelsDialogs })));
@@ -30,7 +30,8 @@ function ChannelsContent() {
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tagFilter, setTagFilter] = useState<string>('');
-  const [modelFilter, setModelFilter] = useState<string>('');
+  const [modelFilter, setModelFilter] = useState<string[]>([]);
+  const [modelMatchMode, setModelMatchMode] = useState<ChannelModelsMatchMode>('any');
   const [selectedTypeTab, setSelectedTypeTab] = useState<string>('all');
   const [showErrorOnly, setShowErrorOnly] = useState<boolean>(false);
   const [sorting, setSorting] = useState<SortingState>(() => {
@@ -146,7 +147,8 @@ function ChannelsContent() {
     where: whereClause,
     orderBy: currentOrderBy,
     hasTag: tagFilter || undefined,
-    model: modelFilter || undefined,
+    models: modelFilter.length > 0 ? modelFilter : undefined,
+    modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
   });
 
   const channelIDs = useMemo(() => {
@@ -232,7 +234,7 @@ function ChannelsContent() {
   );
 
   const handleModelFilterChange = useCallback(
-    (filter: string) => {
+    (filter: string[]) => {
       setModelFilter(filter);
       resetCursor();
     },
@@ -275,6 +277,7 @@ function ChannelsContent() {
         statusFilter={statusFilter}
         tagFilter={tagFilter}
         modelFilter={modelFilter}
+        modelMatchMode={modelMatchMode}
         selectedTypeTab={selectedTypeTab}
         showErrorOnly={showErrorOnly}
         sorting={sorting}
@@ -289,6 +292,7 @@ function ChannelsContent() {
         onStatusFilterChange={handleStatusFilterChange}
         onTagFilterChange={handleTagFilterChange}
         onModelFilterChange={handleModelFilterChange}
+        onModelMatchModeChange={setModelMatchMode}
         onHealthColumnVisibilityChange={setIsHealthColumnVisible}
         canWrite={channelPermissions.canWrite}
       />

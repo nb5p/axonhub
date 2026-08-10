@@ -11,6 +11,7 @@ import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { useAllChannelTags } from '../data/channels';
 import { useChannels } from '../context/channels-context';
 import { CHANNEL_CONFIGS } from '../data/config_channels';
+import { ChannelModelsMatchMode } from '../data/channels';
 import { DataTableViewOptions } from './data-table-view-options';
 
 interface DataTableToolbarProps<TData> {
@@ -20,6 +21,8 @@ interface DataTableToolbarProps<TData> {
   selectedTypeTab?: string;
   showErrorOnly?: boolean;
   onExitErrorOnlyMode?: () => void;
+  modelMatchMode: ChannelModelsMatchMode;
+  onModelMatchModeChange: (mode: ChannelModelsMatchMode) => void;
 }
 
 export function DataTableToolbar<TData>({
@@ -29,6 +32,8 @@ export function DataTableToolbar<TData>({
   selectedTypeTab = 'all',
   showErrorOnly,
   onExitErrorOnlyMode,
+  modelMatchMode,
+  onModelMatchModeChange,
 }: DataTableToolbarProps<TData>) {
   const { t } = useTranslation();
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
@@ -122,7 +127,25 @@ export function DataTableToolbar<TData>({
         <DataTableFacetedFilter column={table.getColumn('tags')} title={t('channels.filters.tags')} options={tagOptions} singleSelect />
       )}
       {table.getColumn('model') && modelOptions?.length > 0 && (
-        <DataTableFacetedFilter column={table.getColumn('model')} title={t('channels.filters.model')} options={modelOptions} singleSelect />
+        <div className='flex items-center gap-1'>
+          <DataTableFacetedFilter
+            column={table.getColumn('model')}
+            title={t('channels.filters.model')}
+            options={modelOptions}
+            selectedFirst
+            selectionSummaryThreshold={1}
+            selectionCountLabel={(count) => t('channels.filters.selectedModels', { count })}
+          />
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-8 min-w-11 px-2'
+            onClick={() => onModelMatchModeChange(modelMatchMode === 'any' ? 'all' : 'any')}
+            title={t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
+          >
+            {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
+          </Button>
+        </div>
       )}
       {isFiltered && (
         <Button

@@ -77342,7 +77342,7 @@ func (ec *executionContext) unmarshalInputQueryChannelInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"after", "first", "before", "last", "orderBy", "where", "hasTag", "model"}
+	fieldsInOrder := [...]string{"after", "first", "before", "last", "orderBy", "where", "hasTag", "model", "models", "modelsMatchMode"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -77405,6 +77405,20 @@ func (ec *executionContext) unmarshalInputQueryChannelInput(ctx context.Context,
 				return it, err
 			}
 			it.Model = data
+		case "models":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("models"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Models = data
+		case "modelsMatchMode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelsMatchMode"))
+			data, err := ec.unmarshalOChannelModelsMatchMode2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelModelsMatchMode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModelsMatchMode = data
 		}
 	}
 
@@ -117135,6 +117149,19 @@ func (ec *executionContext) unmarshalOChannelModelPriceWhereInput2ᚖgithubᚗco
 	}
 	res, err := ec.unmarshalInputChannelModelPriceWhereInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOChannelModelsMatchMode2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelModelsMatchMode(ctx context.Context, v any) (biz.ChannelModelsMatchMode, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := biz.ChannelModelsMatchMode(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOChannelModelsMatchMode2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelModelsMatchMode(ctx context.Context, sel ast.SelectionSet, v biz.ChannelModelsMatchMode) graphql.Marshaler {
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(v))
+	return res
 }
 
 func (ec *executionContext) unmarshalOChannelOrder2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐChannelOrder(ctx context.Context, v any) (*ent.ChannelOrder, error) {

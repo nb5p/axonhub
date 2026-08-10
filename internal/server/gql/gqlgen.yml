@@ -193,6 +193,9 @@ models:
   QueryChannelInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.QueryChannelsInput
+  ChannelModelsMatchMode:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.ChannelModelsMatchMode
   StoragePolicy:
     model:
       - github.com/looplj/axonhub/internal/server/biz.StoragePolicy
