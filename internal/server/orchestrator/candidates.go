@@ -661,6 +661,16 @@ type LoadBalancedSelector struct {
 	effectiveRoutingPolicy  *EffectiveRoutingPolicy
 }
 
+type passThroughPreferenceProvider interface {
+	PassThrough(ctx context.Context) (bool, error)
+	PreferPassThrough(ctx context.Context) (bool, error)
+}
+
+type passThroughPreference struct {
+	enabled                  bool
+	globalPassThroughEnabled bool
+}
+
 // WithLoadBalancedSelector creates a selector that applies load balancing to sort candidates.
 // The policy is used to determine the retry policy for early stopping.
 func WithLoadBalancedSelector(wrapped CandidateSelector, loadBalancer *LoadBalancer, policy RetryPolicyProvider) *LoadBalancedSelector {
@@ -742,24 +752,27 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 	if retryPolicy.Enabled {
 		requiredCount = 1 + retryPolicy.MaxChannelRetries
 	}
+	preference := s.resolvePassThroughPreference(ctx)
 
 	if traceStickyMode == biz.TraceStickyPreferPreviousChannel {
 		if stickyCandidate, remainingCandidates := s.selectTraceStickyCandidate(ctx, candidates); stickyCandidate != nil {
-			stickyCandidate.TraceSticky = true
+			if !hasPreferredPassThroughCandidate(candidates, req, preference) || candidateSupportsPassThrough(stickyCandidate, req, preference) {
+				stickyCandidate.TraceSticky = true
 
-			fallbackCount := max(requiredCount-1, 0)
-			fallbackCandidates := s.sortCandidates(ctx, loadBalancer, remainingCandidates, req, fallbackCount, false)
-			result := append([]*ChannelModelsCandidate{stickyCandidate}, fallbackCandidates...)
+				fallbackCount := max(requiredCount-1, 0)
+				fallbackCandidates := s.sortCandidates(ctx, loadBalancer, remainingCandidates, req, fallbackCount, false, preference)
+				result := append([]*ChannelModelsCandidate{stickyCandidate}, fallbackCandidates...)
 
-			if loadBalancer != nil {
-				loadBalancer.TrackSelection(stickyCandidate)
+				if loadBalancer != nil {
+					loadBalancer.TrackSelection(stickyCandidate)
+				}
+
+				return result, nil
 			}
-
-			return result, nil
 		}
 	}
 
-	return s.sortCandidates(ctx, loadBalancer, candidates, req, requiredCount, true), nil
+	return s.sortCandidates(ctx, loadBalancer, candidates, req, requiredCount, true, preference), nil
 }
 
 func resolveLoadBalancer(loadBalancers map[string]*LoadBalancer, strategy string) (*LoadBalancer, string) {
@@ -772,6 +785,86 @@ func resolveLoadBalancer(loadBalancers map[string]*LoadBalancer, strategy string
 	}
 
 	return nil, strategy
+}
+
+func (s *LoadBalancedSelector) resolvePassThroughPreference(ctx context.Context) passThroughPreference {
+	provider, ok := s.policy.(passThroughPreferenceProvider)
+	if !ok {
+		return passThroughPreference{}
+	}
+
+	enabled, err := provider.PreferPassThrough(ctx)
+	if err != nil {
+		log.Warn(ctx, "failed to get pass-through preference", log.Cause(err))
+
+		return passThroughPreference{}
+	}
+	if !enabled {
+		return passThroughPreference{}
+	}
+
+	globalEnabled, err := provider.PassThrough(ctx)
+	if err != nil {
+		log.Warn(ctx, "failed to get global pass-through setting for channel preference", log.Cause(err))
+	}
+
+	return passThroughPreference{enabled: true, globalPassThroughEnabled: globalEnabled}
+}
+
+func candidateSupportsPassThrough(
+	candidate *ChannelModelsCandidate,
+	req *llm.Request,
+	preference passThroughPreference,
+) bool {
+	if !preference.enabled || candidate == nil || candidate.Channel == nil || req == nil || req.APIFormat == "" {
+		return false
+	}
+	if candidate.APIFormat != string(req.APIFormat) || !passThroughBodySupported(req.APIFormat) {
+		return false
+	}
+
+	enabled := preference.globalPassThroughEnabled
+	if candidate.Channel.Settings != nil && candidate.Channel.Settings.PassThroughBody != nil {
+		enabled = *candidate.Channel.Settings.PassThroughBody
+	}
+
+	return enabled
+}
+
+func hasPreferredPassThroughCandidate(
+	candidates []*ChannelModelsCandidate,
+	req *llm.Request,
+	preference passThroughPreference,
+) bool {
+	return lo.ContainsBy(candidates, func(candidate *ChannelModelsCandidate) bool {
+		return candidateSupportsPassThrough(candidate, req, preference)
+	})
+}
+
+func groupCandidatesByPassThroughPreference(
+	candidates []*ChannelModelsCandidate,
+	req *llm.Request,
+	preference passThroughPreference,
+) [][]*ChannelModelsCandidate {
+	if !preference.enabled {
+		return [][]*ChannelModelsCandidate{candidates}
+	}
+
+	preferred := make([]*ChannelModelsCandidate, 0, len(candidates))
+	fallback := make([]*ChannelModelsCandidate, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidateSupportsPassThrough(candidate, req, preference) {
+			preferred = append(preferred, candidate)
+		} else {
+			fallback = append(fallback, candidate)
+		}
+	}
+
+	if len(preferred) == 0 || len(fallback) == 0 {
+		return [][]*ChannelModelsCandidate{candidates}
+	}
+
+	return [][]*ChannelModelsCandidate{preferred, fallback}
 }
 
 // selectTraceStickyCandidate selects the previous trace channel first, then
@@ -855,6 +948,7 @@ func (s *LoadBalancedSelector) sortCandidates(
 	req *llm.Request,
 	requiredCount int,
 	trackSelection bool,
+	preference passThroughPreference,
 ) []*ChannelModelsCandidate {
 	if requiredCount <= 0 {
 		return nil
@@ -864,47 +958,45 @@ func (s *LoadBalancedSelector) sortCandidates(
 		return candidates
 	}
 
-	// Group candidates by priority first (lower priority value = higher priority)
-	priorityGroups := make(map[int][]*ChannelModelsCandidate)
-	for _, c := range candidates {
-		priorityGroups[c.Priority] = append(priorityGroups[c.Priority], c)
-	}
-
-	// Get sorted priority keys (lower priority value = higher priority)
-	priorities := lo.Keys(priorityGroups)
-
-	// Sort priorities: lower value = higher priority
-	slices.Sort(priorities)
-
-	// For each priority group, apply load balancing to sort candidates within the group
-	// Stop early if we have collected enough candidates
 	var result []*ChannelModelsCandidate
-
-	for _, p := range priorities {
-		group := priorityGroups[p]
-
-		// Apply load balancing to sort candidates within this priority group.
-		useStream := req.Stream != nil && *req.Stream
-		ctx = contextWithQuotaLimitType(ctx, string(provider_quota.RequestModality(req.Image != nil)))
-		var sortedCandidates []*ChannelModelsCandidate
-		if loadBalancer == nil {
-			sortedCandidates = group
-		} else if trackSelection {
-			sortedCandidates = loadBalancer.Sort(ctx, group, req.Model, useStream)
-		} else {
-			sortedCandidates = loadBalancer.SortWithoutTracking(ctx, group, req.Model, useStream)
+	for _, routingGroup := range groupCandidatesByPassThroughPreference(candidates, req, preference) {
+		// Association priority remains authoritative within each pass-through tier.
+		priorityGroups := make(map[int][]*ChannelModelsCandidate)
+		for _, candidate := range routingGroup {
+			priorityGroups[candidate.Priority] = append(priorityGroups[candidate.Priority], candidate)
 		}
 
-		// Add candidates, but stop if we have enough
-		remaining := requiredCount - len(result)
-		if remaining <= 0 {
-			break
+		priorities := lo.Keys(priorityGroups)
+		slices.Sort(priorities)
+
+		for _, priority := range priorities {
+			group := priorityGroups[priority]
+			useStream := req.Stream != nil && *req.Stream
+			ctx = contextWithQuotaLimitType(ctx, string(provider_quota.RequestModality(req.Image != nil)))
+
+			var sortedCandidates []*ChannelModelsCandidate
+			if loadBalancer == nil {
+				sortedCandidates = group
+			} else if trackSelection {
+				sortedCandidates = loadBalancer.Sort(ctx, group, req.Model, useStream)
+			} else {
+				sortedCandidates = loadBalancer.SortWithoutTracking(ctx, group, req.Model, useStream)
+			}
+
+			remaining := requiredCount - len(result)
+			if remaining <= 0 {
+				break
+			}
+
+			if len(sortedCandidates) <= remaining {
+				result = append(result, sortedCandidates...)
+			} else {
+				result = append(result, sortedCandidates[:remaining]...)
+				break
+			}
 		}
 
-		if len(sortedCandidates) <= remaining {
-			result = append(result, sortedCandidates...)
-		} else {
-			result = append(result, sortedCandidates[:remaining]...)
+		if len(result) >= requiredCount {
 			break
 		}
 	}

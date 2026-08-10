@@ -324,9 +324,16 @@ func (r *mutationResolver) UpdateUserAgentPassThroughSettings(ctx context.Contex
 
 // UpdatePassThroughSettings is the resolver for the updatePassThroughSettings field.
 func (r *mutationResolver) UpdatePassThroughSettings(ctx context.Context, input UpdatePassThroughSettingsInput) (bool, error) {
-	err := r.systemService.SetPassThrough(ctx, input.Enabled)
-	if err != nil {
-		return false, fmt.Errorf("failed to update pass-through settings: %w", err)
+	if input.Enabled != nil {
+		if err := r.systemService.SetPassThrough(ctx, *input.Enabled); err != nil {
+			return false, fmt.Errorf("failed to update pass-through settings: %w", err)
+		}
+	}
+
+	if input.PreferPassThrough != nil {
+		if err := r.systemService.SetPreferPassThrough(ctx, *input.PreferPassThrough); err != nil {
+			return false, fmt.Errorf("failed to update pass-through preference: %w", err)
+		}
 	}
 
 	return true, nil
@@ -585,9 +592,12 @@ func (r *queryResolver) PassThroughSettings(ctx context.Context) (*PassThroughSe
 		return nil, fmt.Errorf("failed to get pass-through settings: %w", err)
 	}
 
-	return &PassThroughSettings{
-		Enabled: enabled,
-	}, nil
+	preferPassThrough, err := r.systemService.PreferPassThrough(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pass-through preference: %w", err)
+	}
+
+	return &PassThroughSettings{Enabled: enabled, PreferPassThrough: preferPassThrough}, nil
 }
 
 // GetCacheDiagnostics is the resolver for the getCacheDiagnostics field.

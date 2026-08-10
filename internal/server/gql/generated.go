@@ -1162,7 +1162,8 @@ type ComplexityRoot struct {
 	}
 
 	PassThroughSettings struct {
-		Enabled func(childComplexity int) int
+		Enabled           func(childComplexity int) int
+		PreferPassThrough func(childComplexity int) int
 	}
 
 	PriceOverride struct {
@@ -7327,6 +7328,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PassThroughSettings.Enabled(childComplexity), true
+	case "PassThroughSettings.preferPassThrough":
+		if e.complexity.PassThroughSettings.PreferPassThrough == nil {
+			break
+		}
+
+		return e.complexity.PassThroughSettings.PreferPassThrough(childComplexity), true
 
 	case "PriceOverride.items":
 		if e.complexity.PriceOverride.Items == nil {
@@ -39691,6 +39698,35 @@ func (ec *executionContext) fieldContext_PassThroughSettings_enabled(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _PassThroughSettings_preferPassThrough(ctx context.Context, field graphql.CollectedField, obj *PassThroughSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughSettings_preferPassThrough,
+		func(ctx context.Context) (any, error) {
+			return obj.PreferPassThrough, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughSettings_preferPassThrough(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PriceOverride_name(ctx context.Context, field graphql.CollectedField, obj *objects.PriceOverride) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -46592,6 +46628,8 @@ func (ec *executionContext) fieldContext_Query_passThroughSettings(_ context.Con
 			switch field.Name {
 			case "enabled":
 				return ec.fieldContext_PassThroughSettings_enabled(ctx, field)
+			case "preferPassThrough":
+				return ec.fieldContext_PassThroughSettings_preferPassThrough(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PassThroughSettings", field.Name)
 		},
@@ -84572,7 +84610,7 @@ func (ec *executionContext) unmarshalInputUpdatePassThroughSettingsInput(ctx con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"enabled"}
+	fieldsInOrder := [...]string{"enabled", "preferPassThrough"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -84581,11 +84619,18 @@ func (ec *executionContext) unmarshalInputUpdatePassThroughSettingsInput(ctx con
 		switch k {
 		case "enabled":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabled"))
-			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Enabled = data
+		case "preferPassThrough":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preferPassThrough"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PreferPassThrough = data
 		}
 	}
 
@@ -98694,6 +98739,11 @@ func (ec *executionContext) _PassThroughSettings(ctx context.Context, sel ast.Se
 			out.Values[i] = graphql.MarshalString("PassThroughSettings")
 		case "enabled":
 			out.Values[i] = ec._PassThroughSettings_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preferPassThrough":
+			out.Values[i] = ec._PassThroughSettings_preferPassThrough(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

@@ -378,7 +378,8 @@ type OnboardingInfo struct {
 }
 
 type PassThroughSettings struct {
-	Enabled bool `json:"enabled"`
+	Enabled           bool `json:"enabled"`
+	PreferPassThrough bool `json:"preferPassThrough"`
 }
 
 type PromptProtectionRulePreviewInput struct {
@@ -596,7 +597,8 @@ type UpdateMyPasswordInput struct {
 }
 
 type UpdatePassThroughSettingsInput struct {
-	Enabled bool `json:"enabled"`
+	Enabled           *bool `json:"enabled,omitempty"`
+	PreferPassThrough *bool `json:"preferPassThrough,omitempty"`
 }
 
 type UpdateProjectUserInput struct {

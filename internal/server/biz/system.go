@@ -112,6 +112,12 @@ const (
 	//nolint:gosec // Not a secret.
 	SystemKeyPassThrough = "system_pass_through"
 
+	// SystemKeyPreferPassThrough controls whether channels capable of body/response
+	// pass-through for the inbound API format are selected before conversion-only channels.
+	//
+	//nolint:gosec // Not a secret.
+	SystemKeyPreferPassThrough = "system_prefer_pass_through"
+
 	// SystemKeyQuotaEnforcementSettings is the key used to store the quota enforcement settings.
 	// The value is JSON-encoded QuotaEnforcementSettings struct.
 	SystemKeyQuotaEnforcementSettings = "quota_enforcement_settings"
@@ -1778,6 +1784,32 @@ func (s *SystemService) SetPassThrough(ctx context.Context, enabled bool) error 
 	}
 
 	return s.setSystemValue(ctx, SystemKeyPassThrough, strValue)
+}
+
+// PreferPassThrough retrieves whether pass-through-capable channels should be
+// preferred over channels that require API format conversion.
+func (s *SystemService) PreferPassThrough(ctx context.Context) (bool, error) {
+	value, err := s.getSystemValue(ctx, SystemKeyPreferPassThrough)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to get pass-through preference: %w", err)
+	}
+
+	return value == "true", nil
+}
+
+// SetPreferPassThrough sets whether pass-through-capable channels should be
+// preferred over channels that require API format conversion.
+func (s *SystemService) SetPreferPassThrough(ctx context.Context, enabled bool) error {
+	strValue := "false"
+	if enabled {
+		strValue = "true"
+	}
+
+	return s.setSystemValue(ctx, SystemKeyPreferPassThrough, strValue)
 }
 
 // QuotaEnforcementSettings retrieves the quota enforcement settings.

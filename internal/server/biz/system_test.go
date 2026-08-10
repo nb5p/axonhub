@@ -1302,6 +1302,27 @@ func TestSystemService_UserAgentPassThrough_WithCache(t *testing.T) {
 	require.False(t, uaPassThrough3)
 }
 
+func TestSystemService_PreferPassThrough(t *testing.T) {
+	service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+
+	enabled, err := service.PreferPassThrough(ctx)
+	require.NoError(t, err)
+	require.False(t, enabled)
+
+	require.NoError(t, service.SetPreferPassThrough(ctx, true))
+	enabled, err = service.PreferPassThrough(ctx)
+	require.NoError(t, err)
+	require.True(t, enabled)
+
+	require.NoError(t, service.SetPreferPassThrough(ctx, false))
+	enabled, err = service.PreferPassThrough(ctx)
+	require.NoError(t, err)
+	require.False(t, enabled)
+}
+
 func TestNormalizeRetryPolicy_LoadBalancerStrategy(t *testing.T) {
 	t.Run("invalid strategy falls back to default", func(t *testing.T) {
 		policy := &RetryPolicy{LoadBalancerStrategy: "unknown"}

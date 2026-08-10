@@ -144,12 +144,12 @@ func TestDefaultChannelSelector_Select_WithChannelFailures(t *testing.T) {
 	// Record failures for the high weight channel to test error awareness
 	for range 3 {
 		perf := &biz.PerformanceRecord{
-			ChannelID:        channels[0].ID,
-			StartTime:        time.Now().Add(-time.Minute),
-			EndTime:          time.Now(),
-			Success:          false,
-			RequestCompleted: true,
-			ResponseStatusCode:  500,
+			ChannelID:          channels[0].ID,
+			StartTime:          time.Now().Add(-time.Minute),
+			EndTime:            time.Now(),
+			Success:            false,
+			RequestCompleted:   true,
+			ResponseStatusCode: 500,
 		}
 		channelService.RecordPerformance(ctx, perf)
 	}
@@ -493,4 +493,46 @@ func TestLoadBalancedSelector_Select_SingleChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result, 1)
 	require.Equal(t, ch.ID, result[0].Channel.ID)
+}
+
+func TestLoadBalancedSelector_Select_PreferPassThrough(t *testing.T) {
+	ctx, client := setupTest(t)
+	systemService := newTestSystemService(client)
+	require.NoError(t, systemService.SetPassThrough(ctx, true))
+	require.NoError(t, systemService.SetPreferPassThrough(ctx, true))
+
+	conversionChannel := &biz.Channel{Channel: &ent.Channel{
+		ID:             1,
+		Name:           "High Weight Conversion",
+		OrderingWeight: 100,
+	}}
+	passThroughChannel := &biz.Channel{Channel: &ent.Channel{
+		ID:             2,
+		Name:           "Low Weight Pass-Through",
+		OrderingWeight: 1,
+	}}
+
+	baseSelector := &staticChannelSelector{candidates: []*ChannelModelsCandidate{
+		{Channel: conversionChannel, APIFormat: llm.APIFormatOpenAIChatCompletion.String()},
+		{Channel: passThroughChannel, APIFormat: llm.APIFormatOpenAIResponse.String()},
+	}}
+	loadBalancer := NewLoadBalancer(systemService, nil, NewWeightStrategy())
+	selector := WithLoadBalancedSelector(baseSelector, loadBalancer, systemService)
+	req := &llm.Request{
+		Model:       "gpt-4.1",
+		RequestType: llm.RequestTypeChat,
+		APIFormat:   llm.APIFormatOpenAIResponse,
+	}
+
+	result, err := selector.Select(ctx, req)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, passThroughChannel.ID, result[0].Channel.ID)
+	require.Equal(t, conversionChannel.ID, result[1].Channel.ID)
+
+	require.NoError(t, systemService.SetPreferPassThrough(ctx, false))
+	result, err = selector.Select(ctx, req)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, conversionChannel.ID, result[0].Channel.ID)
 }

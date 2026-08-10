@@ -1618,6 +1618,7 @@ const PASS_THROUGH_SETTINGS_QUERY = `
   query PassThroughSettings {
     passThroughSettings {
       enabled
+      preferPassThrough
     }
   }
 `;
@@ -1630,10 +1631,12 @@ const UPDATE_PASS_THROUGH_SETTINGS_MUTATION = `
 
 export interface PassThroughSettings {
   enabled: boolean;
+  preferPassThrough: boolean;
 }
 
 export interface UpdatePassThroughSettingsInput {
-  enabled: boolean;
+  enabled?: boolean;
+  preferPassThrough?: boolean;
 }
 
 export function usePassThroughSettings() {

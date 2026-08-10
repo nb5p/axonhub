@@ -35,6 +35,7 @@ export function GeneralSettings() {
   const { data: ptSettings, isLoading: isLoadingPTSettings } = usePassThroughSettings();
   const updatePTSettings = useUpdatePassThroughSettings();
   const [passThroughEnabled, setPassThroughEnabled] = useState(false);
+  const [preferPassThroughEnabled, setPreferPassThroughEnabled] = useState(false);
 
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [timezone, setTimezone] = useState('UTC');
@@ -69,6 +70,7 @@ export function GeneralSettings() {
   useEffect(() => {
     if (ptSettings) {
       setPassThroughEnabled(ptSettings.enabled);
+      setPreferPassThroughEnabled(ptSettings.preferPassThrough);
     }
   }, [ptSettings]);
 
@@ -103,6 +105,16 @@ export function GeneralSettings() {
     } catch {
       // Revert state on error
       setPassThroughEnabled(previousValue);
+    }
+  };
+
+  const handlePreferPassThroughChange = async (enabled: boolean) => {
+    const previousValue = preferPassThroughEnabled;
+    setPreferPassThroughEnabled(enabled);
+    try {
+      await updatePTSettings.mutateAsync({ preferPassThrough: enabled });
+    } catch {
+      setPreferPassThroughEnabled(previousValue);
     }
   };
 
@@ -184,6 +196,18 @@ export function GeneralSettings() {
               id='pass-through'
               checked={passThroughEnabled}
               onCheckedChange={handlePassThroughChange}
+              disabled={isLoadingPTSettings || updatePTSettings.isPending}
+            />
+          </div>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-0.5'>
+              <Label htmlFor='prefer-pass-through'>{t('system.preferPassThrough.label')}</Label>
+              <div className='text-muted-foreground text-sm'>{t('system.preferPassThrough.helpText')}</div>
+            </div>
+            <Switch
+              id='prefer-pass-through'
+              checked={preferPassThroughEnabled}
+              onCheckedChange={handlePreferPassThroughChange}
               disabled={isLoadingPTSettings || updatePTSettings.isPending}
             />
           </div>

@@ -417,6 +417,8 @@
   "system.userAgentPassThrough.helpText": "When enabled, the original User-Agent header from the client request is forwarded to upstream providers. When disabled, AxonHub uses its own User-Agent.",
   "system.passThrough.label": "Pass-Through",
   "system.passThrough.helpText": "When enabled, both the request body and the upstream response are passed through only when the client request format matches the channel format. Prompt injection and prompt protection will not take effect.",
+  "system.preferPassThrough.label": "Prefer Pass-Through",
+  "system.preferPassThrough.helpText": "Prefer channels that can pass through the client request format directly, and convert formats only when none can pass through. Actual pass-through still follows the system or channel pass-through setting.",
   "system.quota.collection.title": "Provider Quota Collection",
   "system.quota.collection.description": "Control whether AxonHub requests quota information from supported providers.",
   "system.quota.collection.enabled.label": "Enable Provider Quota Collection",

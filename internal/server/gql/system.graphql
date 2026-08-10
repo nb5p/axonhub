@@ -355,10 +355,12 @@ input UpdateUserAgentPassThroughSettingsInput {
 
 type PassThroughSettings {
   enabled: Boolean!
+  preferPassThrough: Boolean!
 }
 
 input UpdatePassThroughSettingsInput {
-  enabled: Boolean!
+  enabled: Boolean
+  preferPassThrough: Boolean
 }
 
 
