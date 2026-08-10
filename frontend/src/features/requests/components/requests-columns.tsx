@@ -34,6 +34,7 @@ export const DEFAULT_MOBILE_HIDDEN_COLUMN_IDS = [
   'cost',
   'duration',
   'caller',
+  'cacheHitRate',
 ];
 
 export const MODEL_ID_COLUMN = 'modelID' as const;
@@ -267,6 +268,22 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         );
       },
     },
+    {
+      id: 'caller',
+      accessorFn: (row) => row.apiKey?.id ?? '',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.caller')} />,
+      enableSorting: false,
+      enableHiding: true,
+      cell: ({ row }) => {
+        const request = row.original;
+        if (request.source !== 'api') {
+          return <Badge variant='secondary'>{t(`requests.source.${request.source}`)}</Badge>;
+        }
+
+        return <span className='font-mono text-xs'>{request.apiKey?.name || '-'}</span>;
+      },
+      filterFn: (row, _id, value) => value.length === 0 || value.includes(row.original.apiKey?.id ?? ''),
+    },
     ...(permissions.canViewChannels
       ? ([
           {
@@ -383,6 +400,46 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       },
     },
     {
+      id: 'cacheHitRate',
+      accessorFn: (row) => {
+        const usageLog = row.usageLogs?.edges?.[0]?.node;
+        const promptTokens = usageLog?.promptTokens ?? 0;
+        const cachedTokens = usageLog?.promptCachedTokens ?? 0;
+        return promptTokens > 0 ? (cachedTokens / promptTokens) * 100 : -1;
+      },
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.cacheHitRateLabel')} />,
+      enableSorting: true,
+      enableHiding: true,
+      meta: { className: 'w-max min-w-[112px]' },
+      cell: ({ row }) => {
+        const usageLog = row.original.usageLogs?.edges?.[0]?.node;
+        const promptTokens = usageLog?.promptTokens ?? 0;
+        const cachedTokens = usageLog?.promptCachedTokens ?? 0;
+
+        if (!usageLog || promptTokens <= 0) {
+          return <span className='text-muted-foreground text-xs'>-</span>;
+        }
+
+        const hitRate = (cachedTokens / promptTokens) * 100;
+        const isLowHitRate = hitRate < 80 && promptTokens >= 40000;
+
+        return (
+          <span className={isLowHitRate ? 'font-mono text-xs font-medium text-red-600 dark:text-red-400' : 'font-mono text-xs'}>
+            {t('requests.columns.cacheHitRate', { rate: hitRate.toFixed(1) })}
+          </span>
+        );
+      },
+      sortingFn: (rowA, rowB) => {
+        const getRate = (request: Request) => {
+          const usageLog = request.usageLogs?.edges?.[0]?.node;
+          const promptTokens = usageLog?.promptTokens ?? 0;
+          return promptTokens > 0 ? ((usageLog?.promptCachedTokens ?? 0) / promptTokens) * 100 : -1;
+        };
+
+        return getRate(rowA.original) - getRate(rowB.original);
+      },
+    },
+    {
       id: 'cost',
       accessorFn: (row) => row.usageLogs?.edges?.[0]?.node?.totalCost ?? null,
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.cost')} />,
@@ -437,22 +494,6 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       enableHiding: true,
       cell: ({ row }) => <span className='font-mono text-xs'>{calculateTokensPerSecond(row.original)}</span>,
       sortingFn: (rowA, rowB) => (getTokensPerSecondValue(rowA.original) ?? 0) - (getTokensPerSecondValue(rowB.original) ?? 0),
-    },
-    {
-      id: 'caller',
-      accessorFn: (row) => row.apiKey?.id ?? '',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.caller')} />,
-      enableSorting: false,
-      enableHiding: true,
-      cell: ({ row }) => {
-        const request = row.original;
-        if (request.source !== 'api') {
-          return <Badge variant='secondary'>{t(`requests.source.${request.source}`)}</Badge>;
-        }
-
-        return <span className='font-mono text-xs'>{request.apiKey?.name || '-'}</span>;
-      },
-      filterFn: (row, _id, value) => value.length === 0 || value.includes(row.original.apiKey?.id ?? ''),
     },
     {
       id: 'details',
