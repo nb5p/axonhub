@@ -47,6 +47,7 @@ import { useChannels } from '../context/channels-context';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
 import { CHANNEL_CONFIGS, getProvider } from '../data/config_channels';
 import { Channel } from '../data/schema';
+import { ChannelEndpointsCell } from './channel-endpoints-cell';
 import { ChannelHealthCell } from './channel-health-cell';
 import { ChannelLimiterCell } from './channel-limiter-cell';
 import { ChannelsStatusDialog } from './channels-status-dialog';
@@ -760,6 +761,19 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
         className: 'max-w-64 text-center',
       },
       enableSorting: false,
+    },
+    {
+      id: 'endpoints',
+      accessorFn: (row) => [...(row.defaultEndpoints ?? []), ...(row.endpoints ?? [])],
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('channels.columns.supportedEndpoints')} className='justify-center' />
+      ),
+      cell: ({ row }) => <ChannelEndpointsCell channel={row.original} />,
+      meta: {
+        className: 'w-36 min-w-36 text-center',
+      },
+      enableSorting: false,
+      enableHiding: true,
     },
     {
       id: 'proxy',
