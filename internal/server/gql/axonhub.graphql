@@ -460,6 +460,21 @@ type APIKeyProfile {
   traceStickyMode: String
 }
 
+type APIKeyProfilePreviewChannel {
+  id: Int!
+  name: String!
+}
+
+type APIKeyProfilePreviewModel {
+  id: String!
+  channels: [APIKeyProfilePreviewChannel!]!
+}
+
+type APIKeyProfilePreview {
+  apiFormats: [String!]!
+  models: [APIKeyProfilePreviewModel!]!
+}
+
 enum ChannelTagsMatchMode {
   any
   all
@@ -1036,6 +1051,9 @@ extend type Query {
   hasTag: String
   """
   queryChannels(input: QueryChannelInput!): ChannelConnection!
+
+  """Preview the effective APIs and models for an unsaved API key profile."""
+  previewApiKeyProfile(apiKeyID: ID!, profile: APIKeyProfileInput!): APIKeyProfilePreview!
 
   """
   Returns quota usage for profiles that have quota enabled for an API key.

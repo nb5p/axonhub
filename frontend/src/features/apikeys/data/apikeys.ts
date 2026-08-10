@@ -8,6 +8,8 @@ import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
 import type {
   ApiKey,
   ApiKeyConnection,
+  ApiKeyProfile,
+  ApiKeyProfilePreview,
   ApiKeyProfileQuotaUsage,
   ApiKeyProfileTemplate,
   ApiKeyTokenUsageStats,
@@ -19,6 +21,7 @@ import type {
 } from './schema';
 import {
   apiKeyConnectionSchema,
+  apiKeyProfilePreviewSchema,
   apiKeyProfileQuotaUsageSchema,
   apiKeyProfileTemplateSchema,
   apiKeySchema,
@@ -26,6 +29,21 @@ import {
 } from './schema';
 
 const NOAUTH_API_KEY_TYPE = 'noauth';
+
+const API_KEY_PROFILE_PREVIEW_QUERY = `
+  query PreviewApiKeyProfile($apiKeyId: ID!, $profile: APIKeyProfileInput!) {
+    previewApiKeyProfile(apiKeyID: $apiKeyId, profile: $profile) {
+      apiFormats
+      models {
+        id
+        channels {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
 
 // Dynamic GraphQL query builders
 function buildApiKeysQuery(permissions: { canViewUsers: boolean }) {
@@ -516,6 +534,38 @@ export function useApiKeyQuotaUsages(
     },
     enabled: !!apiKeyId && (options?.enabled ?? true),
     refetchInterval: options?.refetchInterval,
+  });
+}
+
+export function useApiKeyProfilePreview(
+  apiKeyId: string,
+  profile: ApiKeyProfile | undefined,
+  options?: {
+    enabled?: boolean;
+  }
+) {
+  const { t } = useTranslation();
+  const { handleError } = useErrorHandler();
+  const selectedProjectId = useSelectedProjectId();
+
+  return useQuery({
+    queryKey: ['apiKeyProfilePreview', apiKeyId, profile, selectedProjectId],
+    queryFn: async () => {
+      try {
+        const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
+        const data = await graphqlRequest<{ previewApiKeyProfile: ApiKeyProfilePreview }>(
+          API_KEY_PROFILE_PREVIEW_QUERY,
+          { apiKeyId, profile },
+          headers
+        );
+        return apiKeyProfilePreviewSchema.parse(data.previewApiKeyProfile);
+      } catch (error) {
+        handleError(error, t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+    enabled: !!apiKeyId && !!profile && (options?.enabled ?? true),
+    placeholderData: keepPreviousData,
   });
 }
 

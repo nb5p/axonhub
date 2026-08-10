@@ -156,6 +156,21 @@ type ComplexityRoot struct {
 		TraceStickyMode      func(childComplexity int) int
 	}
 
+	APIKeyProfilePreview struct {
+		APIFormats func(childComplexity int) int
+		Models     func(childComplexity int) int
+	}
+
+	APIKeyProfilePreviewChannel struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+	}
+
+	APIKeyProfilePreviewModel struct {
+		Channels func(childComplexity int) int
+		ID       func(childComplexity int) int
+	}
+
 	APIKeyProfileQuotaUsage struct {
 		ProfileName func(childComplexity int) int
 		Quota       func(childComplexity int) int
@@ -1381,6 +1396,7 @@ type ComplexityRoot struct {
 		OidcIdentities                  func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.OIDCIdentityOrder, where *ent.OIDCIdentityWhereInput) int
 		OnboardingInfo                  func(childComplexity int) int
 		PassThroughSettings             func(childComplexity int) int
+		PreviewAPIKeyProfile            func(childComplexity int, apiKeyID objects.GUID, profile objects.APIKeyProfile) int
 		PreviewGcCleanup                func(childComplexity int, input gc.TriggerGcCleanupInput) int
 		Projects                        func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.ProjectOrder, where *ent.ProjectWhereInput) int
 		PromptProtectionRules           func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.PromptProtectionRuleOrder, where *ent.PromptProtectionRuleWhereInput) int
@@ -2353,6 +2369,7 @@ type QueryResolver interface {
 	AllChannelTags(ctx context.Context) ([]string, error)
 	CountChannelsByType(ctx context.Context, input CountChannelsByTypeInput) ([]*ChannelTypeCount, error)
 	QueryChannels(ctx context.Context, input biz.QueryChannelsInput) (*ent.ChannelConnection, error)
+	PreviewAPIKeyProfile(ctx context.Context, apiKeyID objects.GUID, profile objects.APIKeyProfile) (*biz.APIKeyProfilePreview, error)
 	APIKeyQuotaUsages(ctx context.Context, apiKeyID objects.GUID) ([]*APIKeyProfileQuotaUsage, error)
 	DashboardOverview(ctx context.Context) (*DashboardOverview, error)
 	RequestStats(ctx context.Context) (*RequestStats, error)
@@ -2761,6 +2778,45 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfile.TraceStickyMode(childComplexity), true
+
+	case "APIKeyProfilePreview.apiFormats":
+		if e.complexity.APIKeyProfilePreview.APIFormats == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreview.APIFormats(childComplexity), true
+	case "APIKeyProfilePreview.models":
+		if e.complexity.APIKeyProfilePreview.Models == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreview.Models(childComplexity), true
+
+	case "APIKeyProfilePreviewChannel.id":
+		if e.complexity.APIKeyProfilePreviewChannel.ID == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewChannel.ID(childComplexity), true
+	case "APIKeyProfilePreviewChannel.name":
+		if e.complexity.APIKeyProfilePreviewChannel.Name == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewChannel.Name(childComplexity), true
+
+	case "APIKeyProfilePreviewModel.channels":
+		if e.complexity.APIKeyProfilePreviewModel.Channels == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewModel.Channels(childComplexity), true
+	case "APIKeyProfilePreviewModel.id":
+		if e.complexity.APIKeyProfilePreviewModel.ID == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewModel.ID(childComplexity), true
 
 	case "APIKeyProfileQuotaUsage.profileName":
 		if e.complexity.APIKeyProfileQuotaUsage.ProfileName == nil {
@@ -8373,6 +8429,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PassThroughSettings(childComplexity), true
+	case "Query.previewApiKeyProfile":
+		if e.complexity.Query.PreviewAPIKeyProfile == nil {
+			break
+		}
+
+		args, err := ec.field_Query_previewApiKeyProfile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PreviewAPIKeyProfile(childComplexity, args["apiKeyID"].(objects.GUID), args["profile"].(objects.APIKeyProfile)), true
 	case "Query.previewGcCleanup":
 		if e.complexity.Query.PreviewGcCleanup == nil {
 			break
@@ -14305,6 +14372,22 @@ func (ec *executionContext) field_Query_oidcIdentities_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_previewApiKeyProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "apiKeyID", ec.unmarshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
+	if err != nil {
+		return nil, err
+	}
+	args["apiKeyID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "profile", ec.unmarshalNAPIKeyProfileInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyProfile)
+	if err != nil {
+		return nil, err
+	}
+	args["profile"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_previewGcCleanup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -16459,6 +16542,192 @@ func (ec *executionContext) fieldContext_APIKeyProfile_traceStickyMode(_ context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreview_apiFormats(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreview_apiFormats,
+		func(ctx context.Context) (any, error) {
+			return obj.APIFormats, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreview_apiFormats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreview_models(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreview_models,
+		func(ctx context.Context) (any, error) {
+			return obj.Models, nil
+		},
+		nil,
+		ec.marshalNAPIKeyProfilePreviewModel2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewModelᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreview_models(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_APIKeyProfilePreviewModel_id(ctx, field)
+			case "channels":
+				return ec.fieldContext_APIKeyProfilePreviewModel_channels(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfilePreviewModel", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewChannel_id(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewChannel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewChannel_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewChannel_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewChannel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewChannel_name(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewChannel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewChannel_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewChannel_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewChannel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewModel_id(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewModel_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewModel_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewModel_channels(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewModel_channels,
+		func(ctx context.Context) (any, error) {
+			return obj.Channels, nil
+		},
+		nil,
+		ec.marshalNAPIKeyProfilePreviewChannel2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewChannelᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewModel_channels(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_APIKeyProfilePreviewChannel_id(ctx, field)
+			case "name":
+				return ec.fieldContext_APIKeyProfilePreviewChannel_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfilePreviewChannel", field.Name)
 		},
 	}
 	return fc, nil
@@ -44244,6 +44513,53 @@ func (ec *executionContext) fieldContext_Query_queryChannels(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_queryChannels_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_previewApiKeyProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_previewApiKeyProfile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PreviewAPIKeyProfile(ctx, fc.Args["apiKeyID"].(objects.GUID), fc.Args["profile"].(objects.APIKeyProfile))
+		},
+		nil,
+		ec.marshalNAPIKeyProfilePreview2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreview,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_previewApiKeyProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "apiFormats":
+				return ec.fieldContext_APIKeyProfilePreview_apiFormats(ctx, field)
+			case "models":
+				return ec.fieldContext_APIKeyProfilePreview_models(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfilePreview", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_previewApiKeyProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -89878,6 +90194,138 @@ func (ec *executionContext) _APIKeyProfile(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var aPIKeyProfilePreviewImplementors = []string{"APIKeyProfilePreview"}
+
+func (ec *executionContext) _APIKeyProfilePreview(ctx context.Context, sel ast.SelectionSet, obj *biz.APIKeyProfilePreview) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyProfilePreviewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIKeyProfilePreview")
+		case "apiFormats":
+			out.Values[i] = ec._APIKeyProfilePreview_apiFormats(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "models":
+			out.Values[i] = ec._APIKeyProfilePreview_models(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var aPIKeyProfilePreviewChannelImplementors = []string{"APIKeyProfilePreviewChannel"}
+
+func (ec *executionContext) _APIKeyProfilePreviewChannel(ctx context.Context, sel ast.SelectionSet, obj *biz.APIKeyProfilePreviewChannel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyProfilePreviewChannelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIKeyProfilePreviewChannel")
+		case "id":
+			out.Values[i] = ec._APIKeyProfilePreviewChannel_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._APIKeyProfilePreviewChannel_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var aPIKeyProfilePreviewModelImplementors = []string{"APIKeyProfilePreviewModel"}
+
+func (ec *executionContext) _APIKeyProfilePreviewModel(ctx context.Context, sel ast.SelectionSet, obj *biz.APIKeyProfilePreviewModel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyProfilePreviewModelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIKeyProfilePreviewModel")
+		case "id":
+			out.Values[i] = ec._APIKeyProfilePreviewModel_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "channels":
+			out.Values[i] = ec._APIKeyProfilePreviewModel_channels(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var aPIKeyProfileQuotaUsageImplementors = []string{"APIKeyProfileQuotaUsage"}
 
 func (ec *executionContext) _APIKeyProfileQuotaUsage(ctx context.Context, sel ast.SelectionSet, obj *APIKeyProfileQuotaUsage) graphql.Marshaler {
@@ -100756,6 +101204,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "previewApiKeyProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_previewApiKeyProfile(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "apiKeyQuotaUsages":
 			field := field
 
@@ -109544,6 +110014,128 @@ func (ec *executionContext) marshalNAPIKeyProfile2githubᚗcomᚋloopljᚋaxonhu
 func (ec *executionContext) unmarshalNAPIKeyProfileInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyProfile(ctx context.Context, v any) (objects.APIKeyProfile, error) {
 	res, err := ec.unmarshalInputAPIKeyProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreview2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreview(ctx context.Context, sel ast.SelectionSet, v biz.APIKeyProfilePreview) graphql.Marshaler {
+	return ec._APIKeyProfilePreview(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreview2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreview(ctx context.Context, sel ast.SelectionSet, v *biz.APIKeyProfilePreview) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._APIKeyProfilePreview(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreviewChannel2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewChannelᚄ(ctx context.Context, sel ast.SelectionSet, v []*biz.APIKeyProfilePreviewChannel) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAPIKeyProfilePreviewChannel2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewChannel(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreviewChannel2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewChannel(ctx context.Context, sel ast.SelectionSet, v *biz.APIKeyProfilePreviewChannel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._APIKeyProfilePreviewChannel(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreviewModel2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewModelᚄ(ctx context.Context, sel ast.SelectionSet, v []*biz.APIKeyProfilePreviewModel) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAPIKeyProfilePreviewModel2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewModel(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAPIKeyProfilePreviewModel2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐAPIKeyProfilePreviewModel(ctx context.Context, sel ast.SelectionSet, v *biz.APIKeyProfilePreviewModel) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._APIKeyProfilePreviewModel(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNAPIKeyProfileQuotaUsage2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyProfileQuotaUsageᚄ(ctx context.Context, sel ast.SelectionSet, v []*APIKeyProfileQuotaUsage) graphql.Marshaler {

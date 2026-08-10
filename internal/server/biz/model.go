@@ -649,35 +649,7 @@ func (svc *ModelService) ListEnabledModels(ctx context.Context) ([]ModelFacade, 
 	ctx = authz.WithScopeDecision(ctx, scopes.ScopeReadChannels)
 
 	if apiKey, ok := contexts.GetAPIKey(ctx); ok && apiKey != nil {
-		// Project-level profile filtering (upper boundary)
-		if projectProfile := apiKey.Edges.Project.GetActiveProfile(); projectProfile != nil {
-			if len(projectProfile.ChannelIDs) > 0 {
-				channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
-					return lo.Contains(projectProfile.ChannelIDs, ch.ID)
-				})
-			}
-
-			if len(projectProfile.ChannelTags) > 0 {
-				channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
-					return projectProfile.MatchChannelTags(ch.Tags)
-				})
-			}
-		}
-
-		// Key-level profile filtering (narrows further within project scope)
-		profile = apiKey.GetActiveProfile()
-
-		if profile != nil && len(profile.ChannelIDs) > 0 {
-			channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
-				return lo.Contains(profile.ChannelIDs, ch.ID)
-			})
-		}
-
-		if profile != nil && len(profile.ChannelTags) > 0 {
-			channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
-				return profile.MatchChannelTags(ch.Tags)
-			})
-		}
+		channels, profile = filterChannelsForAPIKey(channels, apiKey)
 	}
 
 	var allowedModelIDs []string
@@ -744,6 +716,43 @@ func (svc *ModelService) ListEnabledModels(ctx context.Context) ([]ModelFacade, 
 	}
 
 	return models, nil
+}
+
+func filterChannelsForAPIKey(channels []*Channel, apiKey *ent.APIKey) ([]*Channel, *objects.APIKeyProfile) {
+	if apiKey == nil {
+		return channels, nil
+	}
+
+	// Project-level profile filtering is the upper boundary.
+	if projectProfile := apiKey.Edges.Project.GetActiveProfile(); projectProfile != nil {
+		if len(projectProfile.ChannelIDs) > 0 {
+			channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
+				return lo.Contains(projectProfile.ChannelIDs, ch.ID)
+			})
+		}
+
+		if len(projectProfile.ChannelTags) > 0 {
+			channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
+				return projectProfile.MatchChannelTags(ch.Tags)
+			})
+		}
+	}
+
+	// Key-level profile filtering narrows further within project scope.
+	profile := apiKey.GetActiveProfile()
+	if profile != nil && len(profile.ChannelIDs) > 0 {
+		channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
+			return lo.Contains(profile.ChannelIDs, ch.ID)
+		})
+	}
+
+	if profile != nil && len(profile.ChannelTags) > 0 {
+		channels = lo.Filter(channels, func(ch *Channel, _ int) bool {
+			return profile.MatchChannelTags(ch.Tags)
+		})
+	}
+
+	return channels, profile
 }
 
 // queryConfiguredModelFacades queries enabled Model entities and returns them as ModelFacades

@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AutoComplete } from '@/components/auto-complete';
 import { useAllChannelSummarys } from '@/features/channels/data/channels';
 import { useApiKeysContext } from '../context/apikeys-context';
-import { useApiKeyQuotaUsages } from '../data/apikeys';
+import { useApiKeyProfilePreview, useApiKeyQuotaUsages } from '../data/apikeys';
 import {
   normalizeApiKeyProfileRoutingPolicy,
   updateApiKeyProfilesInputSchemaFactory,
@@ -30,6 +30,7 @@ import {
   type ApiKeyProfileQuotaUsage,
   type UpdateApiKeyProfilesInput,
 } from '../data/schema';
+import { ApiKeyProfilePreviewPanel } from './apikey-profile-preview-panel';
 import { ApiKeyLoadTemplatePopover } from './apikeys-load-template-popover';
 import { ApiKeySaveTemplateDialog } from './apikeys-save-template-dialog';
 
@@ -162,6 +163,12 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
   // Watch profile names to update activeProfile dropdown options
   const watchedProfiles = form.watch('profiles') || [];
   const profileNames = watchedProfiles.map((profile) => profile.name || '');
+  const activeProfileName = form.watch('activeProfile');
+  const activeProfile = watchedProfiles.find((profile) => profile.name === activeProfileName);
+  const debouncedPreviewProfile = useDebounce(activeProfile, 250);
+  const profilePreviewQuery = useApiKeyProfilePreview(apiKeyId, debouncedPreviewProfile, {
+    enabled: open && !!apiKeyId && !!debouncedPreviewProfile,
+  });
 
   useEffect(() => {
     const nonEmptyProfiles = watchedProfiles.filter((profile) => profile?.name?.trim());
@@ -290,7 +297,7 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] flex-col sm:max-w-4xl'>
+      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] flex-col sm:max-w-6xl'>
         <DialogHeader className='shrink-0 text-left'>
           <DialogTitle className='flex items-center gap-2'>
             <IconSettings className='h-5 w-5' />
@@ -303,114 +310,122 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex min-h-0 flex-1 flex-col'>
-          {/* Fixed Add Profile Section at Top */}
-          <div className='bg-background shrink-0 border-b p-4'>
-            <Form {...form}>
-              <form id='apikey-profiles-form' onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6'>
-                <div className='flex items-center justify-between'>
-                  <h3 className='text-lg font-medium'>{t('apikeys.profiles.profilesTitle')}</h3>
-                  <div className='flex items-center gap-2'>
-                    <ApiKeyLoadTemplatePopover
-                      apiKeyID={apiKeyId}
-                      projectID={selectedProjectId}
-                      onLoadComplete={(loadedProfiles) => {
-                        const resetData = {
-                          activeProfile: loadedProfiles.activeProfile || loadedProfiles.profiles[0]?.name || '',
-                          profiles: loadedProfiles.profiles.map(normalizeApiKeyProfileRoutingPolicy),
-                        };
-                        setTemplateLoadPending(true);
-                        form.reset(resetData);
-                        lastInitialDataRef.current = JSON.stringify(resetData);
-                      }}
-                    />
-                    <Button type='button' variant='outline' size='sm' onClick={addProfile} className='flex items-center gap-2'>
-                      <IconPlus className='h-4 w-4' />
-                      {t('apikeys.profiles.addProfile')}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            </Form>
-          </div>
-
-          {/* Scrollable Profiles Section */}
-          {profileFields.length > 0 && (
-            <div className='flex-1 overflow-y-auto py-1'>
+        <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]'>
+          <div className='flex min-h-0 flex-col'>
+            {/* Fixed Add Profile Section at Top */}
+            <div className='bg-background shrink-0 border-b p-4'>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6 px-4'>
-                  <div className='space-y-4'>
-                    <div className='space-y-4'>
-                      {profileFields.map((profile, profileIndex) => {
-                        const activeProfileName = form.getValues('activeProfile');
-                        const isActive = profile.name === activeProfileName;
-
-                        return (
-                          <div
-                            key={profile.id}
-                            className={profileIndex === 0 ? 'mt-4' : ''}
-                            ref={(el) => {
-                              profileRefs.current[profileIndex] = el;
-                            }}
-                          >
-                            <ProfileCard
-                              profileIndex={profileIndex}
-                              form={form}
-                              onRemove={() => removeProfileHandler(profileIndex)}
-                              canRemove={profileFields.length > 1}
-                              availableModels={availableModels?.map((model) => model.id) || []}
-                              t={t}
-                              locale={locale}
-                              quotaUsageByProfileName={quotaUsageByProfileName}
-                              defaultExpanded={isActive}
-                              portalContainer={dialogContent}
-                              selectedProjectId={selectedProjectId}
-                              onSaveTemplate={(idx) => {
-                                setSaveTemplateProfileIndex(idx);
-                                setSaveTemplateOpen(true);
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
+                <form id='apikey-profiles-form' onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6'>
+                  <div className='flex items-center justify-between'>
+                    <h3 className='text-lg font-medium'>{t('apikeys.profiles.profilesTitle')}</h3>
+                    <div className='flex items-center gap-2'>
+                      <ApiKeyLoadTemplatePopover
+                        apiKeyID={apiKeyId}
+                        projectID={selectedProjectId}
+                        onLoadComplete={(loadedProfiles) => {
+                          const resetData = {
+                            activeProfile: loadedProfiles.activeProfile || loadedProfiles.profiles[0]?.name || '',
+                            profiles: loadedProfiles.profiles.map(normalizeApiKeyProfileRoutingPolicy),
+                          };
+                          setTemplateLoadPending(true);
+                          form.reset(resetData);
+                          lastInitialDataRef.current = JSON.stringify(resetData);
+                        }}
+                      />
+                      <Button type='button' variant='outline' size='sm' onClick={addProfile} className='flex items-center gap-2'>
+                        <IconPlus className='h-4 w-4' />
+                        {t('apikeys.profiles.addProfile')}
+                      </Button>
                     </div>
                   </div>
                 </form>
               </Form>
             </div>
-          )}
 
-          {/* Fixed Active Profile Section at Bottom */}
-          <div className='bg-background mt-4 shrink-0 border-t px-4 py-2'>
-            <Form {...form}>
-              <FormField
-                control={form.control}
-                name='activeProfile'
-                render={({ field }) => (
-                  <FormItem className='flex items-center space-y-0 gap-x-3'>
-                    <FormLabel className='shrink-0 font-medium'>{t('apikeys.profiles.activeProfile')}</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {profileNames
-                            .filter((name) => name.trim() !== '')
-                            .map((profileName) => (
-                              <SelectItem key={profileName} value={profileName}>
-                                {profileName}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </Form>
+            {/* Scrollable Profiles Section */}
+            {profileFields.length > 0 && (
+              <div className='flex-1 overflow-y-auto py-1'>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6 px-4'>
+                    <div className='space-y-4'>
+                      <div className='space-y-4'>
+                        {profileFields.map((profile, profileIndex) => {
+                          const activeProfileName = form.getValues('activeProfile');
+                          const isActive = profile.name === activeProfileName;
+
+                          return (
+                            <div
+                              key={profile.id}
+                              className={profileIndex === 0 ? 'mt-4' : ''}
+                              ref={(el) => {
+                                profileRefs.current[profileIndex] = el;
+                              }}
+                            >
+                              <ProfileCard
+                                profileIndex={profileIndex}
+                                form={form}
+                                onRemove={() => removeProfileHandler(profileIndex)}
+                                canRemove={profileFields.length > 1}
+                                availableModels={availableModels?.map((model) => model.id) || []}
+                                t={t}
+                                locale={locale}
+                                quotaUsageByProfileName={quotaUsageByProfileName}
+                                defaultExpanded={isActive}
+                                portalContainer={dialogContent}
+                                selectedProjectId={selectedProjectId}
+                                onSaveTemplate={(idx) => {
+                                  setSaveTemplateProfileIndex(idx);
+                                  setSaveTemplateOpen(true);
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </form>
+                </Form>
+              </div>
+            )}
+
+            {/* Fixed Active Profile Section at Bottom */}
+            <div className='bg-background mt-4 shrink-0 border-t px-4 py-2'>
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name='activeProfile'
+                  render={({ field }) => (
+                    <FormItem className='flex items-center space-y-0 gap-x-3'>
+                      <FormLabel className='shrink-0 font-medium'>{t('apikeys.profiles.activeProfile')}</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {profileNames
+                              .filter((name) => name.trim() !== '')
+                              .map((profileName) => (
+                                <SelectItem key={profileName} value={profileName}>
+                                  {profileName}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Form>
+            </div>
           </div>
+          <ApiKeyProfilePreviewPanel
+            profileName={activeProfileName}
+            preview={profilePreviewQuery.data}
+            loading={profilePreviewQuery.isFetching}
+            error={profilePreviewQuery.isError}
+          />
         </div>
 
         <DialogFooter className='flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end'>

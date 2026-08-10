@@ -205,6 +205,22 @@ export const apiKeyProfileSchema = z.object({
 });
 export type ApiKeyProfile = z.infer<typeof apiKeyProfileSchema>;
 
+export const apiKeyProfilePreviewSchema = z.object({
+  apiFormats: z.array(z.string()),
+  models: z.array(
+    z.object({
+      id: z.string(),
+      channels: z.array(
+        z.object({
+          id: z.number(),
+          name: z.string(),
+        })
+      ),
+    })
+  ),
+});
+export type ApiKeyProfilePreview = z.infer<typeof apiKeyProfilePreviewSchema>;
+
 // API Key Profiles schema
 export const apiKeyProfilesSchema = z.object({
   activeProfile: z.string(),

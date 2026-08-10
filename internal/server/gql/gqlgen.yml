@@ -256,6 +256,15 @@ models:
   APIKeyProfileInput:
     model:
       - github.com/looplj/axonhub/internal/objects.APIKeyProfile
+  APIKeyProfilePreview:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.APIKeyProfilePreview
+  APIKeyProfilePreviewModel:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.APIKeyProfilePreviewModel
+  APIKeyProfilePreviewChannel:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.APIKeyProfilePreviewChannel
   APIKeyProfiles:
     model:
       - github.com/looplj/axonhub/internal/objects.APIKeyProfiles

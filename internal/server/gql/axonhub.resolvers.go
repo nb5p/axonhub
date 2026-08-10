@@ -877,6 +877,22 @@ func (r *queryResolver) QueryChannels(ctx context.Context, input biz.QueryChanne
 	return r.channelService.QueryChannels(ctx, input)
 }
 
+// PreviewAPIKeyProfile is the resolver for the previewApiKeyProfile field.
+func (r *queryResolver) PreviewAPIKeyProfile(ctx context.Context, apiKeyID objects.GUID, profile objects.APIKeyProfile) (*biz.APIKeyProfilePreview, error) {
+	apiKey, err := r.apiKeyService.GetForRead(ctx, &apiKeyID.ID, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key: %w", err)
+	}
+
+	project, err := apiKey.QueryProject().Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key project: %w", err)
+	}
+	apiKey.Edges.Project = project
+
+	return r.modelService.PreviewAPIKeyProfile(ctx, apiKey, profile)
+}
+
 // APIKeyQuotaUsages is the resolver for the apiKeyQuotaUsages field.
 func (r *queryResolver) APIKeyQuotaUsages(ctx context.Context, apiKeyID objects.GUID) ([]*APIKeyProfileQuotaUsage, error) {
 	apiKey, err := r.client.APIKey.Get(ctx, apiKeyID.ID)
