@@ -19,6 +19,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `mobile-request-route-tooltip` | 本地原创、计划贡献上游 | `upstream-pending` | `e8e19993` | `none` | [`features/mobile-request-route-tooltip.md`](features/mobile-request-route-tooltip.md) |
 | `mobile-ui-improvements` | 本地原创、已贡献上游 | `upstreamed` | 上游 `4971cbe4` / PR `#1896` | `none` | [`features/mobile-ui-improvements.md`](features/mobile-ui-improvements.md) |
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
+| `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
 

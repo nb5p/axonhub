@@ -10,8 +10,8 @@
 `last_merged_upstream_commit` 只表示最近一次已经成功进入 `ai-slop` 历史的上游 commit，不代表远程上游此刻的最新 head。`local_merge_commit` 在直接以上游为重建基线时为 `null`。
 
 ```yaml
-last_merged_upstream_commit: dba642a08c91c9696018f6ef185435902ecf60f0
-local_merge_commit: aacc271bf6b79db56907ab4641fe56860e3deaef
+last_merged_upstream_commit: 2b78817e0620c334dd351a4fef296b49dcb7e449
+local_merge_commit: bb2a5a469f6ffb3882f03ebf6901076e8615c916
 integrated_at: 2026-08-10
 integration_mode: merge
 recovery_ref: null
@@ -81,6 +81,7 @@ reconciliations:
 | 2026-08-06 | `d6ed9c6288ae1642a5a1e8f76db7a8abc0b223af` | `null` | 经用户批准，以该上游 commit 为直接基线重建私有历史；只重放仍有效的 Alpha Search、触摸 tooltip 和维护账本。 |
 | 2026-08-10 | `dba642a08c91c9696018f6ef185435902ecf60f0` | `aacc271bf6b79db56907ab4641fe56860e3deaef` | 经用户明确要求重写历史，保留 SSE keepalive、私有响应头转发及其他无关改动，移除 Responses item ID 修复及其集成外壳。 |
 | 2026-08-10 | `null` | `null` | 完成历史核对后删除本地恢复引用；该引用从未推送到远程。 |
+| 2026-08-10 | `2b78817e0620c334dd351a4fef296b49dcb7e449` | `bb2a5a469f6ffb3882f03ebf6901076e8615c916` | 从最新 `upstream/unstable` 创建功能分支并真实合入 `ai-slop`；保留官方更新，并纳入渠道 API Key 列表复制按钮。 |
 
 ### 2026-08-06 经批准的历史重建
 
