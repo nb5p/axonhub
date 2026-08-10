@@ -207,6 +207,7 @@ export type ApiKeyProfile = z.infer<typeof apiKeyProfileSchema>;
 
 export const apiKeyProfilePreviewSchema = z.object({
   apiFormats: z.array(z.string()),
+  preferPassThrough: z.boolean(),
   models: z.array(
     z.object({
       id: z.string(),
@@ -214,6 +215,8 @@ export const apiKeyProfilePreviewSchema = z.object({
         z.object({
           id: z.number(),
           name: z.string(),
+          orderingWeight: z.number(),
+          passThroughApiFormats: z.array(z.string()),
         })
       ),
     })

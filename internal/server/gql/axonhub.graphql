@@ -463,6 +463,8 @@ type APIKeyProfile {
 type APIKeyProfilePreviewChannel {
   id: Int!
   name: String!
+  orderingWeight: Int!
+  passThroughApiFormats: [String!]!
 }
 
 type APIKeyProfilePreviewModel {
@@ -473,6 +475,7 @@ type APIKeyProfilePreviewModel {
 type APIKeyProfilePreview {
   apiFormats: [String!]!
   models: [APIKeyProfilePreviewModel!]!
+  preferPassThrough: Boolean!
 }
 
 enum ChannelTagsMatchMode {

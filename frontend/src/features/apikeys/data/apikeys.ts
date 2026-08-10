@@ -34,11 +34,14 @@ const API_KEY_PROFILE_PREVIEW_QUERY = `
   query PreviewApiKeyProfile($apiKeyId: ID!, $profile: APIKeyProfileInput!) {
     previewApiKeyProfile(apiKeyID: $apiKeyId, profile: $profile) {
       apiFormats
+      preferPassThrough
       models {
         id
         channels {
           id
           name
+          orderingWeight
+          passThroughApiFormats
         }
       }
     }

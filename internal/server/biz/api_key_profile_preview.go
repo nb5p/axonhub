@@ -15,8 +15,9 @@ import (
 // APIKeyProfilePreview describes the API formats and models that an unsaved API
 // key profile would expose.
 type APIKeyProfilePreview struct {
-	APIFormats []string                     `json:"apiFormats"`
-	Models     []*APIKeyProfilePreviewModel `json:"models"`
+	APIFormats        []string                     `json:"apiFormats"`
+	Models            []*APIKeyProfilePreviewModel `json:"models"`
+	PreferPassThrough bool                         `json:"preferPassThrough"`
 }
 
 type APIKeyProfilePreviewModel struct {
@@ -25,8 +26,10 @@ type APIKeyProfilePreviewModel struct {
 }
 
 type APIKeyProfilePreviewChannel struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID                    int      `json:"id"`
+	Name                  string   `json:"name"`
+	OrderingWeight        int      `json:"orderingWeight"`
+	PassThroughAPIFormats []string `json:"passThroughApiFormats"`
 }
 
 // PreviewAPIKeyProfile calculates visibility with the same ListEnabledModels
@@ -65,6 +68,15 @@ func (svc *ModelService) PreviewAPIKeyProfile(
 		configuredByID[configuredModel.ModelID] = configuredModel
 	}
 
+	preferPassThrough, err := svc.systemService.PreferPassThrough(previewCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pass-through preference: %w", err)
+	}
+	globalPassThrough, err := svc.systemService.PassThrough(previewCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get global pass-through setting: %w", err)
+	}
+
 	previewModels := make([]*APIKeyProfilePreviewModel, 0, len(visibleModels))
 	relevantChannels := make(map[int]*Channel)
 	settings := svc.modelSettingsOrDefault(previewCtx)
@@ -73,13 +85,22 @@ func (svc *ModelService) PreviewAPIKeyProfile(
 		previewChannels := make([]*APIKeyProfilePreviewChannel, 0, len(modelChannels))
 		for _, channel := range modelChannels {
 			relevantChannels[channel.ID] = channel
+			passThroughEnabled := globalPassThrough
+			if channel.Settings != nil && channel.Settings.PassThroughBody != nil {
+				passThroughEnabled = *channel.Settings.PassThroughBody
+			}
 			previewChannels = append(previewChannels, &APIKeyProfilePreviewChannel{
-				ID:   channel.ID,
-				Name: channel.Name,
+				ID:                    channel.ID,
+				Name:                  channel.Name,
+				OrderingWeight:        channel.OrderingWeight,
+				PassThroughAPIFormats: previewPassThroughAPIFormats(channel, passThroughEnabled),
 			})
 		}
 
 		sort.Slice(previewChannels, func(i, j int) bool {
+			if previewChannels[i].OrderingWeight != previewChannels[j].OrderingWeight {
+				return previewChannels[i].OrderingWeight > previewChannels[j].OrderingWeight
+			}
 			if previewChannels[i].Name == previewChannels[j].Name {
 				return previewChannels[i].ID < previewChannels[j].ID
 			}
@@ -103,9 +124,67 @@ func (svc *ModelService) PreviewAPIKeyProfile(
 	for apiFormat := range apiFormatSet {
 		apiFormats = append(apiFormats, apiFormat)
 	}
-	sort.Strings(apiFormats)
+	sort.Slice(apiFormats, func(i, j int) bool {
+		iPriority := previewAPIFormatPriority(apiFormats[i])
+		jPriority := previewAPIFormatPriority(apiFormats[j])
+		if iPriority != jPriority {
+			return iPriority < jPriority
+		}
 
-	return &APIKeyProfilePreview{APIFormats: apiFormats, Models: previewModels}, nil
+		return apiFormats[i] < apiFormats[j]
+	})
+
+	return &APIKeyProfilePreview{
+		APIFormats:        apiFormats,
+		Models:            previewModels,
+		PreferPassThrough: preferPassThrough,
+	}, nil
+}
+
+func previewPassThroughAPIFormats(channel *Channel, enabled bool) []string {
+	if !enabled {
+		return []string{}
+	}
+
+	formats := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, endpoint := range channel.ResolveEndpoints() {
+		if endpoint.APIFormat == "" || !previewPassThroughBodySupported(endpoint.APIFormat) {
+			continue
+		}
+		if _, ok := seen[endpoint.APIFormat]; ok {
+			continue
+		}
+
+		seen[endpoint.APIFormat] = struct{}{}
+		formats = append(formats, endpoint.APIFormat)
+	}
+
+	return formats
+}
+
+func previewPassThroughBodySupported(apiFormat string) bool {
+	switch apiFormat {
+	case "openai/audio_transcriptions", "openai/audio_translations", "openai/image_edit", "openai/image_variation":
+		return false
+	default:
+		return true
+	}
+}
+
+func previewAPIFormatPriority(apiFormat string) int {
+	switch apiFormat {
+	case "openai/chat_completions":
+		return 0
+	case "openai/responses":
+		return 1
+	case "anthropic/messages":
+		return 2
+	case "gemini/contents":
+		return 3
+	default:
+		return 100
+	}
 }
 
 func (svc *ModelService) previewConfiguredModels(ctx context.Context, visibleModels []ModelFacade) ([]*ent.Model, error) {

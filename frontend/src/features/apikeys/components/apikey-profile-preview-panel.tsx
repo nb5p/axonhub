@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IconLoader2, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,6 +17,16 @@ interface ApiKeyProfilePreviewPanelProps {
 export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = false, error = false }: ApiKeyProfilePreviewPanelProps) {
   const { t } = useTranslation();
   const [modelSearch, setModelSearch] = useState('');
+  const [selectedApiFormat, setSelectedApiFormat] = useState('');
+
+  useEffect(() => {
+    const apiFormats = preview?.apiFormats ?? [];
+    if (apiFormats.length === 0) {
+      setSelectedApiFormat('');
+    } else if (!apiFormats.includes(selectedApiFormat)) {
+      setSelectedApiFormat(apiFormats[0]);
+    }
+  }, [preview?.apiFormats, selectedApiFormat]);
 
   const visibleModels = useMemo(() => {
     const query = modelSearch.trim().toLowerCase();
@@ -27,6 +38,17 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
     const key = `channels.dialogs.fields.apiFormat.formats.${apiFormat}`;
     const label = t(key);
     return label === key ? apiFormat : label;
+  };
+
+  const channelsByRoutingOrder = (channels: ApiKeyProfilePreview['models'][number]['channels']) => {
+    return [...channels].sort((left, right) => {
+      const leftPassThrough = preview?.preferPassThrough === true && left.passThroughApiFormats.includes(selectedApiFormat);
+      const rightPassThrough = preview?.preferPassThrough === true && right.passThroughApiFormats.includes(selectedApiFormat);
+      if (leftPassThrough !== rightPassThrough) return leftPassThrough ? -1 : 1;
+      if (left.orderingWeight !== right.orderingWeight) return right.orderingWeight - left.orderingWeight;
+      if (left.name !== right.name) return left.name < right.name ? -1 : 1;
+      return left.id - right.id;
+    });
   };
 
   return (
@@ -59,9 +81,18 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
               {(preview?.apiFormats.length ?? 0) > 0 ? (
                 <div className='flex flex-wrap gap-1.5'>
                   {preview?.apiFormats.map((apiFormat) => (
-                    <Badge key={apiFormat} variant='outline' className='font-normal'>
+                    <button
+                      key={apiFormat}
+                      type='button'
+                      aria-pressed={selectedApiFormat === apiFormat}
+                      className={cn(
+                        'rounded-full border px-2.5 py-0.5 text-xs font-normal transition-colors',
+                        selectedApiFormat === apiFormat ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent'
+                      )}
+                      onClick={() => setSelectedApiFormat(apiFormat)}
+                    >
                       {apiFormatLabel(apiFormat)}
-                    </Badge>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -85,6 +116,11 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
                   />
                 </div>
               )}
+              {selectedApiFormat && (
+                <p className='text-muted-foreground text-xs'>
+                  {t('apikeys.profiles.preview.routingOrderHint', { api: apiFormatLabel(selectedApiFormat) })}
+                </p>
+              )}
               {visibleModels.length > 0 ? (
                 <div className='flex flex-wrap gap-1.5'>
                   {visibleModels.map((model) => (
@@ -101,11 +137,24 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
                         <p className='mb-1 text-xs font-medium'>{t('apikeys.profiles.preview.supportedChannels')}</p>
                         {model.channels.length > 0 ? (
                           <div className='space-y-0.5'>
-                            {model.channels.map((channel) => (
-                              <p key={channel.id} className='text-xs'>
-                                {channel.name}
-                              </p>
-                            ))}
+                            {channelsByRoutingOrder(model.channels).map((channel, index) => {
+                              const passThroughPreferred =
+                                preview?.preferPassThrough === true && channel.passThroughApiFormats.includes(selectedApiFormat);
+                              return (
+                                <div key={channel.id} className='flex items-center gap-1.5 text-xs'>
+                                  <span className='text-background/65 w-4 text-right font-mono'>{index + 1}.</span>
+                                  <span className='min-w-0 flex-1 truncate'>{channel.name}</span>
+                                  {passThroughPreferred && (
+                                    <span className='rounded border border-emerald-400/50 px-1 text-[10px] text-emerald-300'>
+                                      {t('apikeys.profiles.preview.passThroughPreferred')}
+                                    </span>
+                                  )}
+                                  <span className='text-background/65 font-mono text-[10px]'>
+                                    {t('apikeys.profiles.preview.channelWeight', { weight: channel.orderingWeight })}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className='text-xs'>{t('apikeys.profiles.preview.noChannels')}</p>

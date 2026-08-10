@@ -157,13 +157,16 @@ type ComplexityRoot struct {
 	}
 
 	APIKeyProfilePreview struct {
-		APIFormats func(childComplexity int) int
-		Models     func(childComplexity int) int
+		APIFormats        func(childComplexity int) int
+		Models            func(childComplexity int) int
+		PreferPassThrough func(childComplexity int) int
 	}
 
 	APIKeyProfilePreviewChannel struct {
-		ID   func(childComplexity int) int
-		Name func(childComplexity int) int
+		ID                    func(childComplexity int) int
+		Name                  func(childComplexity int) int
+		OrderingWeight        func(childComplexity int) int
+		PassThroughAPIFormats func(childComplexity int) int
 	}
 
 	APIKeyProfilePreviewModel struct {
@@ -2792,6 +2795,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfilePreview.Models(childComplexity), true
+	case "APIKeyProfilePreview.preferPassThrough":
+		if e.complexity.APIKeyProfilePreview.PreferPassThrough == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreview.PreferPassThrough(childComplexity), true
 
 	case "APIKeyProfilePreviewChannel.id":
 		if e.complexity.APIKeyProfilePreviewChannel.ID == nil {
@@ -2805,6 +2814,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfilePreviewChannel.Name(childComplexity), true
+	case "APIKeyProfilePreviewChannel.orderingWeight":
+		if e.complexity.APIKeyProfilePreviewChannel.OrderingWeight == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewChannel.OrderingWeight(childComplexity), true
+	case "APIKeyProfilePreviewChannel.passThroughApiFormats":
+		if e.complexity.APIKeyProfilePreviewChannel.PassThroughAPIFormats == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfilePreviewChannel.PassThroughAPIFormats(childComplexity), true
 
 	case "APIKeyProfilePreviewModel.channels":
 		if e.complexity.APIKeyProfilePreviewModel.Channels == nil {
@@ -16618,6 +16639,35 @@ func (ec *executionContext) fieldContext_APIKeyProfilePreview_models(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _APIKeyProfilePreview_preferPassThrough(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreview_preferPassThrough,
+		func(ctx context.Context) (any, error) {
+			return obj.PreferPassThrough, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreview_preferPassThrough(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _APIKeyProfilePreviewChannel_id(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewChannel) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16664,6 +16714,64 @@ func (ec *executionContext) _APIKeyProfilePreviewChannel_name(ctx context.Contex
 }
 
 func (ec *executionContext) fieldContext_APIKeyProfilePreviewChannel_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewChannel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewChannel_orderingWeight(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewChannel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewChannel_orderingWeight,
+		func(ctx context.Context) (any, error) {
+			return obj.OrderingWeight, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewChannel_orderingWeight(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfilePreviewChannel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyProfilePreviewChannel_passThroughApiFormats(ctx context.Context, field graphql.CollectedField, obj *biz.APIKeyProfilePreviewChannel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfilePreviewChannel_passThroughApiFormats,
+		func(ctx context.Context) (any, error) {
+			return obj.PassThroughAPIFormats, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfilePreviewChannel_passThroughApiFormats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "APIKeyProfilePreviewChannel",
 		Field:      field,
@@ -16733,6 +16841,10 @@ func (ec *executionContext) fieldContext_APIKeyProfilePreviewModel_channels(_ co
 				return ec.fieldContext_APIKeyProfilePreviewChannel_id(ctx, field)
 			case "name":
 				return ec.fieldContext_APIKeyProfilePreviewChannel_name(ctx, field)
+			case "orderingWeight":
+				return ec.fieldContext_APIKeyProfilePreviewChannel_orderingWeight(ctx, field)
+			case "passThroughApiFormats":
+				return ec.fieldContext_APIKeyProfilePreviewChannel_passThroughApiFormats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfilePreviewChannel", field.Name)
 		},
@@ -44584,6 +44696,8 @@ func (ec *executionContext) fieldContext_Query_previewApiKeyProfile(ctx context.
 				return ec.fieldContext_APIKeyProfilePreview_apiFormats(ctx, field)
 			case "models":
 				return ec.fieldContext_APIKeyProfilePreview_models(ctx, field)
+			case "preferPassThrough":
+				return ec.fieldContext_APIKeyProfilePreview_preferPassThrough(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type APIKeyProfilePreview", field.Name)
 		},
@@ -90260,6 +90374,11 @@ func (ec *executionContext) _APIKeyProfilePreview(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "preferPassThrough":
+			out.Values[i] = ec._APIKeyProfilePreview_preferPassThrough(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -90301,6 +90420,16 @@ func (ec *executionContext) _APIKeyProfilePreviewChannel(ctx context.Context, se
 			}
 		case "name":
 			out.Values[i] = ec._APIKeyProfilePreviewChannel_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "orderingWeight":
+			out.Values[i] = ec._APIKeyProfilePreviewChannel_orderingWeight(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "passThroughApiFormats":
+			out.Values[i] = ec._APIKeyProfilePreviewChannel_passThroughApiFormats(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

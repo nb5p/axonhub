@@ -20,9 +20,9 @@ func TestModelService_PreviewAPIKeyProfile(t *testing.T) {
 	defer client.Close()
 
 	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
-	openAIChannel := createPreviewChannel(t, client, ctx, channel.TypeOpenai, "OpenAI Primary", []string{"shared", "openai-only"}, []string{"preview"})
-	anthropicChannel := createPreviewChannel(t, client, ctx, channel.TypeAnthropic, "Anthropic Backup", []string{"shared", "anthropic-only"}, []string{"preview"})
-	_ = createPreviewChannel(t, client, ctx, channel.TypeOpenai, "Excluded", []string{"shared"}, []string{"other"})
+	openAIChannel := createPreviewChannel(t, client, ctx, channel.TypeOpenai, "OpenAI Primary", 100, []string{"shared", "openai-only"}, []string{"preview"})
+	anthropicChannel := createPreviewChannel(t, client, ctx, channel.TypeAnthropic, "Anthropic Backup", 20, []string{"shared", "anthropic-only"}, []string{"preview"})
+	_ = createPreviewChannel(t, client, ctx, channel.TypeOpenai, "Excluded", 50, []string{"shared"}, []string{"other"})
 
 	channelSvc := NewChannelServiceForTest(client)
 	enabledEntities, err := client.Channel.Query().Where(channel.StatusEQ(channel.StatusEnabled)).All(ctx)
@@ -41,6 +41,8 @@ func TestModelService_PreviewAPIKeyProfile(t *testing.T) {
 		Cache:           xcache.NewFromConfig[ent.System](xcache.Config{Mode: xcache.ModeMemory}),
 	}
 	require.NoError(t, systemSvc.SetModelSettings(ctx, SystemModelSettings{QueryAllChannelModels: true}))
+	require.NoError(t, systemSvc.SetPassThrough(ctx, true))
+	require.NoError(t, systemSvc.SetPreferPassThrough(ctx, true))
 
 	modelSvc := &ModelService{
 		AbstractService: &AbstractService{db: client},
@@ -65,10 +67,15 @@ func TestModelService_PreviewAPIKeyProfile(t *testing.T) {
 	require.Len(t, preview.Models, 1)
 	require.Len(t, preview.Models[0].Channels, 2)
 	require.Equal(t, []string{"shared"}, []string{preview.Models[0].ID})
-	require.Equal(t, []string{"Anthropic Backup", "OpenAI Primary"}, []string{
+	require.True(t, preview.PreferPassThrough)
+	require.Equal(t, []string{"OpenAI Primary", "Anthropic Backup"}, []string{
 		preview.Models[0].Channels[0].Name,
 		preview.Models[0].Channels[1].Name,
 	})
+	require.Equal(t, 100, preview.Models[0].Channels[0].OrderingWeight)
+	require.Contains(t, preview.Models[0].Channels[0].PassThroughAPIFormats, "openai/chat_completions")
+	require.Contains(t, preview.Models[0].Channels[1].PassThroughAPIFormats, "anthropic/messages")
+	require.Equal(t, "openai/chat_completions", preview.APIFormats[0])
 	require.Contains(t, preview.APIFormats, "openai/chat_completions")
 	require.Contains(t, preview.APIFormats, "anthropic/messages")
 
@@ -90,6 +97,7 @@ func createPreviewChannel(
 	ctx context.Context,
 	channelType channel.Type,
 	name string,
+	orderingWeight int,
 	models []string,
 	tags []string,
 ) *ent.Channel {
@@ -102,6 +110,7 @@ func createPreviewChannel(
 		SetCredentials(objects.ChannelCredentials{APIKey: "test-key"}).
 		SetSupportedModels(models).
 		SetDefaultTestModel(models[0]).
+		SetOrderingWeight(orderingWeight).
 		SetStatus(channel.StatusEnabled).
 		SetTags(tags).
 		Save(ctx)
