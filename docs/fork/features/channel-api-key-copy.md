@@ -13,13 +13,15 @@ source:
   last_checked_at: 2026-08-10
   license: Apache-2.0
 local:
-  branch: fix/channel-api-key-copy
-  commit_marker: "none"
+  branch: ai-slop
+  commit_marker: "🧩"
   commits:
     - 236ff5c284c2ceec62d01e41da669d2126c8475f
     - bb2a5a469f6ffb3882f03ebf6901076e8615c916
+    - c636e07fb2c423b9b5be864df9ae458a4ff09f64
   modules:
     - frontend/src/features/channels/components/channels-action-dialog.tsx
+    - frontend/src/features/channels/components/channels-api-key-management-dialog.tsx
 upstream:
   repository: https://github.com/looplj/axonhub
   pull_request: null
@@ -42,13 +44,14 @@ database:
 ## 来源与采用范围
 
 - 基于 AxonHub `upstream/unstable` 的现有渠道编辑对话框实现。
-- 未移植外部项目代码；复用现有 `Copy` 图标、Toast 和 Tooltip 组件。
+- 未移植外部项目代码；复用现有 `Copy` 图标和 Toast 组件。
 
 ## 本地实现
 
 - 稳定入口：`frontend/src/features/channels/components/channels-action-dialog.tsx`
 - 复制逻辑使用 `navigator.clipboard.writeText`，成功和失败分别显示本地化提示。
-- 按钮位于每行的禁用/启用按钮与删除按钮之间。
+- 复制按钮位于每行禁用/启用按钮之前，不显示悬停气泡；按钮保留无障碍名称。
+- 统一 API Key 管理对话框采用相同的复制按钮交互。
 - 不涉及后台任务、数据库、GraphQL 或 API 变更。
 
 ## 与来源的差异
@@ -68,6 +71,7 @@ database:
 ## 验证
 
 - `git diff --check`：通过。
+- TypeScript 检查通过。
 - 功能分支从官方 `upstream/unstable` 创建，并以真实 merge 合入 `ai-slop`。
 - 镜像 `axonhub:green-9dfd6ac0-cdc76ab1` 构建成功，并已部署到本机绿色环境 `192.168.111.21:9090`；容器健康检查通过。
 
@@ -77,3 +81,4 @@ database:
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@2b78817e` | `236ff5c2`, `bb2a5a46` | 新增列表行复制按钮，并合入 `ai-slop`。 |
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `cdc76ab1` | 同步官方 Fenno 与 Claude Code 后续变更；复制按钮功能无冲突，继续保留。 |
+| 2026-08-11 | 本地反馈 | `c636e07f` | 将复制按钮统一放到禁用/启用前，并移除复制按钮悬停气泡。 |
