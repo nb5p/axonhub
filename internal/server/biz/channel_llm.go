@@ -398,6 +398,9 @@ func (svc *ChannelService) buildNonDefaultEndpointOutbound(
 
 			return svc.buildCodexOutbound(c, ch, baseURL, transport, alphaSearchPath, ch.HTTPClient)
 		}
+		if c.Type == channel.TypeFenno && ep.APIFormat == llm.APIFormatOpenAIResponse.String() {
+			return svc.buildCodexOutbound(c, ch, baseURL, transport, "", ch.HTTPClient)
+		}
 		if ep.APIFormat == llm.APIFormatOpenAICodexAlphaSearch.String() {
 			return nil, fmt.Errorf("api_format %q requires a Codex channel", ep.APIFormat)
 		}
@@ -417,7 +420,7 @@ func (svc *ChannelService) buildNonDefaultEndpointOutbound(
 		llm.APIFormatOpenAISpeech.String(),
 		llm.APIFormatOpenAITranscription.String(),
 		llm.APIFormatOpenAITranslation.String():
-		if c.Type == channel.TypeCodex &&
+		if (c.Type == channel.TypeCodex || c.Type == channel.TypeFenno) &&
 			(ep.APIFormat == llm.APIFormatOpenAIImageGeneration.String() ||
 				ep.APIFormat == llm.APIFormatOpenAIImageEdit.String()) {
 			transport := endpointTransport(ep)
@@ -665,7 +668,7 @@ func (svc *ChannelService) buildChannelWithTransformer(c *ent.Channel, apiKeyOve
 		ch.Outbound = transformer
 
 		return ch, nil
-	case channel.TypeAnthropic, channel.TypeMinimaxAnthropic, channel.TypeVolcengineAnthropic, channel.TypeAihubmixAnthropic, channel.TypeXiaomiAnthropic, channel.TypeEvolinkAnthropic:
+	case channel.TypeAnthropic, channel.TypeQiniuAnthropic, channel.TypeMinimaxAnthropic, channel.TypeVolcengineAnthropic, channel.TypeAihubmixAnthropic, channel.TypeXiaomiAnthropic, channel.TypeEvolinkAnthropic:
 		transformer, err := anthropic.NewOutboundTransformerWithConfig(&anthropic.Config{
 			Type:           anthropic.PlatformDirect,
 			BaseURL:        c.BaseURL,
@@ -924,7 +927,7 @@ func (svc *ChannelService) buildChannelWithTransformer(c *ent.Channel, apiKeyOve
 		ch.Outbound = transformer
 
 		return ch, nil
-	case channel.TypeCodex:
+	case channel.TypeCodex, channel.TypeFenno:
 		transport := primaryEndpointTransport(c, llm.APIFormatOpenAIResponse.String())
 		transformer, err := svc.buildCodexOutbound(c, ch, c.BaseURL, transport, "", httpClient)
 		if err != nil {
