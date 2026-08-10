@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - ba6c2fca6bf63338d31fb78233e9d7d5c4cf953b
+    - 68ba2b662c661c84ecbe588a990d1ea2ae9ab144
   modules:
     - frontend/src/features/channels/components/channel-endpoints-cell.tsx
     - frontend/src/features/channels/components/channels-columns.tsx
@@ -47,7 +48,7 @@ database:
 ## 本地实现
 
 - 新增默认可见、允许手动隐藏的“支持端点”列。
-- 主端点使用 `C`、`R`、`M`、`G` 紧凑徽标，并按 OpenAI、Anthropic、Gemini 使用不同颜色。
+- 主端点使用 `C`、`R`、`M`、`G` 的 32×24 圆角矩形徽标，并按 OpenAI、Anthropic、Gemini 使用不同颜色。
 - 悬停主徽标展示完整名称；其他端点折叠到 `…`，气泡显示剩余数量与完整列表。
 - 自定义端点与默认端点按 API 格式去重，覆盖项不会重复展示。
 - 仅增加行内常量计算，不新增后台任务、查询或网络请求。
@@ -74,3 +75,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ba6c2fca6bf63338d31fb78233e9d7d5c4cf953b` | 本地原创端点摘要列。 |
+| 2026-08-11 | 本地反馈 | `68ba2b66` | 将 24×24 徽标调整为至少 32×24，恢复明显的圆角矩形外观。 |
