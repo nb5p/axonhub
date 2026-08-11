@@ -50,6 +50,10 @@ type JsonViewerProps = {
   hideArrayIndices?: boolean;
   /** When true, all string values render their full content. */
   globalStringExpanded?: boolean;
+  /** Controlled expansion state for the outermost object or array. */
+  rootExpanded?: boolean;
+  /** Called when the outermost object or array is toggled. */
+  onRootExpandedChange?: (expanded: boolean) => void;
   className?: string;
 };
 
@@ -60,13 +64,22 @@ export function JsonViewer({
   expandDepth = 2,
   hideArrayIndices = false,
   globalStringExpanded = false,
+  rootExpanded,
+  onRootExpandedChange,
   className,
 }: JsonViewerProps) {
   return (
     <JsonExpandContext.Provider value={{ globalStringExpanded, hideArrayIndices, expandDepth }}>
       <TooltipProvider>
         <div className={cn('w-full min-w-0 overflow-x-hidden [contain:inline-size] font-mono text-sm', className)}>
-          <JsonNode name={rootName} data={data} isRoot={true} defaultExpanded={defaultExpanded} />
+          <JsonNode
+            name={rootName}
+            data={data}
+            isRoot={true}
+            defaultExpanded={defaultExpanded}
+            controlledExpanded={rootExpanded}
+            onExpandedChange={onRootExpandedChange}
+          />
         </div>
       </TooltipProvider>
     </JsonExpandContext.Provider>
@@ -80,15 +93,34 @@ type JsonNodeProps = {
   isRoot?: boolean;
   isArrayItem?: boolean;
   defaultExpanded?: boolean;
+  controlledExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   level?: number;
 };
 
-function JsonNode({ name, data, parentData, isRoot = false, isArrayItem = false, defaultExpanded = true, level = 0 }: JsonNodeProps) {
+function JsonNode({
+  name,
+  data,
+  parentData,
+  isRoot = false,
+  isArrayItem = false,
+  defaultExpanded = true,
+  controlledExpanded,
+  onExpandedChange,
+  level = 0,
+}: JsonNodeProps) {
   const { hideArrayIndices, expandDepth } = React.useContext(JsonExpandContext);
-  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = React.useState(defaultExpanded);
   const [isCopied, setIsCopied] = React.useState(false);
+  const isExpanded = controlledExpanded ?? internalExpanded;
 
-  const handleToggle = () => setIsExpanded((v) => !v);
+  const handleToggle = () => {
+    const nextExpanded = !isExpanded;
+    if (controlledExpanded === undefined) {
+      setInternalExpanded(nextExpanded);
+    }
+    onExpandedChange?.(nextExpanded);
+  };
 
   const copyToClipboard = (e: React.MouseEvent) => {
     e.stopPropagation();

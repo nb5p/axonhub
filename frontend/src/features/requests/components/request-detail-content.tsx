@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { DashboardIcon } from '@radix-ui/react-icons';
 import { zhCN, enUS } from 'date-fns/locale';
-import { Copy, Clock, Key, Database, FileText, Layers, Download, Terminal } from 'lucide-react';
+import { Copy, Clock, Key, Database, FileText, Layers, Download, Terminal, ChevronsUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { extractNumberID } from '@/lib/utils';
@@ -29,6 +29,71 @@ interface RequestDetailContentProps {
   projectId?: string | null;
   previewRequest?: Request | null;
   isPreviewStreaming?: boolean;
+}
+
+interface AdaptiveJsonViewerProps {
+  data: unknown;
+  defaultExpanded: boolean;
+  expandedHeightClassName: string;
+  viewerClassName: string;
+  expandDepth?: number | 'all';
+  surfaceClassName: string;
+}
+
+function AdaptiveJsonViewer({
+  data,
+  defaultExpanded,
+  expandedHeightClassName,
+  viewerClassName,
+  expandDepth,
+  surfaceClassName,
+}: AdaptiveJsonViewerProps) {
+  const { t } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [rootExpanded, setRootExpanded] = useState(defaultExpanded);
+  const [showCollapseAll, setShowCollapseAll] = useState(false);
+
+  const handleRootExpandedChange = useCallback((expanded: boolean) => {
+    setRootExpanded(expanded);
+    setShowCollapseAll(false);
+    if (!expanded && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, []);
+
+  return (
+    <div
+      className={`${surfaceClassName} relative w-full overflow-hidden rounded-lg border transition-[height] ${rootExpanded ? expandedHeightClassName : 'h-auto'}`}
+    >
+      <div
+        ref={scrollRef}
+        className={rootExpanded ? 'h-full overflow-auto p-4' : 'overflow-hidden p-4'}
+        onScroll={(event) => setShowCollapseAll(rootExpanded && event.currentTarget.scrollTop > 24)}
+      >
+        <JsonViewer
+          data={data}
+          rootName=''
+          defaultExpanded={defaultExpanded}
+          rootExpanded={rootExpanded}
+          onRootExpandedChange={handleRootExpandedChange}
+          expandDepth={expandDepth}
+          hideArrayIndices={true}
+          className={viewerClassName}
+        />
+      </div>
+      {showCollapseAll && (
+        <Button
+          type='button'
+          variant='secondary'
+          className='absolute top-1/2 left-1/2 z-10 h-16 w-16 -translate-x-1/2 -translate-y-1/2 flex-col gap-1 rounded-full px-1 text-xs shadow-lg'
+          onClick={() => handleRootExpandedChange(false)}
+        >
+          <ChevronsUp className='h-4 w-4' />
+          {t('requests.drawer.collapseAll')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function RequestDetailContent({ requestId, projectId, previewRequest, isPreviewStreaming = false }: RequestDetailContentProps) {
@@ -548,9 +613,14 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                       </Button>
                     </div>
                   </div>
-                  <div className='bg-muted/20 h-[300px] w-full overflow-auto rounded-lg border p-4'>
-                    <JsonViewer data={request.requestHeaders} rootName='' defaultExpanded={true} expandDepth='all' hideArrayIndices={true} className='text-sm' />
-                  </div>
+                  <AdaptiveJsonViewer
+                    data={request.requestHeaders}
+                    defaultExpanded={true}
+                    expandedHeightClassName='h-[300px]'
+                    viewerClassName='text-sm'
+                    expandDepth='all'
+                    surfaceClassName='bg-muted/20'
+                  />
                 </div>
               )}
               <div className='space-y-4'>
@@ -581,9 +651,14 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                 {requestBodyView === 'conversation' ? (
                   <RequestConversationViewer body={request.requestBody} format={request.format} />
                 ) : (
-                  <div className='bg-muted/20 h-[500px] w-full overflow-auto rounded-lg border p-4'>
-                    <JsonViewer data={request.requestBody} rootName='' defaultExpanded={true} expandDepth='all' hideArrayIndices={true} className='text-sm' />
-                  </div>
+                  <AdaptiveJsonViewer
+                    data={request.requestBody}
+                    defaultExpanded={true}
+                    expandedHeightClassName='h-[500px]'
+                    viewerClassName='text-sm'
+                    expandDepth='all'
+                    surfaceClassName='bg-muted/20'
+                  />
                 )}
               </div>
             </TabsContent>
@@ -714,9 +789,14 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
 
                   <TabsContent value='json' className='mt-0 focus-visible:outline-none'>
                     {hasResponseBody ? (
-                      <div className='bg-muted/20 h-[500px] w-full overflow-auto rounded-lg border p-4'>
-                        <JsonViewer data={request.responseBody} rootName='' defaultExpanded={true} expandDepth='all' hideArrayIndices={true} className='text-sm' />
-                      </div>
+                      <AdaptiveJsonViewer
+                        data={request.responseBody}
+                        defaultExpanded={true}
+                        expandedHeightClassName='h-[500px]'
+                        viewerClassName='text-sm'
+                        expandDepth='all'
+                        surfaceClassName='bg-muted/20'
+                      />
                     ) : request.status === 'processing' ? (
                       <div className='bg-muted/20 flex h-[500px] w-full items-center justify-center rounded-lg border'>
                         <div className='space-y-4 text-center'>
@@ -869,9 +949,13 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                                   </Button>
                                 </div>
                               </div>
-                              <div className='bg-background h-64 w-full overflow-auto rounded-lg border p-3'>
-                                <JsonViewer data={execution.requestHeaders} rootName='' defaultExpanded={false} hideArrayIndices={true} className='text-xs' />
-                              </div>
+                              <AdaptiveJsonViewer
+                                data={execution.requestHeaders}
+                                defaultExpanded={false}
+                                expandedHeightClassName='h-64'
+                                viewerClassName='text-xs'
+                                surfaceClassName='bg-background'
+                              />
                             </div>
                           )}
 
@@ -893,9 +977,13 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                                   </Button>
                                 </div>
                               </div>
-                              <div className='bg-background h-80 w-full overflow-auto rounded-lg border p-3'>
-                                <JsonViewer data={execution.requestBody} rootName='' defaultExpanded={false} hideArrayIndices={true} className='text-xs' />
-                              </div>
+                              <AdaptiveJsonViewer
+                                data={execution.requestBody}
+                                defaultExpanded={false}
+                                expandedHeightClassName='h-80'
+                                viewerClassName='text-xs'
+                                surfaceClassName='bg-background'
+                              />
                             </div>
                           )}
 
@@ -921,9 +1009,13 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                                   </Button>
                                 </div>
                               </div>
-                              <div className='bg-background h-80 w-full overflow-auto rounded-lg border p-3'>
-                                <JsonViewer data={execution.responseBody} rootName='' defaultExpanded={false} hideArrayIndices={true} className='text-xs' />
-                              </div>
+                              <AdaptiveJsonViewer
+                                data={execution.responseBody}
+                                defaultExpanded={false}
+                                expandedHeightClassName='h-80'
+                                viewerClassName='text-xs'
+                                surfaceClassName='bg-background'
+                              />
                             </div>
                           )}
                         </CardContent>
