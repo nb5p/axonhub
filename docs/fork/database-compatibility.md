@@ -51,6 +51,8 @@
 | `channel-provider-tabs-default-hidden` | `none` | 是 | 无 | 仅调整浏览器本地偏好的默认值。 |
 | `prefer-pass-through-routing` | `none` | 是 | 无 | 使用现有系统键值表保存独立布尔配置，不修改 Ent Schema；旧版本会忽略新增键。 |
 | `api-key-profile-access-preview` | `none` | 是 | 无 | 新增只读 GraphQL 预览和排序元数据，不修改配置或持久化结构。 |
+| `api-key-profile-clear` | `none` | 是 | 无 | 将现有 API Key 配置 JSON 保存为空集合，不修改 Ent Schema。 |
+| `api-key-profile-template-sync` | `none` | 是 | 无 | 在现有 Profile JSON 中增加可省略布尔字段，旧数据缺省为关闭，不修改 Ent Schema。 |
 
 截至最后一次合入的上游基线 `9dfd6ac0c21bbc5abe55827fa634e22826287d67`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
 
