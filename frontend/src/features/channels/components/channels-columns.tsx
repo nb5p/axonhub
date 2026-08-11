@@ -686,7 +686,7 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
               className: 'text-center',
             },
             enableSorting: false,
-            enableHiding: false,
+            enableHiding: true,
           },
         ]
       : []),
@@ -712,7 +712,7 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
         return value.includes(row.original.type);
       },
       enableSorting: true,
-      enableHiding: false,
+      enableHiding: true,
     },
     {
       accessorKey: 'status',

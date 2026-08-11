@@ -136,6 +136,7 @@
   "common.columns.updatedAt": "Updated At",
   "common.columns.selectAll": "Select all",
   "common.columns.selectRow": "Select row",
+  "common.columns.selection": "Selection",
   "common.filters.title": "Filters",
   "common.filters.activeCount": "{{count}} active filters",
   "common.filters.reset": "Reset",

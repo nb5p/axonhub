@@ -31,15 +31,17 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
-          .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())
+          .filter((column) => (typeof column.accessorFn !== 'undefined' || column.id === 'select') && column.getCanHide())
           .filter((column) => column?.columnDef.id != 'tags' && column?.columnDef.id != 'model')
           .map((column) => {
             const labelKey =
-              column.id === 'endpoints'
-                ? 'channels.columns.supportedEndpoints'
-                : column.id === 'createdAt'
-                  ? 'common.columns.createdAt'
-                  : `channels.columns.${column.id}`;
+              column.id === 'select'
+                ? 'common.columns.selection'
+                : column.id === 'endpoints'
+                  ? 'channels.columns.supportedEndpoints'
+                  : column.id === 'createdAt'
+                    ? 'common.columns.createdAt'
+                    : `channels.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
