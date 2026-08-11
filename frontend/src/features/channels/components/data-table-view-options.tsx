@@ -34,6 +34,12 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())
           .filter((column) => column?.columnDef.id != 'tags' && column?.columnDef.id != 'model')
           .map((column) => {
+            const labelKey =
+              column.id === 'endpoints'
+                ? 'channels.columns.supportedEndpoints'
+                : column.id === 'createdAt'
+                  ? 'common.columns.createdAt'
+                  : `channels.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
@@ -41,7 +47,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {t(`channels.columns.${column.id}`)}
+                {t(labelKey)}
               </DropdownMenuCheckboxItem>
             );
           })}

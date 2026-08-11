@@ -38,6 +38,8 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
             return (isDataColumn || isDetailsColumn) && column.getCanHide();
           })
           .map((column) => {
+            const labelKey =
+              column.id === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
@@ -45,7 +47,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {t(`requests.columns.${column.id}`, {
+                {t(labelKey, {
                   defaultValue: t(`common.columns.${column.id}`),
                 })}
               </DropdownMenuCheckboxItem>
