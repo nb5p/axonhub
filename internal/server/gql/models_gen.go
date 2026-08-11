@@ -17,6 +17,21 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type APIKeyActivityHeatmapBucket struct {
+	APIKeyID     objects.GUID `json:"apiKeyId"`
+	APIKeyName   string       `json:"apiKeyName"`
+	Date         string       `json:"date"`
+	RequestCount int          `json:"requestCount"`
+	TotalTokens  int          `json:"totalTokens"`
+	Cost         float64      `json:"cost"`
+}
+
+type APIKeyActivityHeatmapInput struct {
+	APIKeyIds    []*objects.GUID `json:"apiKeyIds,omitempty"`
+	CreatedAtGTE time.Time       `json:"createdAtGTE"`
+	CreatedAtLT  time.Time       `json:"createdAtLT"`
+}
+
 type APIKeyProfileQuotaUsage struct {
 	ProfileName string               `json:"profileName"`
 	Quota       *objects.APIKeyQuota `json:"quota"`

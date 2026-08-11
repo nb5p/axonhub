@@ -32,6 +32,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `api-key-profile-clear` | 本地原创 | `active` | `bf4e3a60`, `28109f87` | `none` | [`features/api-key-profile-clear.md`](features/api-key-profile-clear.md) |
 | `api-key-profile-template-sync` | 本地原创 | `active` | `b5ce7472` | `none` | [`features/api-key-profile-template-sync.md`](features/api-key-profile-template-sync.md) |
 | `sidebar-navigation-visibility` | 本地原创 | `active` | `3835c389` | `none` | [`features/sidebar-navigation-visibility.md`](features/sidebar-navigation-visibility.md) |
+| `api-key-activity-heatmap` | 本地原创 | `active` | `71c2bd7d` | `none` | [`features/api-key-activity-heatmap.md`](features/api-key-activity-heatmap.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
 

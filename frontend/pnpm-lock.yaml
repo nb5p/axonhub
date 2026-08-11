@@ -167,6 +167,9 @@ importers:
       react:
         specifier: ^19.2.0
         version: 19.2.4
+      react-activity-calendar:
+        specifier: ^3.2.0
+        version: 3.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-day-picker:
         specifier: 9.7.0
         version: 9.7.0(react@19.2.4)
@@ -4918,6 +4921,11 @@ packages:
     peerDependencies:
       react: ^16.13.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  react-activity-calendar@3.2.0:
+    resolution: {integrity: sha512-v+ZD61h7RB76YMDh1aGAZuoXsSymSixKMOMusMoYWxhDXkFUX6hiftHin/tWqIS9zSNA/NN+vzYDK4hPF0wuxQ==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   react-avatar-editor@14.0.0:
     resolution: {integrity: sha512-NaQM3oo4u0a1/Njjutc2FjwKX35vQV+t6S8hovsbAlMpBN1ntIwP/g+Yr9eDIIfaNtRXL0AqboTnPmRxhD/i8A==}
@@ -10960,6 +10968,14 @@ snapshots:
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
+
+  react-activity-calendar@3.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      '@floating-ui/react': 0.27.19(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      date-fns: 4.1.0
+      react: 19.2.4
+    transitivePeerDependencies:
+      - react-dom
 
   react-avatar-editor@14.0.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:

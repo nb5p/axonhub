@@ -515,6 +515,162 @@ func (r *queryResolver) APIKeyTokenUsageStats(ctx context.Context, input *APIKey
 	}), nil
 }
 
+// APIKeyActivityHeatmap is the resolver for the apiKeyActivityHeatmap field.
+func (r *queryResolver) APIKeyActivityHeatmap(ctx context.Context, input APIKeyActivityHeatmapInput) ([]*APIKeyActivityHeatmapBucket, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeReadAPIKeys); err != nil {
+		return nil, err
+	}
+
+	if !input.CreatedAtLT.After(input.CreatedAtGTE) {
+		return nil, fmt.Errorf("createdAtLT must be after createdAtGTE")
+	}
+
+	loc := r.systemService.TimeLocation(ctx)
+	startLocal := input.CreatedAtGTE.In(loc)
+	endLocal := input.CreatedAtLT.In(loc)
+	startDateLocal := time.Date(startLocal.Year(), startLocal.Month(), startLocal.Day(), 0, 0, 0, 0, loc)
+	endDateLocal := time.Date(endLocal.Year(), endLocal.Month(), endLocal.Day(), 0, 0, 0, 0, loc)
+	if endLocal.After(endDateLocal) {
+		endDateLocal = endDateLocal.AddDate(0, 0, 1)
+	}
+
+	daysCount := 0
+	for day := startDateLocal; day.Before(endDateLocal); day = day.AddDate(0, 0, 1) {
+		daysCount++
+	}
+	if daysCount <= 0 {
+		return []*APIKeyActivityHeatmapBucket{}, nil
+	}
+	if daysCount > 366 {
+		return nil, fmt.Errorf("date range cannot exceed 366 days")
+	}
+
+	query := r.client.APIKey.Query().Where(apikey.TypeNEQ(apikey.TypeNoauth))
+	if len(input.APIKeyIds) > 0 {
+		if len(input.APIKeyIds) > 100 {
+			return nil, fmt.Errorf("apiKeyIds cannot exceed 100 items")
+		}
+
+		apiKeyIDs := make([]int, 0, len(input.APIKeyIds))
+		for _, guid := range input.APIKeyIds {
+			if guid.Type != ent.TypeAPIKey {
+				return nil, fmt.Errorf("invalid GUID type: expected %s, got %s", ent.TypeAPIKey, guid.Type)
+			}
+			apiKeyIDs = append(apiKeyIDs, guid.ID)
+		}
+
+		query = query.Where(apikey.IDIn(apiKeyIDs...))
+	}
+
+	apiKeys, err := query.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate API key access: %w", err)
+	}
+
+	if len(apiKeys) == 0 {
+		return []*APIKeyActivityHeatmapBucket{}, nil
+	}
+	if len(apiKeys) > 100 {
+		return nil, fmt.Errorf("API key activity heatmap cannot include more than 100 API keys")
+	}
+
+	sort.Slice(apiKeys, func(i, j int) bool {
+		return apiKeys[i].Name < apiKeys[j].Name
+	})
+
+	accessibleIDs := lo.Map(apiKeys, func(item *ent.APIKey, _ int) int {
+		return item.ID
+	})
+	apiKeyNameMap := lo.SliceToMap(apiKeys, func(item *ent.APIKey) (int, string) {
+		return item.ID, item.Name
+	})
+
+	statsCtx := authz.WithScopeDecision(ctx, scopes.ScopeReadAPIKeys)
+	_, offsetSeconds := startLocal.Zone()
+
+	type dailyAPIKeyStats struct {
+		APIKeyID     int     `json:"api_key_id"`
+		Date         string  `json:"date"`
+		RequestCount int     `json:"request_count"`
+		TotalTokens  int64   `json:"total_tokens"`
+		Cost         float64 `json:"cost"`
+	}
+
+	var results []dailyAPIKeyStats
+
+	err = r.client.UsageLog.Query().
+		Where(
+			usagelog.APIKeyIDIn(accessibleIDs...),
+			usagelog.CreatedAtGTE(input.CreatedAtGTE),
+			usagelog.CreatedAtLT(input.CreatedAtLT),
+		).
+		Modify(func(s *sql.Selector) {
+			createdAtCol := s.C(usagelog.FieldCreatedAt)
+			dateExpr := ""
+
+			switch s.Dialect() {
+			case dialect.SQLite:
+				dateExpr = fmt.Sprintf("strftime('%%Y-%%m-%%d', datetime(substr(%s, 1, 19), '%+d seconds'))", createdAtCol, offsetSeconds)
+			case dialect.MySQL:
+				offsetStr := xtime.FormatUTCOffset(offsetSeconds)
+				dateExpr = fmt.Sprintf("DATE_FORMAT(CONVERT_TZ(%s, '+00:00', '%s'), '%%Y-%%m-%%d')", createdAtCol, offsetStr)
+			case dialect.Postgres:
+				dateExpr = fmt.Sprintf("to_char(%s AT TIME ZONE '%s', 'YYYY-MM-DD')", createdAtCol, loc.String())
+			default:
+				dateExpr = fmt.Sprintf("DATE(%s)", createdAtCol)
+			}
+
+			s.Select(
+				s.C(usagelog.FieldAPIKeyID),
+				sql.As(dateExpr, "date"),
+				sql.As(sql.Count(s.C(usagelog.FieldID)), "request_count"),
+				sql.As(fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(usagelog.FieldTotalTokens)), "total_tokens"),
+				sql.As(fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(usagelog.FieldTotalCost)), "cost"),
+			).
+				GroupBy(s.C(usagelog.FieldAPIKeyID), dateExpr).
+				OrderBy(s.C(usagelog.FieldAPIKeyID), "date")
+		}).
+		Scan(statsCtx, &results)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get API key activity heatmap: %w", err)
+	}
+
+	statsMap := make(map[int]map[string]dailyAPIKeyStats)
+	for _, item := range results {
+		if _, exists := statsMap[item.APIKeyID]; !exists {
+			statsMap[item.APIKeyID] = make(map[string]dailyAPIKeyStats)
+		}
+		statsMap[item.APIKeyID][item.Date] = item
+	}
+
+	response := make([]*APIKeyActivityHeatmapBucket, 0, len(apiKeys)*daysCount)
+	for _, apiKeyID := range accessibleIDs {
+		for i := range daysCount {
+			dateStr := startDateLocal.AddDate(0, 0, i).Format("2006-01-02")
+			bucket := &APIKeyActivityHeatmapBucket{
+				APIKeyID:     objects.GUID{Type: ent.TypeAPIKey, ID: apiKeyID},
+				APIKeyName:   apiKeyNameMap[apiKeyID],
+				Date:         dateStr,
+				RequestCount: 0,
+				TotalTokens:  0,
+				Cost:         0,
+			}
+
+			if apiKeyStats, exists := statsMap[apiKeyID]; exists {
+				if stats, exists := apiKeyStats[dateStr]; exists {
+					bucket.RequestCount = stats.RequestCount
+					bucket.TotalTokens = safeIntFromInt64(stats.TotalTokens)
+					bucket.Cost = stats.Cost
+				}
+			}
+
+			response = append(response, bucket)
+		}
+	}
+
+	return response, nil
+}
+
 // DailyRequestStats is the resolver for the dailyRequestStats field.
 // Note: Uses usage_logs table for daily aggregated statistics (count, tokens, cost).
 // Provides result-only daily metrics for the last 30 days.

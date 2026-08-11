@@ -121,6 +121,15 @@ type ComplexityRoot struct {
 		UserID     func(childComplexity int) int
 	}
 
+	APIKeyActivityHeatmapBucket struct {
+		APIKeyID     func(childComplexity int) int
+		APIKeyName   func(childComplexity int) int
+		Cost         func(childComplexity int) int
+		Date         func(childComplexity int) int
+		RequestCount func(childComplexity int) int
+		TotalTokens  func(childComplexity int) int
+	}
+
 	APIKeyAutoDisableRule struct {
 		Action                 func(childComplexity int) int
 		DisableDurationMinutes func(childComplexity int) int
@@ -1362,6 +1371,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		APIKeyActivityHeatmap           func(childComplexity int, input APIKeyActivityHeatmapInput) int
 		APIKeyProfileTemplates          func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.APIKeyProfileTemplateOrder, where *ent.APIKeyProfileTemplateWhereInput) int
 		APIKeyQuotaUsages               func(childComplexity int, apiKeyID objects.GUID) int
 		APIKeyTokenUsageStats           func(childComplexity int, input *APIKeyTokenUsageStatsInput) int
@@ -2392,6 +2402,7 @@ type QueryResolver interface {
 	RequestStatsByAPIKey(ctx context.Context, timeWindow *string) ([]*RequestStatsByAPIKey, error)
 	TokenStatsByAPIKey(ctx context.Context, timeWindow *string) ([]*TokenStatsByAPIKey, error)
 	APIKeyTokenUsageStats(ctx context.Context, input *APIKeyTokenUsageStatsInput) ([]*APIKeyTokenUsageStats, error)
+	APIKeyActivityHeatmap(ctx context.Context, input APIKeyActivityHeatmapInput) ([]*APIKeyActivityHeatmapBucket, error)
 	DailyRequestStats(ctx context.Context) ([]*DailyRequestStats, error)
 	TopRequestsProjects(ctx context.Context) ([]*TopRequestsProjects, error)
 	TokenStats(ctx context.Context) (*TokenStats, error)
@@ -2651,6 +2662,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKey.UserID(childComplexity), true
+
+	case "APIKeyActivityHeatmapBucket.apiKeyId":
+		if e.complexity.APIKeyActivityHeatmapBucket.APIKeyID == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.APIKeyID(childComplexity), true
+	case "APIKeyActivityHeatmapBucket.apiKeyName":
+		if e.complexity.APIKeyActivityHeatmapBucket.APIKeyName == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.APIKeyName(childComplexity), true
+	case "APIKeyActivityHeatmapBucket.cost":
+		if e.complexity.APIKeyActivityHeatmapBucket.Cost == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.Cost(childComplexity), true
+	case "APIKeyActivityHeatmapBucket.date":
+		if e.complexity.APIKeyActivityHeatmapBucket.Date == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.Date(childComplexity), true
+	case "APIKeyActivityHeatmapBucket.requestCount":
+		if e.complexity.APIKeyActivityHeatmapBucket.RequestCount == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.RequestCount(childComplexity), true
+	case "APIKeyActivityHeatmapBucket.totalTokens":
+		if e.complexity.APIKeyActivityHeatmapBucket.TotalTokens == nil {
+			break
+		}
+
+		return e.complexity.APIKeyActivityHeatmapBucket.TotalTokens(childComplexity), true
 
 	case "APIKeyAutoDisableRule.action":
 		if e.complexity.APIKeyAutoDisableRule.Action == nil {
@@ -8110,6 +8158,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ProxyPreset.Username(childComplexity), true
 
+	case "Query.apiKeyActivityHeatmap":
+		if e.complexity.Query.APIKeyActivityHeatmap == nil {
+			break
+		}
+
+		args, err := ec.field_Query_apiKeyActivityHeatmap_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.APIKeyActivityHeatmap(childComplexity, args["input"].(APIKeyActivityHeatmapInput)), true
 	case "Query.apiKeyProfileTemplates":
 		if e.complexity.Query.APIKeyProfileTemplates == nil {
 			break
@@ -11609,6 +11668,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAPIKeyActivityHeatmapInput,
 		ec.unmarshalInputAPIKeyAutoDisableRuleInput,
 		ec.unmarshalInputAPIKeyOrder,
 		ec.unmarshalInputAPIKeyProfileInput,
@@ -14043,6 +14103,17 @@ func (ec *executionContext) field_Query_analyticsOverview_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_apiKeyActivityHeatmap_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAPIKeyActivityHeatmapInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_apiKeyProfileTemplates_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -15905,6 +15976,180 @@ func (ec *executionContext) fieldContext_APIKey_requests(ctx context.Context, fi
 	if fc.Args, err = ec.field_APIKey_requests_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_apiKeyId(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_apiKeyId,
+		func(ctx context.Context) (any, error) {
+			return obj.APIKeyID, nil
+		},
+		nil,
+		ec.marshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_apiKeyId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_apiKeyName(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_apiKeyName,
+		func(ctx context.Context) (any, error) {
+			return obj.APIKeyName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_apiKeyName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_date(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_date,
+		func(ctx context.Context) (any, error) {
+			return obj.Date, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_date(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_requestCount(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_requestCount,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_requestCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_totalTokens(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_totalTokens,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalTokens, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_totalTokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket_cost(ctx context.Context, field graphql.CollectedField, obj *APIKeyActivityHeatmapBucket) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyActivityHeatmapBucket_cost,
+		func(ctx context.Context) (any, error) {
+			return obj.Cost, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyActivityHeatmapBucket_cost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyActivityHeatmapBucket",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -45239,6 +45484,61 @@ func (ec *executionContext) fieldContext_Query_apiKeyTokenUsageStats(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_apiKeyActivityHeatmap(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_apiKeyActivityHeatmap,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().APIKeyActivityHeatmap(ctx, fc.Args["input"].(APIKeyActivityHeatmapInput))
+		},
+		nil,
+		ec.marshalNAPIKeyActivityHeatmapBucket2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapBucketᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_apiKeyActivityHeatmap(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "apiKeyId":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_apiKeyId(ctx, field)
+			case "apiKeyName":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_apiKeyName(ctx, field)
+			case "date":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_date(ctx, field)
+			case "requestCount":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_requestCount(ctx, field)
+			case "totalTokens":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_totalTokens(ctx, field)
+			case "cost":
+				return ec.fieldContext_APIKeyActivityHeatmapBucket_cost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type APIKeyActivityHeatmapBucket", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_apiKeyActivityHeatmap_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_dailyRequestStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -63584,6 +63884,47 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 // endregion **************************** field.gotpl *****************************
 
 // region    **************************** input.gotpl *****************************
+
+func (ec *executionContext) unmarshalInputAPIKeyActivityHeatmapInput(ctx context.Context, obj any) (APIKeyActivityHeatmapInput, error) {
+	var it APIKeyActivityHeatmapInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"apiKeyIds", "createdAtGTE", "createdAtLT"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "apiKeyIds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("apiKeyIds"))
+			data, err := ec.unmarshalOID2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUIDᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.APIKeyIds = data
+		case "createdAtGTE":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAtGTE"))
+			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAtGTE = data
+		case "createdAtLT":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAtLT"))
+			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAtLT = data
+		}
+	}
+
+	return it, nil
+}
 
 func (ec *executionContext) unmarshalInputAPIKeyAutoDisableRuleInput(ctx context.Context, obj any) (objects.APIKeyAutoDisableRule, error) {
 	var it objects.APIKeyAutoDisableRule
@@ -90471,6 +90812,70 @@ func (ec *executionContext) _APIKey(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
+var aPIKeyActivityHeatmapBucketImplementors = []string{"APIKeyActivityHeatmapBucket"}
+
+func (ec *executionContext) _APIKeyActivityHeatmapBucket(ctx context.Context, sel ast.SelectionSet, obj *APIKeyActivityHeatmapBucket) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyActivityHeatmapBucketImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIKeyActivityHeatmapBucket")
+		case "apiKeyId":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_apiKeyId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "apiKeyName":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_apiKeyName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "date":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requestCount":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_requestCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalTokens":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_totalTokens(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cost":
+			out.Values[i] = ec._APIKeyActivityHeatmapBucket_cost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var aPIKeyAutoDisableRuleImplementors = []string{"APIKeyAutoDisableRule"}
 
 func (ec *executionContext) _APIKeyAutoDisableRule(ctx context.Context, sel ast.SelectionSet, obj *objects.APIKeyAutoDisableRule) graphql.Marshaler {
@@ -101911,6 +102316,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "apiKeyActivityHeatmap":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_apiKeyActivityHeatmap(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "dailyRequestStats":
 			field := field
 
@@ -110529,6 +110956,65 @@ func (ec *executionContext) marshalNAPIKey2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋ
 		return graphql.Null
 	}
 	return ec._APIKey(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAPIKeyActivityHeatmapBucket2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapBucketᚄ(ctx context.Context, sel ast.SelectionSet, v []*APIKeyActivityHeatmapBucket) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAPIKeyActivityHeatmapBucket2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapBucket(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAPIKeyActivityHeatmapBucket2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapBucket(ctx context.Context, sel ast.SelectionSet, v *APIKeyActivityHeatmapBucket) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._APIKeyActivityHeatmapBucket(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAPIKeyActivityHeatmapInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐAPIKeyActivityHeatmapInput(ctx context.Context, v any) (APIKeyActivityHeatmapInput, error) {
+	res, err := ec.unmarshalInputAPIKeyActivityHeatmapInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNAPIKeyAutoDisableAction2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐAPIKeyAutoDisableAction(ctx context.Context, v any) (objects.APIKeyAutoDisableAction, error) {
