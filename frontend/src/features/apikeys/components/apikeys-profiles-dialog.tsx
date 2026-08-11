@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
 import { extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,12 +40,28 @@ import {
   type ApiKeyProfileQuotaUsage,
   type UpdateApiKeyProfilesInput,
 } from '../data/schema';
-import { ApiKeyProfilePreviewPanel } from './apikey-profile-preview-panel';
 import { resolveAPIKeyProfilePreview } from './api-key-profile-preview-state';
+import { ApiKeyProfilePreviewPanel } from './apikey-profile-preview-panel';
 import { ApiKeyLoadTemplatePopover } from './apikeys-load-template-popover';
 import { ApiKeySaveTemplateDialog } from './apikeys-save-template-dialog';
 
 type ApiKeyQuotaPeriod = NonNullable<NonNullable<ApiKeyProfile['quota']>['period']>;
+
+function getAvailableDefaultProfileName(profiles: ApiKeyProfile[], currentIndex: number) {
+  const usedNames = new Set(
+    profiles
+      .filter((_profile, index) => index !== currentIndex)
+      .map((profile) => profile.name.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  for (let index = 1; ; index += 1) {
+    const candidate = `Profile ${index}`;
+    if (!usedNames.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+}
 
 function quotaPeriodLabel(period: ApiKeyQuotaPeriod | null | undefined, t: (key: string) => string) {
   if (!period) return '-';
@@ -155,6 +171,8 @@ export function ApiKeyProfilesDialog({
   const form = useForm<UpdateApiKeyProfilesInput>({
     resolver: zodResolver(updateApiKeyProfilesInputSchemaFactory(t)),
     defaultValues,
+    mode: 'onChange',
+    reValidateMode: 'onChange',
   });
 
   const lastInitialDataRef = useRef<string | null>(null);
@@ -290,8 +308,9 @@ export function ApiKeyProfilesDialog({
   );
 
   const addProfile = useCallback(() => {
+    const profiles = form.getValues('profiles');
     appendProfile({
-      name: `Profile ${profileFields.length + 1}`,
+      name: getAvailableDefaultProfileName(profiles, -1),
       modelMappings: [],
       channelIDs: [],
       channelTags: [],
@@ -300,7 +319,7 @@ export function ApiKeyProfilesDialog({
       loadBalanceStrategy: 'default',
       traceStickyMode: 'default',
     });
-  }, [appendProfile, profileFields]);
+  }, [appendProfile, form]);
 
   const removeProfileHandler = useCallback(
     (index: number) => {
@@ -557,11 +576,8 @@ function ProfileCard({
   selectedProjectId,
   onSaveTemplate,
 }: ProfileCardProps) {
-  const [localProfileName, setLocalProfileName] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
   const { data: channelsData } = useAllChannelSummarys(selectedProjectId, { enabled: true });
-
-  const debouncedProfileName = useDebounce(localProfileName, 500);
 
   // 从所有渠道中提取唯一标签
   const allTags = useMemo(() => {
@@ -596,12 +612,6 @@ function ProfileCard({
   const quotaUsagePeriod = (currentQuota?.period ?? quotaUsage?.quota?.period) as ApiKeyQuotaPeriod | null | undefined;
   const quotaUsageEnd = quotaUsage?.window.end ?? (quotaUsagePeriod?.type !== 'calendar_duration' ? new Date() : null);
 
-  // Initialize local state from form value
-  useEffect(() => {
-    const currentName = form.getValues(`profiles.${profileIndex}.name`);
-    setLocalProfileName(currentName || '');
-  }, [form, profileIndex]);
-
   // Immediate duplicate check (no debounce for error display)
   const checkDuplicate = useCallback(
     (value: string) => {
@@ -625,10 +635,22 @@ function ProfileCard({
     },
     [form, profileIndex, allProfiles, t]
   );
-  // Debounced form value update for performance
   useEffect(() => {
-    checkDuplicate(debouncedProfileName);
-  }, [debouncedProfileName, checkDuplicate]);
+    checkDuplicate(profileName || '');
+  }, [profileName, checkDuplicate]);
+
+  const detachTemplate = () => {
+    const previousName = form.getValues(`profiles.${profileIndex}.name`);
+    const nextName = getAvailableDefaultProfileName(allProfiles, profileIndex);
+
+    form.setValue(`profiles.${profileIndex}.name`, nextName, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    form.setValue(`profiles.${profileIndex}.templateID`, null, { shouldDirty: true });
+    form.setValue(`profiles.${profileIndex}.templateName`, null, { shouldDirty: true });
+    form.setValue(`profiles.${profileIndex}.templateSync`, false, { shouldDirty: true });
+    if (form.getValues('activeProfile') === previousName) {
+      form.setValue('activeProfile', nextName, { shouldDirty: true, shouldValidate: true });
+    }
+  };
 
   const addMapping = useCallback(() => {
     appendMapping({ from: '', to: '' });
@@ -649,8 +671,8 @@ function ProfileCard({
                       value={field.value}
                       onChange={(e) => {
                         const newValue = e.target.value;
-                        setLocalProfileName(newValue);
                         field.onChange(newValue);
+                        checkDuplicate(newValue);
                       }}
                       onBlur={field.onBlur}
                       placeholder={t('apikeys.profiles.profileName')}
@@ -696,16 +718,7 @@ function ProfileCard({
                 {t(templateSync ? 'apikeys.profiles.syncLinkedHint' : 'apikeys.profiles.linkedHint')}
               </span>
             </div>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              onClick={() => {
-                form.setValue(`profiles.${profileIndex}.templateID`, null, { shouldDirty: true });
-                form.setValue(`profiles.${profileIndex}.templateName`, null, { shouldDirty: true });
-                form.setValue(`profiles.${profileIndex}.templateSync`, false, { shouldDirty: true });
-              }}
-            >
+            <Button type='button' variant='ghost' size='sm' onClick={detachTemplate}>
               {t('apikeys.profiles.detachTemplate')}
             </Button>
           </div>
