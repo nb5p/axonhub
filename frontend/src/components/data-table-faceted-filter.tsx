@@ -21,6 +21,7 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   selectedFirst?: boolean;
   selectionSummaryThreshold?: number;
   selectionCountLabel?: (count: number) => string;
+  contentClassName?: string;
   footer?: React.ReactNode;
 }
 
@@ -33,6 +34,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   selectedFirst = false,
   selectionSummaryThreshold = 2,
   selectionCountLabel,
+  contentClassName,
   footer,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const { t } = useTranslation();
@@ -76,7 +78,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-[200px] p-0' align='start'>
+      <PopoverContent className={cn('w-[200px] p-0', contentClassName)} align='start'>
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>

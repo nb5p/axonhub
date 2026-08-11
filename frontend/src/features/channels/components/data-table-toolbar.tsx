@@ -12,6 +12,7 @@ import { useAllChannelTags } from '../data/channels';
 import { useChannels } from '../context/channels-context';
 import { CHANNEL_CONFIGS } from '../data/config_channels';
 import { ChannelModelsMatchMode } from '../data/channels';
+import { channelEndpointFilterApiFormats } from '../data/schema';
 import { DataTableViewOptions } from './data-table-view-options';
 
 interface DataTableToolbarProps<TData> {
@@ -72,6 +73,16 @@ export function DataTableToolbar<TData>({
       label: model.id,
     }));
   }, [modelsData]);
+
+  const endpointOptions = useMemo(
+    () =>
+      channelEndpointFilterApiFormats.map((value) => {
+        const key = `channels.dialogs.fields.apiFormat.formats.${value}`;
+        const label = t(key);
+        return { value, label: label === key ? value : label };
+      }),
+    [t]
+  );
 
   // Generate channel types from CHANNEL_CONFIGS
   const channelTypes = useMemo(
@@ -146,6 +157,17 @@ export function DataTableToolbar<TData>({
             {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
           </Button>
         </div>
+      )}
+      {table.getColumn('endpoints') && (
+        <DataTableFacetedFilter
+          column={table.getColumn('endpoints')}
+          title={t('channels.filters.endpoint')}
+          options={endpointOptions}
+          selectedFirst
+          selectionSummaryThreshold={1}
+          selectionCountLabel={(count) => t('channels.filters.selectedEndpoints', { count })}
+          contentClassName='w-[280px]'
+        />
       )}
       {isFiltered && (
         <Button

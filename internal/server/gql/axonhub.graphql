@@ -1033,6 +1033,11 @@ input QueryChannelInput {
   Controls whether any or all selected models must be supported.
   """
   modelsMatchMode: ChannelModelsMatchMode
+
+  """
+  Filter channels that support any of the specified effective endpoint formats.
+  """
+  endpointFormats: [String!]
 }
 
 enum ChannelModelsMatchMode {

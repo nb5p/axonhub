@@ -31,6 +31,7 @@ function ChannelsContent() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [tagFilter, setTagFilter] = useState<string>('');
   const [modelFilter, setModelFilter] = useState<string[]>([]);
+  const [endpointFilter, setEndpointFilter] = useState<string[]>([]);
   const [modelMatchMode, setModelMatchMode] = useState<ChannelModelsMatchMode>('any');
   const [selectedTypeTab, setSelectedTypeTab] = useState<string>('all');
   const [showErrorOnly, setShowErrorOnly] = useState<boolean>(false);
@@ -149,6 +150,7 @@ function ChannelsContent() {
     hasTag: tagFilter || undefined,
     models: modelFilter.length > 0 ? modelFilter : undefined,
     modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
+    endpointFormats: endpointFilter.length > 0 ? endpointFilter : undefined,
   });
 
   const channelIDs = useMemo(() => {
@@ -242,6 +244,15 @@ function ChannelsContent() {
     []
   );
 
+  const handleEndpointFilterChange = useCallback(
+    (filter: string[]) => {
+      setEndpointFilter(filter);
+      resetCursor();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const handleFilterErrorChannels = useCallback(() => {
     setShowErrorOnly(true);
     resetCursor();
@@ -277,6 +288,7 @@ function ChannelsContent() {
         statusFilter={statusFilter}
         tagFilter={tagFilter}
         modelFilter={modelFilter}
+        endpointFilter={endpointFilter}
         modelMatchMode={modelMatchMode}
         selectedTypeTab={selectedTypeTab}
         showErrorOnly={showErrorOnly}
@@ -292,6 +304,7 @@ function ChannelsContent() {
         onStatusFilterChange={handleStatusFilterChange}
         onTagFilterChange={handleTagFilterChange}
         onModelFilterChange={handleModelFilterChange}
+        onEndpointFilterChange={handleEndpointFilterChange}
         onModelMatchModeChange={setModelMatchMode}
         onHealthColumnVisibilityChange={setIsHealthColumnVisible}
         canWrite={channelPermissions.canWrite}

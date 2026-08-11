@@ -49,6 +49,7 @@ interface DataTableProps {
   statusFilter: string[];
   tagFilter: string;
   modelFilter: string[];
+  endpointFilter: string[];
   modelMatchMode: ChannelModelsMatchMode;
   selectedTypeTab?: string;
   showErrorOnly?: boolean;
@@ -64,6 +65,7 @@ interface DataTableProps {
   onStatusFilterChange: (filters: string[]) => void;
   onTagFilterChange: (filter: string) => void;
   onModelFilterChange: (filter: string[]) => void;
+  onEndpointFilterChange: (filter: string[]) => void;
   onModelMatchModeChange: (mode: ChannelModelsMatchMode) => void;
   onHealthColumnVisibilityChange?: (visible: boolean) => void;
   canWrite?: boolean;
@@ -86,6 +88,7 @@ export function ChannelsTable({
   statusFilter,
   tagFilter,
   modelFilter,
+  endpointFilter,
   modelMatchMode,
   selectedTypeTab = 'all',
   showErrorOnly,
@@ -101,6 +104,7 @@ export function ChannelsTable({
   onStatusFilterChange,
   onTagFilterChange,
   onModelFilterChange,
+  onEndpointFilterChange,
   onModelMatchModeChange,
   onHealthColumnVisibilityChange,
   canWrite = true,
@@ -143,9 +147,12 @@ export function ChannelsTable({
     if (modelFilter.length > 0) {
       newColumnFilters.push({ id: 'model', value: modelFilter });
     }
+    if (endpointFilter.length > 0) {
+      newColumnFilters.push({ id: 'endpoints', value: endpointFilter });
+    }
 
     setColumnFilters(newColumnFilters);
-  }, [nameFilter, typeFilter, statusFilter, tagFilter, modelFilter]);
+  }, [nameFilter, typeFilter, statusFilter, tagFilter, modelFilter, endpointFilter]);
 
   // Save column visibility to localStorage whenever it changes
   useEffect(() => {
@@ -170,6 +177,7 @@ export function ChannelsTable({
       const statusFilterValue = newFilters.find((filter) => filter.id === 'status')?.value as string[];
       const tagFilterValue = newFilters.find((filter) => filter.id === 'tags')?.value as string;
       const modelFilterValue = newFilters.find((filter) => filter.id === 'model')?.value as string[];
+      const endpointFilterValue = newFilters.find((filter) => filter.id === 'endpoints')?.value as string[];
 
       // Update server filters only if changed
       const newNameFilter = nameFilterValue || '';
@@ -177,6 +185,7 @@ export function ChannelsTable({
       const newStatusFilter = Array.isArray(statusFilterValue) ? statusFilterValue : [];
       const newTagFilter = tagFilterValue || '';
       const newModelFilter = Array.isArray(modelFilterValue) ? modelFilterValue : [];
+      const newEndpointFilter = Array.isArray(endpointFilterValue) ? endpointFilterValue : [];
 
       if (newNameFilter !== nameFilter) {
         onNameFilterChange(newNameFilter);
@@ -197,6 +206,10 @@ export function ChannelsTable({
       if (JSON.stringify(newModelFilter) !== JSON.stringify(modelFilter)) {
         onModelFilterChange(newModelFilter);
       }
+
+      if (JSON.stringify(newEndpointFilter) !== JSON.stringify(endpointFilter)) {
+        onEndpointFilterChange(newEndpointFilter);
+      }
     },
     [
       columnFilters,
@@ -205,11 +218,13 @@ export function ChannelsTable({
       statusFilter,
       tagFilter,
       modelFilter,
+      endpointFilter,
       onNameFilterChange,
       onTypeFilterChange,
       onStatusFilterChange,
       onTagFilterChange,
       onModelFilterChange,
+      onEndpointFilterChange,
     ]
   );
 

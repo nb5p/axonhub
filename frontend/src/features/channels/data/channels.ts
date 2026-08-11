@@ -1035,6 +1035,7 @@ export function useQueryChannels(
     model?: string;
     models?: string[];
     modelsMatchMode?: ChannelModelsMatchMode;
+    endpointFormats?: string[];
   },
   options?: {
     disableAutoFetch?: boolean;
@@ -1054,6 +1055,7 @@ export function useQueryChannels(
       variables?.model,
       variables?.models,
       variables?.modelsMatchMode,
+      variables?.endpointFormats,
       variables?.first,
       variables?.last,
       variables?.after,

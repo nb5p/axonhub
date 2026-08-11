@@ -45,6 +45,32 @@ export const configurableChannelEndpointApiFormats = [
 
 export const configurableChannelEndpointApiFormatSchema = z.enum(configurableChannelEndpointApiFormats);
 
+// Includes both configurable formats and built-in-only channel capabilities so
+// the endpoint filter can represent every effective endpoint shown in the list.
+export const channelEndpointFilterApiFormats = [
+  'openai/chat_completions',
+  'openai/completions',
+  'openai/responses',
+  'openai/responses_compact',
+  'openai/codex_alpha_search',
+  'openai/embeddings',
+  'openai/image_generation',
+  'openai/image_edit',
+  'openai/image_variation',
+  'openai/video',
+  'seedance/video',
+  'openai/moderations',
+  'openai/audio_speech',
+  'openai/audio_transcriptions',
+  'openai/audio_translations',
+  'anthropic/messages',
+  'gemini/contents',
+  'gemini/embeddings',
+  'jina/rerank',
+  'jina/embeddings',
+  'ollama/chat',
+] as const;
+
 // Channel Endpoint
 export const channelEndpointSchema = z.object({
   apiFormat: z.string().min(1),

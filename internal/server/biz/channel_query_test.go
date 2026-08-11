@@ -182,6 +182,65 @@ func TestChannelService_QueryChannels_WithMultipleModelFilters(t *testing.T) {
 	}
 }
 
+func TestChannelService_QueryChannels_WithEndpointFormats(t *testing.T) {
+	svc, client := setupTestChannelService(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+	channels := []*ent.Channel{
+		createTestChannelWithCapabilities(t, client, ctx, "Chat", channel.TypeQiniu, []string{"gpt-4"}, nil),
+		createTestChannelWithCapabilities(t, client, ctx, "Responses", channel.TypeOpenaiResponses, []string{"gpt-4"}, nil),
+		createTestChannelWithCapabilities(t, client, ctx, "Anthropic", channel.TypeAnthropic, []string{"claude-3-opus"}, nil),
+		createTestChannelWithCapabilities(t, client, ctx, "Custom Gemini", channel.TypeQiniu, []string{"gemini-pro"}, []objects.ChannelEndpoint{
+			{APIFormat: "gemini/contents"},
+		}),
+	}
+
+	tests := []struct {
+		name            string
+		endpointFormats []string
+		models          []string
+		expectedIDs     []int
+	}{
+		{
+			name:            "matches any selected endpoint format",
+			endpointFormats: []string{"openai/responses", "anthropic/messages"},
+			expectedIDs:     []int{channels[1].ID, channels[2].ID},
+		},
+		{
+			name:            "includes user-configured endpoints in effective capabilities",
+			endpointFormats: []string{"gemini/contents"},
+			expectedIDs:     []int{channels[3].ID},
+		},
+		{
+			name:            "combines endpoint and model filters",
+			endpointFormats: []string{"openai/chat_completions"},
+			models:          []string{"gemini-pro"},
+			expectedIDs:     []int{channels[3].ID},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn, err := svc.QueryChannels(ctx, QueryChannelsInput{
+				EndpointFormats: tt.endpointFormats,
+				Models:          tt.models,
+				First:           lo.ToPtr(1),
+			})
+
+			require.NoError(t, err)
+			require.Len(t, conn.Edges, len(tt.expectedIDs))
+			require.False(t, conn.PageInfo.HasNextPage)
+
+			actualIDs := make([]int, len(conn.Edges))
+			for i, edge := range conn.Edges {
+				actualIDs[i] = edge.Node.ID
+			}
+			require.ElementsMatch(t, tt.expectedIDs, actualIDs)
+		})
+	}
+}
+
 func TestChannelService_QueryChannels_ModelFilterNoPagination(t *testing.T) {
 	svc, client := setupTestChannelService(t)
 	defer client.Close()
@@ -441,6 +500,32 @@ func createTestChannel(
 	}
 
 	ch, err := builder.Save(ctx)
+	require.NoError(t, err)
+
+	return ch
+}
+
+func createTestChannelWithCapabilities(
+	t *testing.T,
+	client *ent.Client,
+	ctx context.Context,
+	name string,
+	channelType channel.Type,
+	models []string,
+	endpoints []objects.ChannelEndpoint,
+) *ent.Channel {
+	t.Helper()
+
+	ch, err := client.Channel.Create().
+		SetType(channelType).
+		SetName(name).
+		SetBaseURL("https://example.com/v1").
+		SetCredentials(objects.ChannelCredentials{APIKey: "test-key"}).
+		SetSupportedModels(models).
+		SetDefaultTestModel(models[0]).
+		SetStatus(channel.StatusEnabled).
+		SetEndpoints(endpoints).
+		Save(ctx)
 	require.NoError(t, err)
 
 	return ch

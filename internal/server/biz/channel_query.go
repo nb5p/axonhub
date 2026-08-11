@@ -23,6 +23,7 @@ type QueryChannelsInput struct {
 	Model           *string
 	Models          []string
 	ModelsMatchMode ChannelModelsMatchMode
+	EndpointFormats []string
 }
 
 // ChannelModelsMatchMode controls whether any or all selected models must be
@@ -42,7 +43,8 @@ func (m ChannelModelsMatchMode) OrDefault() ChannelModelsMatchMode {
 	return ChannelModelsMatchModeAny
 }
 
-// QueryChannels queries channels with the specified input parameters, including model filtering.
+// QueryChannels queries channels with the specified input parameters, including
+// model and effective endpoint filtering.
 func (svc *ChannelService) QueryChannels(ctx context.Context, input QueryChannelsInput) (*ent.ChannelConnection, error) {
 	// Build the base query
 	var (
@@ -69,20 +71,21 @@ func (svc *ChannelService) QueryChannels(ctx context.Context, input QueryChannel
 		models = append(models, *input.Model)
 	}
 
-	// If no model is specified, return the query result directly.
-	if len(models) == 0 {
+	// If no advanced filter is specified, return the paginated query directly.
+	if len(models) == 0 && len(input.EndpointFormats) == 0 {
 		return query.Paginate(ctx, input.After, input.First, input.Before, input.Last,
 			ent.WithChannelOrder(input.OrderBy),
 		)
 	}
 
-	// When model filtering is required, we fetch all results and filter in-memory, bypassing database pagination.
-	return svc.queryChannelsWithModelFilter(ctx, query, input, models)
+	// Effective models and endpoints are resolved by the business layer, so fetch
+	// the standard-filter result set and apply these filters in memory.
+	return svc.queryChannelsWithAdvancedFilters(ctx, query, input, models)
 }
 
-// queryChannelsWithModelFilter performs model filtering without pagination.
-// When model filtering is required, return all matching channels without pagination.
-func (svc *ChannelService) queryChannelsWithModelFilter(
+// queryChannelsWithAdvancedFilters performs resolved capability filtering
+// without pagination.
+func (svc *ChannelService) queryChannelsWithAdvancedFilters(
 	ctx context.Context,
 	query *ent.ChannelQuery,
 	input QueryChannelsInput,
@@ -98,18 +101,40 @@ func (svc *ChannelService) queryChannelsWithModelFilter(
 		return nil, err
 	}
 
-	// Filter channels by model support
+	// Filter channels by resolved model and endpoint support.
 	var filteredChannels []*ent.Channel
 
 	for _, channel := range channels {
 		channelObj := Channel{Channel: channel}
-		if channelMatchesModels(channelObj, models, input.ModelsMatchMode) {
-			filteredChannels = append(filteredChannels, channel)
+		if len(models) > 0 && !channelMatchesModels(channelObj, models, input.ModelsMatchMode) {
+			continue
+		}
+		if len(input.EndpointFormats) > 0 && !channelMatchesAnyEndpointFormat(channelObj, input.EndpointFormats) {
+			continue
+		}
+
+		filteredChannels = append(filteredChannels, channel)
+	}
+
+	// Build connection without pagination (ignore pagination for resolved capability filters).
+	return svc.buildConnectionInMemory(filteredChannels, input.OrderBy), nil
+}
+
+func channelMatchesAnyEndpointFormat(channel Channel, endpointFormats []string) bool {
+	wanted := make(map[string]struct{}, len(endpointFormats))
+	for _, apiFormat := range endpointFormats {
+		if apiFormat != "" {
+			wanted[apiFormat] = struct{}{}
 		}
 	}
 
-	// Build connection without pagination (ignore all pagination params for model filtering)
-	return svc.buildConnectionInMemory(filteredChannels, input.OrderBy), nil
+	for _, endpoint := range channel.ResolveEndpoints() {
+		if _, ok := wanted[endpoint.APIFormat]; ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func channelMatchesModels(channel Channel, models []string, matchMode ChannelModelsMatchMode) bool {
