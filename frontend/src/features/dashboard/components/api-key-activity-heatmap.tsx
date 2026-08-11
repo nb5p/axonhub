@@ -1,21 +1,43 @@
 'use client';
 
-import { cloneElement, useMemo, useState } from 'react';
+import { cloneElement, useMemo } from 'react';
+import { CheckIcon, PlusCircledIcon } from '@radix-ui/react-icons';
 import { Loader2 } from 'lucide-react';
 import { ActivityCalendar, type Activity } from 'react-activity-calendar';
 import 'react-activity-calendar/tooltips.css';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/format-number';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGeneralSettings } from '../../system/data/system';
 import { useAPIKeyActivityHeatmap, type APIKeyActivityHeatmapBucket } from '../data/dashboard';
 
 const HEATMAP_DAYS = 90;
 const MAX_LEVEL = 4;
+const MAX_TOOLTIP_CONTRIBUTORS = 5;
 
-function dateOnly(date: Date) {
-  return date.toISOString().slice(0, 10);
+interface APIKeyGroup {
+  apiKeyId: string;
+  apiKeyName: string;
+  buckets: APIKeyActivityHeatmapBucket[];
+  totalRequests: number;
+}
+
+interface AggregatedBucket {
+  date: string;
+  requestCount: number;
+  totalTokens: number;
+  cost: number;
+  contributions: Array<{
+    apiKeyName: string;
+    requestCount: number;
+  }>;
 }
 
 function getHeatmapRange() {
@@ -25,8 +47,6 @@ function getHeatmapRange() {
   startDay.setDate(startDay.getDate() - HEATMAP_DAYS);
 
   return {
-    start: dateOnly(startDay),
-    end: dateOnly(endDay),
     startDate: startDay,
     endDate: endDay,
   };
@@ -64,7 +84,11 @@ export function ApiKeyActivityHeatmap() {
     createdAtLT: range.endDate.toISOString(),
   });
   const { data: generalSettings } = useGeneralSettings();
-  const [hiddenApiKeyIds, setHiddenApiKeyIds] = useState<Set<string>>(() => new Set());
+  const [storedSelectedApiKeyIds, setStoredSelectedApiKeyIds] = usePersistedFilter<string[] | null>(
+    'dashboard',
+    'api-key-activity-keys',
+    null
+  );
 
   const currencyCode = generalSettings?.currencyCode || 'USD';
   const locale = i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US';
@@ -77,8 +101,8 @@ export function ApiKeyActivityHeatmap() {
       maximumFractionDigits: 4,
     });
 
-  const apiKeyGroups = useMemo(() => {
-    const grouped = new Map<string, { apiKeyId: string; apiKeyName: string; buckets: APIKeyActivityHeatmapBucket[] }>();
+  const apiKeyGroups = useMemo<APIKeyGroup[]>(() => {
+    const grouped = new Map<string, Omit<APIKeyGroup, 'totalRequests'>>();
     for (const item of data ?? []) {
       if (!grouped.has(item.apiKeyId)) {
         grouped.set(item.apiKeyId, {
@@ -99,36 +123,73 @@ export function ApiKeyActivityHeatmap() {
       .sort((a, b) => b.totalRequests - a.totalRequests || a.apiKeyName.localeCompare(b.apiKeyName));
   }, [data]);
 
-  const maxRequestCount = useMemo(() => {
-    return Math.max(0, ...(data ?? []).map((item) => item.requestCount));
-  }, [data]);
+  const allApiKeyIds = useMemo(() => apiKeyGroups.map((group) => group.apiKeyId), [apiKeyGroups]);
+  const selectedApiKeyIds = useMemo(() => {
+    const availableIds = new Set(allApiKeyIds);
+    return new Set(storedSelectedApiKeyIds === null ? allApiKeyIds : storedSelectedApiKeyIds.filter((id) => availableIds.has(id)));
+  }, [allApiKeyIds, storedSelectedApiKeyIds]);
 
-  const visibleGroups = apiKeyGroups.filter((group) => !hiddenApiKeyIds.has(group.apiKeyId));
-  const hasHiddenKeys = hiddenApiKeyIds.size > 0;
+  const orderedApiKeyGroups = useMemo(
+    () =>
+      [...apiKeyGroups].sort(
+        (a, b) => Number(selectedApiKeyIds.has(b.apiKeyId)) - Number(selectedApiKeyIds.has(a.apiKeyId)) || b.totalRequests - a.totalRequests
+      ),
+    [apiKeyGroups, selectedApiKeyIds]
+  );
+
+  const aggregatedBuckets = useMemo<AggregatedBucket[]>(() => {
+    const bucketsByDate = new Map<string, AggregatedBucket>();
+
+    for (const item of data ?? []) {
+      if (!selectedApiKeyIds.has(item.apiKeyId)) continue;
+
+      const bucket = bucketsByDate.get(item.date) ?? {
+        date: item.date,
+        requestCount: 0,
+        totalTokens: 0,
+        cost: 0,
+        contributions: [],
+      };
+      bucket.requestCount += item.requestCount;
+      bucket.totalTokens += item.totalTokens;
+      bucket.cost += item.cost;
+      if (item.requestCount > 0) {
+        bucket.contributions.push({
+          apiKeyName: item.apiKeyName,
+          requestCount: item.requestCount,
+        });
+      }
+      bucketsByDate.set(item.date, bucket);
+    }
+
+    return Array.from(bucketsByDate.values())
+      .map((bucket) => ({
+        ...bucket,
+        contributions: bucket.contributions.sort((a, b) => b.requestCount - a.requestCount || a.apiKeyName.localeCompare(b.apiKeyName)),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [data, selectedApiKeyIds]);
+
+  const activityByDate = useMemo(() => new Map(aggregatedBuckets.map((bucket) => [bucket.date, bucket])), [aggregatedBuckets]);
+  const maxRequestCount = useMemo(() => Math.max(0, ...aggregatedBuckets.map((bucket) => bucket.requestCount)), [aggregatedBuckets]);
+  const totalRequests = useMemo(() => aggregatedBuckets.reduce((sum, bucket) => sum + bucket.requestCount, 0), [aggregatedBuckets]);
+  const activities: Activity[] = aggregatedBuckets.map((bucket) => ({
+    date: bucket.date,
+    count: bucket.requestCount,
+    level: getActivityLevel(bucket.requestCount, maxRequestCount),
+  }));
 
   const toggleApiKey = (apiKeyId: string) => {
-    setHiddenApiKeyIds((current) => {
-      const next = new Set(current);
+    setStoredSelectedApiKeyIds((current) => {
+      const next = new Set(current === null ? allApiKeyIds : current);
       if (next.has(apiKeyId)) {
         next.delete(apiKeyId);
       } else {
         next.add(apiKeyId);
       }
-      return next;
+      return Array.from(next);
     });
   };
-
-  const showOnlyApiKey = (apiKeyId: string) => {
-    setHiddenApiKeyIds(new Set(apiKeyGroups.filter((group) => group.apiKeyId !== apiKeyId).map((group) => group.apiKeyId)));
-  };
-
-  const activityByKey = useMemo(() => {
-    const mapped = new Map<string, APIKeyActivityHeatmapBucket>();
-    for (const item of data ?? []) {
-      mapped.set(`${item.apiKeyId}:${item.date}`, item);
-    }
-    return mapped;
-  }, [data]);
 
   if (isLoading) {
     return (
@@ -157,112 +218,139 @@ export function ApiKeyActivityHeatmap() {
   }
 
   return (
-    <div className='relative space-y-5'>
-      <div className='flex flex-wrap items-center gap-2'>
-        {apiKeyGroups.map((group) => {
-          const hidden = hiddenApiKeyIds.has(group.apiKeyId);
-          return (
-            <div key={group.apiKeyId} className='bg-background flex items-center rounded-full border shadow-xs'>
-              <button
-                type='button'
-                className={`max-w-[220px] truncate rounded-l-full px-3 py-1 text-xs transition-colors ${
-                  hidden ? 'text-muted-foreground hover:bg-accent line-through' : 'text-foreground hover:bg-accent'
-                }`}
-                onClick={() => toggleApiKey(group.apiKeyId)}
-                title={group.apiKeyName}
-              >
-                {group.apiKeyName}
-              </button>
-              <button
-                type='button'
-                className='text-muted-foreground hover:bg-accent hover:text-foreground border-l px-2 py-1 text-[10px] transition-colors'
-                onClick={() => showOnlyApiKey(group.apiKeyId)}
-              >
-                {t('dashboard.charts.apiKeyActivityOnly')}
-              </button>
-            </div>
-          );
-        })}
-        {hasHiddenKeys && (
-          <Button variant='ghost' size='sm' className='h-7 text-xs' onClick={() => setHiddenApiKeyIds(new Set())}>
-            {t('dashboard.charts.apiKeyActivityShowAll')}
-          </Button>
+    <div className='relative space-y-4'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant='outline' size='sm' className='h-8 border-dashed'>
+              <PlusCircledIcon className='size-4' />
+              {t('dashboard.charts.apiKeyActivityFilter')}
+              <Separator orientation='vertical' className='mx-1 h-4' />
+              <Badge variant='secondary' className='rounded-sm px-1 font-normal'>
+                {t('dashboard.charts.apiKeyActivitySelected', { count: selectedApiKeyIds.size })}
+              </Badge>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className='w-[300px] p-0' align='start'>
+            <Command>
+              <CommandInput placeholder={t('dashboard.charts.apiKeyActivitySearch')} />
+              <CommandList>
+                <CommandEmpty>{t('common.noResultsFound')}</CommandEmpty>
+                <CommandGroup>
+                  {orderedApiKeyGroups.map((group) => {
+                    const isSelected = selectedApiKeyIds.has(group.apiKeyId);
+                    return (
+                      <CommandItem
+                        key={group.apiKeyId}
+                        value={`${group.apiKeyName} ${group.apiKeyId}`}
+                        onSelect={() => toggleApiKey(group.apiKeyId)}
+                      >
+                        <div
+                          className={cn(
+                            'border-primary flex size-4 items-center justify-center rounded-sm border',
+                            isSelected ? 'bg-primary text-primary-foreground' : 'opacity-50 [&_svg]:invisible'
+                          )}
+                        >
+                          <CheckIcon className='size-4' />
+                        </div>
+                        <span className='min-w-0 flex-1 truncate' title={group.apiKeyName}>
+                          {group.apiKeyName}
+                        </span>
+                        <span className='text-muted-foreground ml-auto font-mono text-xs'>{formatNumber(group.totalRequests)}</span>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem onSelect={() => setStoredSelectedApiKeyIds(null)} className='justify-center text-center'>
+                    {t('dashboard.charts.apiKeyActivitySelectAll')}
+                  </CommandItem>
+                  <CommandItem onSelect={() => setStoredSelectedApiKeyIds([])} className='justify-center text-center'>
+                    {t('dashboard.charts.apiKeyActivityClearSelection')}
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {selectedApiKeyIds.size > 0 && (
+          <div className='text-muted-foreground text-xs'>
+            {t('dashboard.charts.apiKeyActivityTotalRequests', { count: formatNumber(totalRequests) })}
+          </div>
         )}
       </div>
 
-      {visibleGroups.length === 0 ? (
-        <div className='flex h-[220px] items-center justify-center rounded-lg border border-dashed'>
-          <Button variant='outline' size='sm' onClick={() => setHiddenApiKeyIds(new Set())}>
-            {t('dashboard.charts.apiKeyActivityShowAll')}
+      {selectedApiKeyIds.size === 0 ? (
+        <div className='flex h-[220px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed'>
+          <div className='text-muted-foreground text-sm'>{t('dashboard.charts.apiKeyActivityEmptySelection')}</div>
+          <Button variant='outline' size='sm' onClick={() => setStoredSelectedApiKeyIds(null)}>
+            {t('dashboard.charts.apiKeyActivitySelectAll')}
           </Button>
         </div>
       ) : (
-        <div className='space-y-5 overflow-x-auto pb-2'>
-          {visibleGroups.map((group) => {
-            const activities: Activity[] = group.buckets.map((bucket) => ({
-              date: bucket.date,
-              count: bucket.requestCount,
-              level: getActivityLevel(bucket.requestCount, maxRequestCount),
-            }));
+        <div className='overflow-x-auto pb-2'>
+          <div className='bg-muted/10 min-w-[720px] rounded-lg border p-4'>
+            <ActivityCalendar
+              data={activities}
+              blockMargin={3}
+              blockRadius={3}
+              blockSize={11}
+              fontSize={11}
+              maxLevel={MAX_LEVEL}
+              showColorLegend={false}
+              showTotalCount={false}
+              showWeekdayLabels={['mon', 'wed', 'fri']}
+              theme={getCalendarTheme()}
+              tooltips={{
+                activity: {
+                  text: (activity) => {
+                    const bucket = activityByDate.get(activity.date);
+                    if (!bucket) return activity.date;
 
-            return (
-              <div key={group.apiKeyId} className='bg-muted/10 min-w-[720px] rounded-lg border p-4'>
-                <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
-                  <div className='min-w-0'>
-                    <div className='truncate text-sm font-medium'>{group.apiKeyName}</div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('dashboard.charts.apiKeyActivityTotalRequests', { count: formatNumber(group.totalRequests) })}
-                    </div>
-                  </div>
-                  <Button variant='ghost' size='sm' className='h-7 text-xs' onClick={() => toggleApiKey(group.apiKeyId)}>
-                    {t('dashboard.charts.apiKeyActivityHide')}
-                  </Button>
-                </div>
-                <ActivityCalendar
-                  data={activities}
-                  blockMargin={3}
-                  blockRadius={3}
-                  blockSize={11}
-                  fontSize={11}
-                  maxLevel={MAX_LEVEL}
-                  showColorLegend={false}
-                  showTotalCount={false}
-                  showWeekdayLabels={['mon', 'wed', 'fri']}
-                  theme={getCalendarTheme()}
-                  tooltips={{
-                    activity: {
-                      text: (activity) => {
-                        const bucket = activityByKey.get(`${group.apiKeyId}:${activity.date}`);
-                        if (!bucket) return activity.date;
-                        return t('dashboard.charts.apiKeyActivityTooltip', {
-                          name: group.apiKeyName,
-                          date: activity.date,
-                          requests: formatNumber(bucket.requestCount),
-                          tokens: formatNumber(bucket.totalTokens),
-                          cost: formatCurrency(bucket.cost),
-                        });
-                      },
-                    },
-                  }}
-                  renderBlock={(block, activity) =>
-                    cloneElement(block, {
-                      'aria-label': t('dashboard.charts.apiKeyActivityAriaLabel', {
-                        name: group.apiKeyName,
-                        date: activity.date,
-                        count: activity.count,
-                      }),
-                    })
-                  }
-                />
-              </div>
-            );
-          })}
+                    const contributionLines = bucket.contributions.slice(0, MAX_TOOLTIP_CONTRIBUTORS).map((contribution) =>
+                      t('dashboard.charts.apiKeyActivityContribution', {
+                        name: contribution.apiKeyName,
+                        requests: formatNumber(contribution.requestCount),
+                      })
+                    );
+                    const remainingContributors = bucket.contributions.length - contributionLines.length;
+                    if (remainingContributors > 0) {
+                      contributionLines.push(t('dashboard.charts.apiKeyActivityMoreContributors', { count: remainingContributors }));
+                    }
+                    const breakdown = contributionLines.length
+                      ? `\n${t('dashboard.charts.apiKeyActivityBreakdown')}\n${contributionLines.join('\n')}`
+                      : '';
+
+                    return t('dashboard.charts.apiKeyActivityTooltip', {
+                      date: activity.date,
+                      keys: selectedApiKeyIds.size,
+                      requests: formatNumber(bucket.requestCount),
+                      tokens: formatNumber(bucket.totalTokens),
+                      cost: formatCurrency(bucket.cost),
+                      breakdown,
+                    });
+                  },
+                },
+              }}
+              renderBlock={(block, activity) =>
+                cloneElement(block, {
+                  'aria-label': t('dashboard.charts.apiKeyActivityAriaLabel', {
+                    date: activity.date,
+                    keys: selectedApiKeyIds.size,
+                    count: activity.count,
+                  }),
+                })
+              }
+            />
+          </div>
         </div>
       )}
 
       {isFetching && (
         <div className='bg-background/50 absolute inset-0 flex items-center justify-center'>
-          <Loader2 className='text-muted-foreground h-6 w-6 animate-spin' />
+          <Loader2 className='text-muted-foreground size-6 animate-spin' />
         </div>
       )}
     </div>
