@@ -83,6 +83,7 @@ reconciliations:
 | 2026-08-10 | `null` | `null` | 完成历史核对后删除本地恢复引用；该引用从未推送到远程。 |
 | 2026-08-10 | `2b78817e0620c334dd351a4fef296b49dcb7e449` | `bb2a5a469f6ffb3882f03ebf6901076e8615c916` | 从最新 `upstream/unstable` 创建功能分支并真实合入 `ai-slop`；保留官方更新，并纳入渠道 API Key 列表复制按钮。 |
 | 2026-08-10 | `9dfd6ac0c21bbc5abe55827fa634e22826287d67` | `cdc76ab173e0dcbe8caaa19d104823b1ec5a6b40` | 纳入 Fenno 渠道及 Claude Code 缓存兼容/effort 映射更新；冲突处保留本地 Codex Alpha Search 能力。 |
+| 2026-08-11 | `d6ed9c6288ae1642a5a1e8f76db7a8abc0b223af` | `null` | 修正两个本地规则提交的分支归属：从本地 `unstable` 移到 `ai-slop` 尾部，`unstable` 恢复为与 `forgejo/unstable` 一致。 |
 
 ### 2026-08-06 经批准的历史重建
 
@@ -97,6 +98,19 @@ reconciliations:
 | `7cd527ab29f9640b888c45e7818fbfc8f8fc1c16`、`cb00b35c500411c702fd83ebb38e3c894d0599ec` | `e8e19993720bff05d5a10cc2e153017c6e69220a` | 按新版请求表结构重建 tooltip，保留桌面激活动作并省略 merge 外壳。 |
 | `b65930ea7a439e79fb84b1a4470a448b36b69621`、`e55d8e915524facef57087f4eb6952c8cd9dc127` 中的移动端 UI 集成 | 上游 `4971cbe436dab12c5d279493a28e0a2affe68309` | 上游已等价吸收，不再重放私有提交。 |
 | `00da677c447f6b79608fa1a32099c06add033925` | `41467b2cef0d2190c02c7968a2c17cccfa27d4da` | 保留原作者和作者日期，重写提交主题并补上 `🧩`，同时纳入本次维护规则。 |
+
+### 2026-08-11 本地分支归属修正
+
+- 原本地 `unstable` head：`26bdacdbc82ba571d8231863c6c735527be3fbb7`
+- 修正后本地 `unstable` head：`d6ed9c6288ae1642a5a1e8f76db7a8abc0b223af`，与 `forgejo/unstable` 一致。
+- 修正前 `ai-slop` head：`649526c9514a9372bff8903477572c9701c0a7d7`
+- 可恢复引用：`backup/unstable-before-relocate-20260811-26bdacdb`、`backup/ai-slop-before-relocate-20260811-649526c9`
+- 迁移时保留原作者和作者日期，并按当前私有规则补上 `🧩`；蓝绿部署正文放入 `AGENTS.local.md`，根 `AGENTS.md` 只保留强制入口。
+
+| 原提交 | `ai-slop` 新提交 | 处理 |
+|---|---|---|
+| `db06a9793b620c1a56a393547155ec5720ec3aa9` | `d6b9b98be06a385fc793c965a9fd0dc3ba082050` | 强化读取本地规则的范围，覆盖分析、修改、构建、部署和重启。 |
+| `26bdacdbc82ba571d8231863c6c735527be3fbb7` | `555783fe13e04452cac727a1ebd815084295bdde` | 将本地蓝绿部署规则迁入当前架构下的 `AGENTS.local.md`。 |
 
 ### 2026-08-05 冲突取舍
 
