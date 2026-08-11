@@ -7,6 +7,7 @@ export const formSchemaFactory = (t: (key: string) => string) =>
       description: z.string().optional(),
       profile: z.object({
         name: z.string().min(1, t('apikeys.validation.profileNameRequired')),
+        templateSync: z.boolean().default(false),
         modelMappings: z.array(
           z.object({
             from: z.string().min(1, t('apikeys.validation.sourceModelRequired')),

@@ -23,6 +23,7 @@ type APIKeyProfileTemplateServiceParams struct {
 
 type APIKeyProfileTemplateService struct {
 	*AbstractService
+	apiKeyInvalidator func(context.Context, string)
 }
 
 func NewAPIKeyProfileTemplateService(params APIKeyProfileTemplateServiceParams) *APIKeyProfileTemplateService {
@@ -30,6 +31,20 @@ func NewAPIKeyProfileTemplateService(params APIKeyProfileTemplateServiceParams) 
 		AbstractService: &AbstractService{
 			db: params.Ent,
 		},
+	}
+}
+
+func (s *APIKeyProfileTemplateService) SetAPIKeyInvalidator(invalidator func(context.Context, string)) {
+	s.apiKeyInvalidator = invalidator
+}
+
+func (s *APIKeyProfileTemplateService) invalidateAPIKeys(ctx context.Context, keys []string) {
+	if s.apiKeyInvalidator == nil {
+		return
+	}
+
+	for _, key := range lo.Uniq(keys) {
+		s.apiKeyInvalidator(ctx, key)
 	}
 }
 
@@ -120,6 +135,7 @@ func (s *APIKeyProfileTemplateService) ListTemplates(ctx context.Context, projec
 
 func (s *APIKeyProfileTemplateService) UpdateTemplate(ctx context.Context, id int, input ent.UpdateAPIKeyProfileTemplateInput, profile *objects.APIKeyProfile) (*ent.APIKeyProfileTemplate, error) {
 	var template *ent.APIKeyProfileTemplate
+	var synchronizedKeys []string
 	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
 		client := s.entFromContext(ctx)
 		existing, getErr := client.APIKeyProfileTemplate.Get(ctx, id)
@@ -138,6 +154,9 @@ func (s *APIKeyProfileTemplateService) UpdateTemplate(ctx context.Context, id in
 		if publishedProfile != nil {
 			publishedProfile.TemplateID = nil
 			publishedProfile.TemplateName = ""
+			if existing.Profile != nil && existing.Profile.TemplateSync {
+				publishedProfile.TemplateSync = true
+			}
 			if err := normalizeAndValidateProfileRoutingPolicy(publishedProfile); err != nil {
 				return err
 			}
@@ -163,7 +182,9 @@ func (s *APIKeyProfileTemplateService) UpdateTemplate(ctx context.Context, id in
 		}
 
 		if publishedProfile != nil {
-			if syncErr := s.syncLinkedProfiles(ctx, existing, template, publishedProfile); syncErr != nil {
+			var syncErr error
+			synchronizedKeys, syncErr = s.syncLinkedProfiles(ctx, existing, template, publishedProfile)
+			if syncErr != nil {
 				return syncErr
 			}
 		}
@@ -173,12 +194,14 @@ func (s *APIKeyProfileTemplateService) UpdateTemplate(ctx context.Context, id in
 	if err != nil {
 		return nil, err
 	}
+	s.invalidateAPIKeys(ctx, synchronizedKeys)
 
 	return template, nil
 }
 
 func (s *APIKeyProfileTemplateService) DeleteTemplate(ctx context.Context, id int) (*ent.APIKeyProfileTemplate, error) {
 	var template *ent.APIKeyProfileTemplate
+	var detachedKeys []string
 	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
 		client := s.entFromContext(ctx)
 
@@ -188,7 +211,9 @@ func (s *APIKeyProfileTemplateService) DeleteTemplate(ctx context.Context, id in
 			return fmt.Errorf("failed to get template for deletion: %w", getErr)
 		}
 
-		if detachErr := s.detachLinkedProfiles(ctx, template); detachErr != nil {
+		var detachErr error
+		detachedKeys, detachErr = s.detachLinkedProfiles(ctx, template)
+		if detachErr != nil {
 			return detachErr
 		}
 
@@ -202,6 +227,7 @@ func (s *APIKeyProfileTemplateService) DeleteTemplate(ctx context.Context, id in
 	if err != nil {
 		return nil, err
 	}
+	s.invalidateAPIKeys(ctx, detachedKeys)
 
 	return template, nil
 }
@@ -261,6 +287,7 @@ func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templat
 	if err != nil {
 		return nil, err
 	}
+	s.invalidateAPIKeys(ctx, []string{updatedKey.Key})
 
 	return updatedKey, nil
 }
@@ -294,15 +321,155 @@ func (s *APIKeyProfileTemplateService) CountLinkedProfiles(ctx context.Context, 
 	return count, nil
 }
 
-func (s *APIKeyProfileTemplateService) syncLinkedProfiles(ctx context.Context, previousTemplate, template *ent.APIKeyProfileTemplate, publishedProfile *objects.APIKeyProfile) error {
+// reconcileLinkedProfileChanges applies API key edits according to each
+// template's synchronization policy. Ordinary linked templates detach on a
+// local edit. Synchronized templates publish that edit back to the template
+// and every profile still linked to it in the same transaction.
+func (s *APIKeyProfileTemplateService) reconcileLinkedProfileChanges(
+	ctx context.Context,
+	existingKey *ent.APIKey,
+	nextProfiles *objects.APIKeyProfiles,
+) ([]string, error) {
+	if existingKey == nil || nextProfiles == nil {
+		return nil, nil
+	}
+
+	type templateUpdate struct {
+		previous  *ent.APIKeyProfileTemplate
+		published *objects.APIKeyProfile
+	}
+
+	client := s.entFromContext(ctx)
+	updates := make(map[int]templateUpdate)
+	updateOrder := make([]int, 0)
+
+	for i := range nextProfiles.Profiles {
+		profile := &nextProfiles.Profiles[i]
+		if profile.TemplateID == nil {
+			profile.TemplateName = ""
+			profile.TemplateSync = false
+			continue
+		}
+
+		template, err := client.APIKeyProfileTemplate.Get(ctx, *profile.TemplateID)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				profile.TemplateID = nil
+				profile.TemplateName = ""
+				profile.TemplateSync = false
+				continue
+			}
+			return nil, fmt.Errorf("failed to get linked template %d: %w", *profile.TemplateID, err)
+		}
+		if template.ProjectID != existingKey.ProjectID {
+			return nil, fmt.Errorf("template and API key must belong to the same project")
+		}
+
+		syncEnabled := template.Profile != nil && template.Profile.TemplateSync
+		profile.TemplateName = template.Name
+		profile.TemplateSync = syncEnabled
+		linkedProfile := findLinkedProfile(existingKey.Profiles, *profile.TemplateID, profile.Name)
+		if linkedProfile == nil {
+			if template.Profile != nil && sameTemplateProfileContents(profile, template.Profile) {
+				continue
+			}
+			profile.TemplateID = nil
+			profile.TemplateName = ""
+			profile.TemplateSync = false
+			continue
+		}
+		if sameProfileIgnoringTemplate(linkedProfile, profile) {
+			continue
+		}
+
+		if !syncEnabled {
+			profile.TemplateID = nil
+			profile.TemplateName = ""
+			profile.TemplateSync = false
+			continue
+		}
+
+		published := profile.Clone()
+		published.Name = template.Name
+		published.TemplateID = nil
+		published.TemplateName = ""
+		published.TemplateSync = true
+
+		if current, ok := updates[template.ID]; ok {
+			if !sameTemplateProfileContents(current.published, published) {
+				return nil, fmt.Errorf("linked profiles for template '%s' contain conflicting edits", template.Name)
+			}
+			continue
+		}
+
+		updates[template.ID] = templateUpdate{previous: template, published: published}
+		updateOrder = append(updateOrder, template.ID)
+	}
+
+	updatedKeys := make([]string, 0)
+	for _, templateID := range updateOrder {
+		update := updates[templateID]
+		template, err := client.APIKeyProfileTemplate.UpdateOneID(templateID).
+			SetProfile(update.published).
+			Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update synchronized template %d: %w", templateID, err)
+		}
+
+		keys, err := s.syncLinkedProfiles(ctx, update.previous, template, update.published)
+		if err != nil {
+			return nil, err
+		}
+		updatedKeys = append(updatedKeys, keys...)
+
+		for i := range nextProfiles.Profiles {
+			current := &nextProfiles.Profiles[i]
+			if current.TemplateID == nil || *current.TemplateID != templateID {
+				continue
+			}
+
+			profileName := current.Name
+			next := update.published.Clone()
+			next.Name = profileName
+			next.TemplateID = lo.ToPtr(templateID)
+			next.TemplateName = template.Name
+			next.TemplateSync = true
+			nextProfiles.Profiles[i] = *next
+		}
+	}
+
+	return updatedKeys, nil
+}
+
+func sameTemplateProfileContents(a, b *objects.APIKeyProfile) bool {
+	left := normalizeProfileForComparison(a)
+	right := normalizeProfileForComparison(b)
+	left.Name = ""
+	right.Name = ""
+	left.TemplateID = nil
+	right.TemplateID = nil
+	left.TemplateName = ""
+	right.TemplateName = ""
+	left.TemplateSync = false
+	right.TemplateSync = false
+
+	return reflect.DeepEqual(left, right)
+}
+
+func (s *APIKeyProfileTemplateService) syncLinkedProfiles(
+	ctx context.Context,
+	previousTemplate, template *ent.APIKeyProfileTemplate,
+	publishedProfile *objects.APIKeyProfile,
+) ([]string, error) {
 	client := s.entFromContext(ctx)
 	keys, err := client.APIKey.Query().
 		Where(apikey.ProjectIDEQ(template.ProjectID)).
 		All(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list API keys linked to template: %w", err)
+		return nil, fmt.Errorf("failed to list API keys linked to template: %w", err)
 	}
 
+	updatedKeys := make([]string, 0)
 	for _, key := range keys {
 		if key.Profiles == nil {
 			continue
@@ -330,12 +497,13 @@ func (s *APIKeyProfileTemplateService) syncLinkedProfiles(ctx context.Context, p
 
 		if changed {
 			if _, err := client.APIKey.UpdateOneID(key.ID).SetProfiles(key.Profiles).Save(ctx); err != nil {
-				return fmt.Errorf("failed to publish template to API key %d: %w", key.ID, err)
+				return nil, fmt.Errorf("failed to publish template to API key %d: %w", key.ID, err)
 			}
+			updatedKeys = append(updatedKeys, key.Key)
 		}
 	}
 
-	return nil
+	return updatedKeys, nil
 }
 
 // isLegacyTemplateMatch recognizes profiles created before explicit template
@@ -357,19 +525,22 @@ func isLegacyTemplateMatch(profile *objects.APIKeyProfile, template *ent.APIKeyP
 	right.TemplateID = nil
 	left.TemplateName = ""
 	right.TemplateName = ""
+	left.TemplateSync = false
+	right.TemplateSync = false
 
 	return reflect.DeepEqual(left, right)
 }
 
-func (s *APIKeyProfileTemplateService) detachLinkedProfiles(ctx context.Context, template *ent.APIKeyProfileTemplate) error {
+func (s *APIKeyProfileTemplateService) detachLinkedProfiles(ctx context.Context, template *ent.APIKeyProfileTemplate) ([]string, error) {
 	client := s.entFromContext(ctx)
 	keys, err := client.APIKey.Query().
 		Where(apikey.ProjectIDEQ(template.ProjectID)).
 		All(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list API keys linked to template: %w", err)
+		return nil, fmt.Errorf("failed to list API keys linked to template: %w", err)
 	}
 
+	updatedKeys := make([]string, 0)
 	for _, key := range keys {
 		if key.Profiles == nil {
 			continue
@@ -381,18 +552,20 @@ func (s *APIKeyProfileTemplateService) detachLinkedProfiles(ctx context.Context,
 			if profile.TemplateID != nil && *profile.TemplateID == template.ID {
 				profile.TemplateID = nil
 				profile.TemplateName = ""
+				profile.TemplateSync = false
 				changed = true
 			}
 		}
 
 		if changed {
 			if _, err := client.APIKey.UpdateOneID(key.ID).SetProfiles(key.Profiles).Save(ctx); err != nil {
-				return fmt.Errorf("failed to detach template from API key %d: %w", key.ID, err)
+				return nil, fmt.Errorf("failed to detach template from API key %d: %w", key.ID, err)
 			}
+			updatedKeys = append(updatedKeys, key.Key)
 		}
 	}
 
-	return nil
+	return updatedKeys, nil
 }
 
 func resolveProfileNameConflict(existingProfiles []objects.APIKeyProfile, newName string) string {

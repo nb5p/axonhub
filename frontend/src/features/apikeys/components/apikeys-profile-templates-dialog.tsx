@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { IconCopy, IconLoader2, IconPencil, IconPlus, IconTemplate, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconCopy, IconLoader2, IconPencil, IconPlus, IconRefresh, IconTemplate, IconTrash, IconUpload } from '@tabler/icons-react';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
@@ -50,7 +50,11 @@ function TemplateItem({
 
   return (
     <div className='hover:bg-muted/50 flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors'>
-      <IconTemplate className='text-muted-foreground mt-0.5 h-4 w-4 shrink-0' />
+      {template.profile.templateSync ? (
+        <IconRefresh className='text-primary mt-0.5 h-4 w-4 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />
+      ) : (
+        <IconTemplate className='text-muted-foreground mt-0.5 h-4 w-4 shrink-0' />
+      )}
       <div className='min-w-0 flex-1'>
         <div className='text-foreground text-sm font-medium'>{template.name}</div>
         {template.description && <div className='text-muted-foreground mt-0.5 truncate text-xs'>{template.description}</div>}
@@ -58,6 +62,7 @@ function TemplateItem({
           <span>{template.profile?.name}</span>
           {mappingCount > 0 && <span>{t('apikeys.profileTemplates.mappingCount', { count: mappingCount })}</span>}
           <span>{t('apikeys.profileTemplates.linkedCount', { count: template.linkedProfilesCount })}</span>
+          {template.profile.templateSync && <span className='text-primary'>{t('apikeys.templates.syncedBadge')}</span>}
           <span>{createdDate}</span>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale/zh-CN';
-import { IconFileDownload, IconLoader2, IconTemplate, IconTrash } from '@tabler/icons-react';
+import { IconFileDownload, IconLoader2, IconRefresh, IconTemplate, IconTrash } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +52,11 @@ function TemplateItem({
         onClick={() => onLoad(template)}
         disabled={isLoading || isDeleting}
       >
-        <IconTemplate className='text-muted-foreground mt-0.5 h-4 w-4 shrink-0' />
+        {template.profile.templateSync ? (
+          <IconRefresh className='text-primary mt-0.5 h-4 w-4 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />
+        ) : (
+          <IconTemplate className='text-muted-foreground mt-0.5 h-4 w-4 shrink-0' />
+        )}
         <div className='min-w-0 flex-1'>
           <div className='text-foreground text-sm font-medium'>{template.name}</div>
           {template.description && (
@@ -61,6 +65,9 @@ function TemplateItem({
             </div>
           )}
           <div className='text-muted-foreground/70 mt-1 text-[11px]'>{createdDate}</div>
+          {template.profile.templateSync && (
+            <div className='text-primary mt-1 text-[11px]'>{t('apikeys.templates.syncedBadge')}</div>
+          )}
         </div>
       </button>
       <button

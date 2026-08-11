@@ -16,6 +16,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/project"
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/objects"
+	"github.com/looplj/axonhub/internal/pkg/xcache"
 )
 
 func setupTestTemplateService(t *testing.T) (*APIKeyProfileTemplateService, *ent.Client) {
@@ -357,6 +358,129 @@ func TestDetachModifiedTemplateProfiles(t *testing.T) {
 	detachModifiedTemplateProfiles(existing, modified)
 	require.Nil(t, modified.Profiles[0].TemplateID)
 	require.Empty(t, modified.Profiles[0].TemplateName)
+}
+
+func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
+	apiKeyService, client := setupTestAPIKeyService(t, xcache.Config{Mode: xcache.ModeMemory})
+	defer apiKeyService.Stop()
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+	templateService := NewAPIKeyProfileTemplateService(APIKeyProfileTemplateServiceParams{Ent: client})
+	projectEntity, err := client.Project.Create().
+		SetName(fmt.Sprintf("sync-project-%d", time.Now().UnixNano())).
+		SetDescription("synchronized template test").
+		SetStatus(project.StatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+
+	template, err := client.APIKeyProfileTemplate.Create().
+		SetName("Synchronized").
+		SetProject(projectEntity).
+		SetProfile(&objects.APIKeyProfile{
+			Name:          "Synchronized",
+			TemplateSync:  true,
+			ModelMappings: []objects.ModelMapping{{From: "shared", To: "old-model"}},
+		}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	templateID := template.ID
+	createLinkedKey := func(name, profileName string) *ent.APIKey {
+		key, createErr := client.APIKey.Create().
+			SetName(name).
+			SetKey(fmt.Sprintf("ah-%s-%d", name, time.Now().UnixNano())).
+			SetProjectID(projectEntity.ID).
+			SetType(apikey.TypeUser).
+			SetProfiles(&objects.APIKeyProfiles{
+				ActiveProfile: profileName,
+				Profiles: []objects.APIKeyProfile{{
+					Name:          profileName,
+					TemplateID:    &templateID,
+					TemplateName:  template.Name,
+					TemplateSync:  true,
+					ModelMappings: []objects.ModelMapping{{From: "shared", To: "old-model"}},
+				}},
+			}).
+			Save(ctx)
+		require.NoError(t, createErr)
+		return key
+	}
+
+	firstKey := createLinkedKey("first", "First alias")
+	secondKey := createLinkedKey("second", "Second alias")
+	newlyLinkedKey, err := client.APIKey.Create().
+		SetName("newly-linked").
+		SetKey(fmt.Sprintf("ah-newly-linked-%d", time.Now().UnixNano())).
+		SetProjectID(projectEntity.ID).
+		SetType(apikey.TypeUser).
+		SetProfiles(&objects.APIKeyProfiles{
+			ActiveProfile: "Local profile",
+			Profiles: []objects.APIKeyProfile{{
+				Name:          "Local profile",
+				ModelMappings: []objects.ModelMapping{{From: "shared", To: "old-model"}},
+			}},
+		}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	attachedKey, err := apiKeyService.UpdateAPIKeyProfiles(ctx, newlyLinkedKey.ID, objects.APIKeyProfiles{
+		ActiveProfile: "Local profile",
+		Profiles: []objects.APIKeyProfile{{
+			Name:          "Local profile",
+			TemplateID:    &templateID,
+			TemplateName:  template.Name,
+			TemplateSync:  true,
+			ModelMappings: []objects.ModelMapping{{From: "shared", To: "old-model"}},
+		}},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, attachedKey.Profiles.Profiles[0].TemplateID)
+	require.True(t, attachedKey.Profiles.Profiles[0].TemplateSync)
+
+	cachedSecond, err := apiKeyService.GetAPIKey(ctx, secondKey.Key)
+	require.NoError(t, err)
+	require.Equal(t, "old-model", cachedSecond.Profiles.Profiles[0].ModelMappings[0].To)
+
+	updatedFirst, err := apiKeyService.UpdateAPIKeyProfiles(ctx, firstKey.ID, objects.APIKeyProfiles{
+		ActiveProfile: "First alias",
+		Profiles: []objects.APIKeyProfile{{
+			Name:          "First alias",
+			TemplateID:    &templateID,
+			TemplateName:  template.Name,
+			TemplateSync:  false,
+			ModelMappings: []objects.ModelMapping{{From: "shared", To: "new-model"}},
+		}},
+	})
+	require.NoError(t, err)
+	require.True(t, updatedFirst.Profiles.Profiles[0].TemplateSync)
+	require.NotNil(t, updatedFirst.Profiles.Profiles[0].TemplateID)
+
+	updatedTemplate, err := client.APIKeyProfileTemplate.Get(ctx, template.ID)
+	require.NoError(t, err)
+	require.True(t, updatedTemplate.Profile.TemplateSync)
+	require.Equal(t, "new-model", updatedTemplate.Profile.ModelMappings[0].To)
+
+	updatedSecond, err := apiKeyService.GetAPIKey(ctx, secondKey.Key)
+	require.NoError(t, err)
+	require.Equal(t, "Second alias", updatedSecond.Profiles.Profiles[0].Name)
+	require.True(t, updatedSecond.Profiles.Profiles[0].TemplateSync)
+	require.Equal(t, "new-model", updatedSecond.Profiles.Profiles[0].ModelMappings[0].To)
+
+	updatedNewlyLinked, err := client.APIKey.Get(ctx, newlyLinkedKey.ID)
+	require.NoError(t, err)
+	require.Equal(t, "new-model", updatedNewlyLinked.Profiles.Profiles[0].ModelMappings[0].To)
+
+	_, err = templateService.UpdateTemplate(ctx, template.ID, ent.UpdateAPIKeyProfileTemplateInput{}, &objects.APIKeyProfile{
+		Name:          template.Name,
+		TemplateSync:  false,
+		ModelMappings: []objects.ModelMapping{{From: "shared", To: "final-model"}},
+	})
+	require.NoError(t, err)
+
+	updatedTemplate, err = client.APIKeyProfileTemplate.Get(ctx, template.ID)
+	require.NoError(t, err)
+	require.True(t, updatedTemplate.Profile.TemplateSync, "synchronization cannot be disabled once enabled")
 }
 
 // TestLoadTemplate_NameConflict tests loading a template where profile name already exists.

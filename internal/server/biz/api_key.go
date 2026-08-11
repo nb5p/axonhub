@@ -44,28 +44,36 @@ const (
 type APIKeyServiceParams struct {
 	fx.In
 
-	CacheConfig    xcache.Config
-	Ent            *ent.Client
-	ProjectService *ProjectService
-	KeyPrefix      string `name:"api_key_prefix"`
+	CacheConfig            xcache.Config
+	Ent                    *ent.Client
+	ProjectService         *ProjectService
+	ProfileTemplateService *APIKeyProfileTemplateService
+	KeyPrefix              string `name:"api_key_prefix"`
 }
 
 type APIKeyService struct {
 	*AbstractService
 
-	ProjectService *ProjectService
-	APIKeyCache    *live.IndexedCache[string, *ent.APIKey]
-	apiKeyNotifier watcher.Notifier[live.CacheEvent[string]]
-	keyPrefix      string
+	ProjectService         *ProjectService
+	ProfileTemplateService *APIKeyProfileTemplateService
+	APIKeyCache            *live.IndexedCache[string, *ent.APIKey]
+	apiKeyNotifier         watcher.Notifier[live.CacheEvent[string]]
+	keyPrefix              string
 }
 
 func NewAPIKeyService(params APIKeyServiceParams) *APIKeyService {
+	profileTemplateService := params.ProfileTemplateService
+	if profileTemplateService == nil {
+		profileTemplateService = NewAPIKeyProfileTemplateService(APIKeyProfileTemplateServiceParams{Ent: params.Ent})
+	}
+
 	svc := &APIKeyService{
 		AbstractService: &AbstractService{
 			db: params.Ent,
 		},
-		ProjectService: params.ProjectService,
-		keyPrefix:      params.KeyPrefix,
+		ProjectService:         params.ProjectService,
+		ProfileTemplateService: profileTemplateService,
+		keyPrefix:              params.KeyPrefix,
 	}
 
 	cacheMode := params.CacheConfig.Mode
@@ -105,6 +113,9 @@ func NewAPIKeyService(params APIKeyServiceParams) *APIKeyService {
 		Watcher:         notifier,
 		LoadOneFunc:     svc.onLoadOneKey,
 		LoadSinceFunc:   svc.onLoadAPIKeysSince,
+	})
+	profileTemplateService.SetAPIKeyInvalidator(func(ctx context.Context, key string) {
+		svc.invalidateAPIKeyCaches(ctx, key)
 	})
 
 	if err := svc.APIKeyCache.Load(context.Background()); err != nil {
@@ -576,64 +587,69 @@ func (s *APIKeyService) UpdateAPIKeyStatus(ctx context.Context, id int, status a
 
 // UpdateAPIKeyProfiles updates the profiles of an API key.
 func (s *APIKeyService) UpdateAPIKeyProfiles(ctx context.Context, id int, profiles objects.APIKeyProfiles) (*ent.APIKey, error) {
-	client := s.entFromContext(ctx)
+	var apiKey *ent.APIKey
+	cacheKeys := make([]string, 0, 1)
 
-	existing, err := client.APIKey.Get(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get API key: %w", err)
-	}
-
-	if existing.Type == apikey.TypeNoauth {
-		return nil, fmt.Errorf("noauth type API key profiles cannot be updated")
-	}
-
-	if existing.Type == apikey.TypePersonal {
-		user, ok := contexts.GetUser(ctx)
-		if !ok {
-			return nil, fmt.Errorf("user not found in context")
+	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
+		client := s.entFromContext(ctx)
+		existing, err := client.APIKey.Get(ctx, id)
+		if err != nil {
+			return fmt.Errorf("failed to get API key: %w", err)
 		}
-		if existing.UserID != user.ID {
-			return nil, fmt.Errorf("personal API key can only be modified by its creator")
+
+		if existing.Type == apikey.TypeNoauth {
+			return fmt.Errorf("noauth type API key profiles cannot be updated")
 		}
-	}
 
-	// Validate that profile names are unique (case-insensitive)
-	if err := validateProfileNames(profiles.Profiles); err != nil {
-		return nil, err
-	}
+		if existing.Type == apikey.TypePersonal {
+			user, ok := contexts.GetUser(ctx)
+			if !ok {
+				return fmt.Errorf("user not found in context")
+			}
+			if existing.UserID != user.ID {
+				return fmt.Errorf("personal API key can only be modified by its creator")
+			}
+		}
 
-	// Validate that active profile exists in the profiles list
-	if err := validateActiveProfile(profiles.ActiveProfile, profiles.Profiles); err != nil {
-		return nil, err
-	}
+		if err := validateProfileNames(profiles.Profiles); err != nil {
+			return err
+		}
+		if err := validateActiveProfile(profiles.ActiveProfile, profiles.Profiles); err != nil {
+			return err
+		}
+		if err := validateProfileFilters(profiles.Profiles); err != nil {
+			return err
+		}
+		if err := validateProfileRoutingPolicies(profiles.Profiles); err != nil {
+			return err
+		}
+		if err := validateProfileQuota(profiles.Profiles); err != nil {
+			return err
+		}
 
-	if err := validateProfileFilters(profiles.Profiles); err != nil {
-		return nil, err
-	}
-	if err := validateProfileRoutingPolicies(profiles.Profiles); err != nil {
-		return nil, err
-	}
+		synchronizedKeys, err := s.ProfileTemplateService.reconcileLinkedProfileChanges(ctx, existing, &profiles)
+		if err != nil {
+			return err
+		}
+		cacheKeys = append(cacheKeys, synchronizedKeys...)
 
-	// Validate quota configuration (if present)
-	if err := validateProfileQuota(profiles.Profiles); err != nil {
-		return nil, err
-	}
+		apiKey, err = client.APIKey.UpdateOneID(id).
+			SetProfiles(&profiles).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to update API key profiles: %w", err)
+		}
+		cacheKeys = append(cacheKeys, apiKey.Key)
 
-	// A profile remains linked only while a direct API key edit leaves its
-	// template-managed contents untouched. This lets callers change the active
-	// profile without breaking links, while any one-off profile customization
-	// automatically detaches only that profile from future template publishes.
-	detachModifiedTemplateProfiles(existing.Profiles, &profiles)
-
-	apiKey, err := client.APIKey.UpdateOneID(id).
-		SetProfiles(&profiles).
-		Save(ctx)
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update API key profiles: %w", err)
+		return nil, err
 	}
 
-	// Invalidate cache
-	s.invalidateAPIKeyCaches(ctx, apiKey.Key)
+	for _, key := range lo.Uniq(cacheKeys) {
+		s.invalidateAPIKeyCaches(ctx, key)
+	}
 
 	return apiKey, nil
 }
@@ -647,6 +663,7 @@ func detachModifiedTemplateProfiles(existing, next *objects.APIKeyProfiles) {
 		profile := &next.Profiles[i]
 		if profile.TemplateID == nil {
 			profile.TemplateName = ""
+			profile.TemplateSync = false
 			continue
 		}
 
@@ -654,8 +671,10 @@ func detachModifiedTemplateProfiles(existing, next *objects.APIKeyProfiles) {
 		if linkedProfile == nil || !sameProfileIgnoringTemplate(linkedProfile, profile) {
 			profile.TemplateID = nil
 			profile.TemplateName = ""
+			profile.TemplateSync = false
 		} else {
 			profile.TemplateName = linkedProfile.TemplateName
+			profile.TemplateSync = linkedProfile.TemplateSync
 		}
 	}
 }
@@ -682,6 +701,8 @@ func sameProfileIgnoringTemplate(a, b *objects.APIKeyProfile) bool {
 	right.TemplateID = nil
 	left.TemplateName = ""
 	right.TemplateName = ""
+	left.TemplateSync = false
+	right.TemplateSync = false
 
 	return reflect.DeepEqual(left, right)
 }

@@ -403,6 +403,7 @@ input APIKeyProfileInput {
   name: String!
   templateID: Int
   templateName: String
+  templateSync: Boolean
   modelMappings: [ModelMappingInput!]
   channelIDs: [Int!]
   channelTags: [String!]
@@ -450,6 +451,7 @@ type APIKeyProfile {
   name: String!
   templateID: Int
   templateName: String
+  templateSync: Boolean!
   modelMappings: [ModelMapping!]
   channelIDs: [Int!]
   channelTags: [String!]

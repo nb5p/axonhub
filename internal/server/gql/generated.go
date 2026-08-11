@@ -153,6 +153,7 @@ type ComplexityRoot struct {
 		Quota                func(childComplexity int) int
 		TemplateID           func(childComplexity int) int
 		TemplateName         func(childComplexity int) int
+		TemplateSync         func(childComplexity int) int
 		TraceStickyMode      func(childComplexity int) int
 	}
 
@@ -2776,6 +2777,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.APIKeyProfile.TemplateName(childComplexity), true
+	case "APIKeyProfile.templateSync":
+		if e.complexity.APIKeyProfile.TemplateSync == nil {
+			break
+		}
+
+		return e.complexity.APIKeyProfile.TemplateSync(childComplexity), true
 	case "APIKeyProfile.traceStickyMode":
 		if e.complexity.APIKeyProfile.TraceStickyMode == nil {
 			break
@@ -16327,6 +16334,35 @@ func (ec *executionContext) fieldContext_APIKeyProfile_templateName(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _APIKeyProfile_templateSync(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyProfile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_APIKeyProfile_templateSync,
+		func(ctx context.Context) (any, error) {
+			return obj.TemplateSync, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_APIKeyProfile_templateSync(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKeyProfile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _APIKeyProfile_modelMappings(ctx context.Context, field graphql.CollectedField, obj *objects.APIKeyProfile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -17196,6 +17232,8 @@ func (ec *executionContext) fieldContext_APIKeyProfileTemplate_profile(_ context
 				return ec.fieldContext_APIKeyProfile_templateID(ctx, field)
 			case "templateName":
 				return ec.fieldContext_APIKeyProfile_templateName(ctx, field)
+			case "templateSync":
+				return ec.fieldContext_APIKeyProfile_templateSync(ctx, field)
 			case "modelMappings":
 				return ec.fieldContext_APIKeyProfile_modelMappings(ctx, field)
 			case "channelIDs":
@@ -17553,6 +17591,8 @@ func (ec *executionContext) fieldContext_APIKeyProfiles_profiles(_ context.Conte
 				return ec.fieldContext_APIKeyProfile_templateID(ctx, field)
 			case "templateName":
 				return ec.fieldContext_APIKeyProfile_templateName(ctx, field)
+			case "templateSync":
+				return ec.fieldContext_APIKeyProfile_templateSync(ctx, field)
 			case "modelMappings":
 				return ec.fieldContext_APIKeyProfile_modelMappings(ctx, field)
 			case "channelIDs":
@@ -63436,7 +63476,7 @@ func (ec *executionContext) unmarshalInputAPIKeyProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "templateID", "templateName", "modelMappings", "channelIDs", "channelTags", "channelTagsMatchMode", "modelIDs", "quota", "loadBalanceStrategy", "traceStickyMode"}
+	fieldsInOrder := [...]string{"name", "templateID", "templateName", "templateSync", "modelMappings", "channelIDs", "channelTags", "channelTagsMatchMode", "modelIDs", "quota", "loadBalanceStrategy", "traceStickyMode"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -63464,6 +63504,13 @@ func (ec *executionContext) unmarshalInputAPIKeyProfileInput(ctx context.Context
 				return it, err
 			}
 			it.TemplateName = data
+		case "templateSync":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("templateSync"))
+			data, err := ec.unmarshalOBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TemplateSync = data
 		case "modelMappings":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelMappings"))
 			data, err := ec.unmarshalOModelMappingInput2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐModelMappingᚄ(ctx, v)
@@ -90314,6 +90361,11 @@ func (ec *executionContext) _APIKeyProfile(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._APIKeyProfile_templateID(ctx, field, obj)
 		case "templateName":
 			out.Values[i] = ec._APIKeyProfile_templateName(ctx, field, obj)
+		case "templateSync":
+			out.Values[i] = ec._APIKeyProfile_templateSync(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "modelMappings":
 			out.Values[i] = ec._APIKeyProfile_modelMappings(ctx, field, obj)
 		case "channelIDs":

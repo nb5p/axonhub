@@ -62,6 +62,7 @@ export const apiKeySchema = z.object({
             name: z.string(),
             templateID: z.number().optional().nullable(),
             templateName: z.string().optional().nullable(),
+            templateSync: z.boolean().default(false),
             modelMappings: z
               .array(
                 z.object({
@@ -171,6 +172,7 @@ export const apiKeyProfileSchema = z.object({
   name: z.string(),
   templateID: z.number().optional().nullable(),
   templateName: z.string().optional().nullable(),
+  templateSync: z.boolean().default(false),
   modelMappings: z.array(modelMappingSchema),
   channelIDs: z.array(z.number()).optional().nullable(),
   channelTags: z.array(z.string()).optional().nullable(),
@@ -272,6 +274,7 @@ export const updateApiKeyProfilesInputSchemaFactory = (t: (key: string) => strin
             name: z.string().min(1, t('apikeys.validation.profileNameRequired')),
             templateID: z.number().optional().nullable(),
             templateName: z.string().optional().nullable(),
+            templateSync: z.boolean().default(false),
             modelMappings: z.array(
               z.object({
                 from: z.string().min(1, t('apikeys.validation.sourceModelRequired')),
@@ -373,6 +376,9 @@ export const updateApiKeyProfilesInputSchema = z.object({
   profiles: z.array(
     z.object({
       name: z.string().min(1, 'Profile name is required'),
+      templateID: z.number().optional().nullable(),
+      templateName: z.string().optional().nullable(),
+      templateSync: z.boolean().default(false),
       modelMappings: z.array(
         z.object({
           from: z.string().min(1, 'Source model is required'),

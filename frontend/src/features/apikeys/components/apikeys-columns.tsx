@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ColumnDef, Table, Row } from '@tanstack/react-table';
-import { Copy, Eye, Settings } from 'lucide-react';
+import { Copy, Eye, RefreshCw, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn, extractNumberID } from '@/lib/utils';
@@ -47,6 +47,7 @@ function ActiveProfileCell({ apiKey, canWrite }: { apiKey: ApiKey; canWrite: boo
   const activeProfile = apiKey.profiles?.activeProfile?.trim();
   const activeProfileConfig = apiKey.profiles?.profiles?.find((profile) => profile.name === activeProfile);
   const templateName = activeProfileConfig?.templateName?.trim();
+  const templateSync = activeProfileConfig?.templateSync ?? false;
   const canOpenProfiles = canWrite && apiKey.type !== 'service_account';
 
   if (!canOpenProfiles) {
@@ -54,7 +55,8 @@ function ActiveProfileCell({ apiKey, canWrite }: { apiKey: ApiKey; canWrite: boo
       <div className='min-w-0'>
         <LongText className='max-w-36 font-medium'>{activeProfile}</LongText>
         {templateName && (
-          <div className='text-muted-foreground max-w-36 truncate text-xs'>
+          <div className='text-muted-foreground flex max-w-36 items-center gap-1 truncate text-xs'>
+            {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
             {t('apikeys.columns.linkedTemplate', { name: templateName })}
           </div>
         )}
@@ -78,7 +80,8 @@ function ActiveProfileCell({ apiKey, canWrite }: { apiKey: ApiKey; canWrite: boo
           {activeProfile || t('apikeys.columns.noActiveProfile')}
         </span>
         {templateName && (
-          <span className='text-muted-foreground block truncate text-xs font-normal'>
+          <span className='text-muted-foreground flex items-center gap-1 truncate text-xs font-normal'>
+            {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
             {t('apikeys.columns.linkedTemplate', { name: templateName })}
           </span>
         )}

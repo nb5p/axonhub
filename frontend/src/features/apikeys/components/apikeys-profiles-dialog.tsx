@@ -2,12 +2,12 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { format, type Locale } from 'date-fns';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconPlus, IconTrash, IconSettings, IconChevronDown, IconChevronUp, IconInfoCircle } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconSettings, IconChevronDown, IconChevronUp, IconInfoCircle, IconRefresh } from '@tabler/icons-react';
 import { useQueryModels } from '@/gql/models';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
-import { extractNumberID } from '@/lib/utils';
+import { extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -495,6 +495,11 @@ export function ApiKeyProfilesDialog({
             }}
             profileData={form.watch(`profiles.${saveTemplateProfileIndex}`)}
             projectID={selectedProjectId}
+            onSaved={(template) => {
+              form.setValue(`profiles.${saveTemplateProfileIndex}.templateID`, extractNumberIDAsNumber(template.id), { shouldDirty: true });
+              form.setValue(`profiles.${saveTemplateProfileIndex}.templateName`, template.name, { shouldDirty: true });
+              form.setValue(`profiles.${saveTemplateProfileIndex}.templateSync`, template.templateSync, { shouldDirty: true });
+            }}
           />
         )}
         <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
@@ -582,6 +587,7 @@ function ProfileCard({
   const profileName = form.watch(`profiles.${profileIndex}.name`);
   const templateID = form.watch(`profiles.${profileIndex}.templateID`);
   const templateName = form.watch(`profiles.${profileIndex}.templateName`);
+  const templateSync = form.watch(`profiles.${profileIndex}.templateSync`);
   const channelTagsMatchMode = form.watch(`profiles.${profileIndex}.channelTagsMatchMode`);
   const isExcludeMode = channelTagsMatchMode === 'none';
   const quotaUsage = profileName ? quotaUsageByProfileName.get(profileName) : undefined;
@@ -681,10 +687,13 @@ function ProfileCard({
           <div className='bg-muted/50 mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2'>
             <div className='flex min-w-0 items-center gap-2'>
               <Badge variant='secondary' className='shrink-0'>
-                {t('apikeys.profiles.linked')}
+                {templateSync && <IconRefresh className='mr-1 h-3.5 w-3.5' />}
+                {t(templateSync ? 'apikeys.templates.syncedBadge' : 'apikeys.profiles.linked')}
               </Badge>
               <span className='truncate text-sm font-medium'>{templateName || `#${templateID}`}</span>
-              <span className='text-muted-foreground hidden text-xs md:inline'>{t('apikeys.profiles.linkedHint')}</span>
+              <span className='text-muted-foreground hidden text-xs md:inline'>
+                {t(templateSync ? 'apikeys.profiles.syncLinkedHint' : 'apikeys.profiles.linkedHint')}
+              </span>
             </div>
             <Button
               type='button'
@@ -693,6 +702,7 @@ function ProfileCard({
               onClick={() => {
                 form.setValue(`profiles.${profileIndex}.templateID`, null, { shouldDirty: true });
                 form.setValue(`profiles.${profileIndex}.templateName`, null, { shouldDirty: true });
+                form.setValue(`profiles.${profileIndex}.templateSync`, false, { shouldDirty: true });
               }}
             >
               {t('apikeys.profiles.detachTemplate')}

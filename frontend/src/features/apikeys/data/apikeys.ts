@@ -79,6 +79,7 @@ function buildApiKeysQuery(permissions: { canViewUsers: boolean }) {
                 name
                 templateID
                 templateName
+                templateSync
               }
             }
           }
@@ -125,6 +126,7 @@ function buildApiKeyQuery(permissions: { canViewUsers: boolean }) {
             name
             templateID
             templateName
+            templateSync
             modelMappings { from to }
             channelIDs
             channelTags
@@ -225,6 +227,7 @@ const UPDATE_APIKEY_PROFILES_MUTATION = `
           name
           templateID
           templateName
+          templateSync
           modelMappings {
             from
             to
@@ -337,6 +340,7 @@ const APIKEY_PROFILE_TEMPLATES_QUERY = `
           linkedProfilesCount
           profile {
             name
+            templateSync
             modelMappings { from to }
             channelIDs
             channelTags
@@ -373,6 +377,7 @@ const CREATE_APIKEY_PROFILE_TEMPLATE_MUTATION = `
       linkedProfilesCount
       profile {
         name
+        templateSync
       }
     }
   }
@@ -389,6 +394,7 @@ const UPDATE_APIKEY_PROFILE_TEMPLATE_MUTATION = `
       linkedProfilesCount
       profile {
         name
+        templateSync
       }
     }
   }
@@ -415,6 +421,7 @@ const LOAD_APIKEY_PROFILE_TEMPLATE_MUTATION = `
           name
           templateID
           templateName
+          templateSync
           modelMappings { from to }
           channelIDs
           channelTags
@@ -696,9 +703,10 @@ export function useUpdateApiKeyProfiles() {
       const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
       return graphqlRequest<{ updateAPIKeyProfiles: ApiKey }>(UPDATE_APIKEY_PROFILES_MUTATION, { id, input }, headers);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
-      queryClient.invalidateQueries({ queryKey: ['apiKey', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['apiKey'] });
+      queryClient.invalidateQueries({ queryKey: ['apiKeyProfileTemplates'] });
       toast.success(t('apikeys.messages.profilesUpdateSuccess'));
     },
     onError: () => {

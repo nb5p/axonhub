@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useApiKeyProfileTemplates, useCreateApiKeyProfileTemplate, useUpdateApiKeyProfileTemplate } from '../data/apikeys';
 import type { ApiKeyProfile } from '../data/schema';
@@ -27,17 +28,19 @@ interface ApiKeySaveTemplateDialogProps {
   onOpenChange: (open: boolean) => void;
   profileData: ApiKeyProfile;
   projectID: string | null;
+  onSaved: (template: { id: string; name: string; templateSync: boolean }) => void;
 }
 
 const formSchemaFactory = (t: (key: string) => string) =>
   z.object({
     name: z.string().trim().min(1, t('apikeys.templates.templateNameRequired')),
     description: z.string().optional(),
+    templateSync: z.boolean().default(false),
   });
 
 type FormValues = z.infer<ReturnType<typeof formSchemaFactory>>;
 
-export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, projectID }: ApiKeySaveTemplateDialogProps) {
+export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, projectID, onSaved }: ApiKeySaveTemplateDialogProps) {
   const { t } = useTranslation();
   const createTemplate = useCreateApiKeyProfileTemplate();
   const updateTemplate = useUpdateApiKeyProfileTemplate();
@@ -51,6 +54,7 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
     defaultValues: {
       name: '',
       description: '',
+      templateSync: false,
     },
   });
 
@@ -66,6 +70,7 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
       form.reset({
         name: profileData.name || '',
         description: '',
+        templateSync: false,
       });
     }
   }, [open, profileData.name, form]);
@@ -74,14 +79,25 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
     if (matchingTemplate && !form.formState.dirtyFields.description) {
       form.setValue('description', matchingTemplate.description ?? '');
     }
+    if (matchingTemplate?.profile.templateSync) {
+      form.setValue('templateSync', true);
+    }
   }, [matchingTemplate, form]);
 
   const saveNewTemplate = async (values: FormValues) => {
-    await createTemplate.mutateAsync({
+    const result = await createTemplate.mutateAsync({
       name: values.name.trim(),
       description: values.description || '',
       projectID,
-      profile: profileData,
+      profile: {
+        ...profileData,
+        templateSync: values.templateSync,
+      },
+    });
+    onSaved({
+      id: result.createApiKeyProfileTemplate.id,
+      name: result.createApiKeyProfileTemplate.name,
+      templateSync: values.templateSync,
     });
     toast.success(t('apikeys.templates.successMessage'));
     onOpenChange(false);
@@ -91,7 +107,7 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
     if (!matchingTemplate || !overwriteValues) return;
 
     try {
-      await updateTemplate.mutateAsync({
+      const result = await updateTemplate.mutateAsync({
         id: matchingTemplate.id,
         input: {
           name: overwriteValues.name.trim(),
@@ -99,8 +115,14 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
           profile: {
             ...profileData,
             name: overwriteValues.name.trim(),
+            templateSync: matchingTemplate.profile.templateSync || overwriteValues.templateSync,
           },
         },
+      });
+      onSaved({
+        id: result.updateApiKeyProfileTemplate.id,
+        name: result.updateApiKeyProfileTemplate.name,
+        templateSync: matchingTemplate.profile.templateSync || overwriteValues.templateSync,
       });
       toast.success(t('apikeys.templates.overwriteSuccessMessage', { name: overwriteValues.name.trim() }));
       setOverwriteValues(null);
@@ -163,6 +185,30 @@ export function ApiKeySaveTemplateDialog({ open, onOpenChange, profileData, proj
                       <Textarea {...field} value={field.value ?? ''} placeholder={t('apikeys.templates.descriptionPlaceholder')} rows={3} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='templateSync'
+                render={({ field }) => (
+                  <FormItem className='bg-muted/40 flex items-center justify-between gap-4 rounded-md px-3 py-2.5'>
+                    <div>
+                      <FormLabel>{t('apikeys.templates.syncEnabled')}</FormLabel>
+                      <FormDescription>
+                        {matchingTemplate?.profile.templateSync
+                          ? t('apikeys.templates.syncLockedDescription')
+                          : t('apikeys.templates.syncDescription')}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={matchingTemplate?.profile.templateSync}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

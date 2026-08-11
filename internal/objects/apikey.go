@@ -18,6 +18,7 @@ type APIKeyProfile struct {
 	// serialized profiles fully backward compatible.
 	TemplateID          *int           `json:"templateID,omitempty"`
 	TemplateName        string         `json:"templateName,omitempty"`
+	TemplateSync        bool           `json:"templateSync,omitempty"`
 	ModelMappings       []ModelMapping `json:"modelMappings"`
 	Quota               *APIKeyQuota   `json:"quota,omitempty"`
 	LoadBalanceStrategy *string        `json:"loadBalanceStrategy,omitempty"`

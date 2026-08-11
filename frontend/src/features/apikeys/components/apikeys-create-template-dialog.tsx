@@ -52,6 +52,7 @@ export function ApiKeyCreateTemplateDialog({ open, onOpenChange }: ApiKeyCreateT
       description: '',
       profile: {
         name: '',
+        templateSync: false,
         modelMappings: [] as { from: string; to: string }[],
         channelIDs: [] as number[],
         channelTags: [] as string[],
@@ -183,6 +184,21 @@ export function ApiKeyCreateTemplateDialog({ open, onOpenChange }: ApiKeyCreateT
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name='profile.templateSync'
+                  render={({ field }) => (
+                    <FormItem className='bg-muted/40 flex items-center justify-between gap-4 rounded-md px-3 py-2.5'>
+                      <div>
+                        <FormLabel>{t('apikeys.templates.syncEnabled')}</FormLabel>
+                        <FormDescription>{t('apikeys.templates.syncDescription')}</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className='border-t pt-6'>
