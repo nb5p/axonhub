@@ -31,6 +31,7 @@ import {
   type UpdateApiKeyProfilesInput,
 } from '../data/schema';
 import { ApiKeyProfilePreviewPanel } from './apikey-profile-preview-panel';
+import { resolveAPIKeyProfilePreview } from './api-key-profile-preview-state';
 import { ApiKeyLoadTemplatePopover } from './apikeys-load-template-popover';
 import { ApiKeySaveTemplateDialog } from './apikeys-save-template-dialog';
 
@@ -78,13 +79,21 @@ interface ApiKeyProfilesDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: UpdateApiKeyProfilesInput) => void;
   loading?: boolean;
+  initialDataLoading?: boolean;
   initialData?: {
     activeProfile: string;
     profiles: ApiKeyProfile[];
   };
 }
 
-export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = false, initialData }: ApiKeyProfilesDialogProps) {
+export function ApiKeyProfilesDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  loading = false,
+  initialDataLoading = false,
+  initialData,
+}: ApiKeyProfilesDialogProps) {
   const { t, i18n } = useTranslation();
   const { selectedApiKey } = useApiKeysContext();
   const selectedProjectId = useSelectedProjectId();
@@ -165,9 +174,10 @@ export function ApiKeyProfilesDialog({ open, onOpenChange, onSubmit, loading = f
   const profileNames = watchedProfiles.map((profile) => profile.name || '');
   const activeProfileName = form.watch('activeProfile');
   const activeProfile = watchedProfiles.find((profile) => profile.name === activeProfileName);
-  const debouncedPreviewProfile = useDebounce(activeProfile, 250);
+  const previewProfile = resolveAPIKeyProfilePreview(activeProfile);
+  const debouncedPreviewProfile = useDebounce(previewProfile, 250);
   const profilePreviewQuery = useApiKeyProfilePreview(apiKeyId, debouncedPreviewProfile, {
-    enabled: open && !!apiKeyId && !!debouncedPreviewProfile,
+    enabled: open && !!apiKeyId && !initialDataLoading,
   });
 
   useEffect(() => {

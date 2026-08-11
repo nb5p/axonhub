@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -568,7 +568,6 @@ export function useApiKeyProfilePreview(
       }
     },
     enabled: !!apiKeyId && !!profile && (options?.enabled ?? true),
-    placeholderData: keepPreviousData,
   });
 }
 

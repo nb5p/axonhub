@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"entgo.io/ent/dialect"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/authz"
+	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
@@ -56,6 +58,16 @@ func TestModelService_PreviewAPIKeyProfile(t *testing.T) {
 			Project: &ent.Project{},
 		},
 	}
+
+	actualModels, err := modelSvc.ListEnabledModels(contexts.WithAPIKey(ctx, apiKey))
+	require.NoError(t, err)
+	unrestrictedPreview, err := modelSvc.PreviewAPIKeyProfile(ctx, apiKey, objects.APIKeyProfile{Name: "unrestricted"})
+	require.NoError(t, err)
+	require.ElementsMatch(
+		t,
+		lo.Map(actualModels, func(item ModelFacade, _ int) string { return item.ID }),
+		lo.Map(unrestrictedPreview.Models, func(item *APIKeyProfilePreviewModel, _ int) string { return item.ID }),
+	)
 
 	preview, err := modelSvc.PreviewAPIKeyProfile(ctx, apiKey, objects.APIKeyProfile{
 		Name:                 "unsaved",

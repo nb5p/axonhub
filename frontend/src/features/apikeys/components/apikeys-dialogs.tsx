@@ -36,7 +36,7 @@ export function ApiKeysDialogs() {
 function ApiKeysProfilesDialogWrapper() {
   const { isDialogOpen, closeDialog, selectedApiKey } = useApiKeysContext();
   const updateProfilesMutation = useUpdateApiKeyProfiles();
-  const { data: apiKeyDetail } = useApiKey(selectedApiKey?.id || '');
+  const { data: apiKeyDetail, isLoading: apiKeyDetailLoading } = useApiKey(selectedApiKey?.id || '');
 
   const handleSubmit = (data: UpdateApiKeyProfilesInput) => {
     if (!selectedApiKey?.id) return;
@@ -57,6 +57,7 @@ function ApiKeysProfilesDialogWrapper() {
       onOpenChange={(open) => !open && closeDialog('profiles')}
       onSubmit={handleSubmit}
       loading={updateProfilesMutation.isPending}
+      initialDataLoading={apiKeyDetailLoading}
       initialData={
         apiKeyDetail?.profiles
           ? {
