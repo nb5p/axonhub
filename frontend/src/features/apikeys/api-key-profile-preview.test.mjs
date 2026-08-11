@@ -48,7 +48,13 @@ test('profile preview only exposes conversational API formats in tab order', () 
   );
 
   const panelSource = read('components/apikey-profile-preview-panel.tsx');
+  const dialogSource = read('components/apikeys-profiles-dialog.tsx');
   assert.match(panelSource, /<Tabs value=\{selectedApiFormat\}/);
   assert.match(panelSource, /<TabsTrigger/);
+  assert.match(panelSource, /grid-cols-4/);
   assert.doesNotMatch(panelSource, /aria-pressed=\{selectedApiFormat === apiFormat\}/);
+  assert.doesNotMatch(panelSource, /apikeys\.profiles\.preview\.apis/);
+  assert.ok(panelSource.indexOf('<Tabs value={selectedApiFormat}') < panelSource.indexOf("placeholder={t('apikeys.profiles.preview.searchModels')}"));
+  assert.match(dialogSource, /sm:max-w-\[96rem\]/);
+  assert.match(dialogSource, /minmax\(32rem,40rem\)/);
 });

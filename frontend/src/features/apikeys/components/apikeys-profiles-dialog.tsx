@@ -322,7 +322,7 @@ export function ApiKeyProfilesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] flex-col sm:max-w-6xl'>
+      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] flex-col sm:max-w-[96rem]'>
         <DialogHeader className='shrink-0 text-left'>
           <DialogTitle className='flex items-center gap-2'>
             <IconSettings className='h-5 w-5' />
@@ -335,7 +335,7 @@ export function ApiKeyProfilesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]'>
+        <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(32rem,40rem)]'>
           <div className='flex min-h-0 flex-col'>
             {/* Fixed Add Profile Section at Top */}
             <div className='bg-background shrink-0 border-b p-4'>

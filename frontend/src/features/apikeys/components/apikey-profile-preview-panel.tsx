@@ -76,17 +76,17 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
           <>
             <section className='space-y-2'>
               <div className='flex items-center justify-between gap-2'>
-                <h4 className='text-sm font-medium'>{t('apikeys.profiles.preview.apis')}</h4>
-                <Badge variant='secondary'>{conversationApiFormats.length}</Badge>
+                <h4 className='text-sm font-medium'>{t('apikeys.profiles.preview.models')}</h4>
+                <Badge variant='secondary'>{preview?.models.length ?? 0}</Badge>
               </div>
               {conversationApiFormats.length > 0 ? (
                 <Tabs value={selectedApiFormat} onValueChange={setSelectedApiFormat} className='gap-0'>
-                  <TabsList className='h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-transparent p-0'>
+                  <TabsList className='grid h-auto w-full grid-cols-4 rounded-none border-b bg-transparent p-0'>
                     {conversationApiFormats.map((apiFormat) => (
                       <TabsTrigger
                         key={apiFormat}
                         value={apiFormat}
-                        className='text-muted-foreground data-[state=active]:text-foreground h-auto flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2 text-xs shadow-none data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:text-foreground'
+                        className='text-muted-foreground data-[state=active]:text-foreground h-auto min-w-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-2 py-2 text-center text-xs leading-tight whitespace-normal shadow-none data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:text-foreground'
                       >
                         {apiFormatLabel(apiFormat)}
                       </TabsTrigger>
@@ -96,13 +96,6 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
               ) : (
                 <p className='text-muted-foreground text-xs'>{t('apikeys.profiles.preview.noApis')}</p>
               )}
-            </section>
-
-            <section className='space-y-2'>
-              <div className='flex items-center justify-between gap-2'>
-                <h4 className='text-sm font-medium'>{t('apikeys.profiles.preview.models')}</h4>
-                <Badge variant='secondary'>{preview?.models.length ?? 0}</Badge>
-              </div>
               {(preview?.models.length ?? 0) > 0 && (
                 <div className='relative'>
                   <IconSearch className='text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2' />
