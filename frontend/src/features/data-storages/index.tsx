@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
@@ -18,9 +19,9 @@ function DataStoragesContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'data-storages-table-page-size',
   });
-  const [nameFilter, setNameFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [nameFilter, setNameFilter] = usePersistedFilter<string>('data-storages', 'name', '');
+  const [typeFilter, setTypeFilter] = usePersistedFilter<string[]>('data-storages', 'types', []);
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('data-storages', 'statuses', []);
 
   // Debounce the name filter to avoid excessive API calls
   const debouncedNameFilter = useDebounce(nameFilter, 300);

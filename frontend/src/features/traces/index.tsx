@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDateRangeWhereClause, type DateTimeRangeValue } from '@/utils/date-range';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import useInterval from '@/hooks/useInterval';
 import { Header } from '@/components/layout/header';
@@ -15,9 +16,9 @@ function TracesContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'traces-table-page-size',
   });
-  const [dateRange, setDateRange] = useState<DateTimeRangeValue | undefined>();
-  const [traceIdFilter, setTraceIdFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateRange, setDateRange] = usePersistedFilter<DateTimeRangeValue | undefined>('traces', 'date-range', undefined);
+  const [traceIdFilter, setTraceIdFilter] = usePersistedFilter<string>('traces', 'trace-id', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('traces', 'statuses', []);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const debouncedTraceIdFilter = useDebounce(traceIdFilter, 300);
 

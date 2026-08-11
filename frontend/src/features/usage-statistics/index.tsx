@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,6 +7,7 @@ import { Main } from '@/components/layout/main';
 import { Button } from '@/components/ui/button';
 import { DateRangePicker, type DateTimeRangeValue } from '@/components/date-range-picker';
 import { buildDateRangeWhereClause } from '@/utils/date-range';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { formatNumber } from '@/utils/format-number';
 import { useGeneralSettings } from '@/features/system/data/system';
 import { useUsageStatsByUser } from './data/usage-stats';
@@ -22,8 +23,8 @@ import {
 
 export default function UsageStatisticsPage() {
   const { t, i18n } = useTranslation();
-  const [dateRange, setDateRange] = useState<DateTimeRangeValue | undefined>();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [dateRange, setDateRange] = usePersistedFilter<DateTimeRangeValue | undefined>('usage-statistics', 'date-range', undefined);
+  const [searchTerm, setSearchTerm] = usePersistedFilter<string>('usage-statistics', 'search', '');
 
   const timeWindowParam = useMemo(() => {
     if (!dateRange) return undefined;
@@ -161,4 +162,3 @@ export default function UsageStatisticsPage() {
     </div>
   );
 }
-

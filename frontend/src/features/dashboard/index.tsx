@@ -27,6 +27,7 @@ import { ModelPerformanceStats } from './components/model-performance-stats';
 import { ChannelPerformanceStats } from './components/channel-performance-stats';
 import { useDashboardStats } from './data/dashboard';
 import { useRoutePermissions } from '@/hooks/useRoutePermissions';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -97,13 +98,13 @@ export default function DashboardPage() {
   const [modelTotalRequests, setModelTotalRequests] = useState(0);
   const [channelTotalRequests, setChannelTotalRequests] = useState(0);
 
-  const [channelTimePeriod, setChannelTimePeriod] = useState<TimePeriod>('allTime');
-  const [channelTokensTimePeriod, setChannelTokensTimePeriod] = useState<TimePeriod>('allTime');
-  const [modelTimePeriod, setModelTimePeriod] = useState<TimePeriod>('allTime');
-  const [modelTokensTimePeriod, setModelTokensTimePeriod] = useState<TimePeriod>('allTime');
-  const [apiKeyTimePeriod, setApiKeyTimePeriod] = useState<TimePeriod>('allTime');
-  const [apiKeyTokensTimePeriod, setApiKeyTokensTimePeriod] = useState<TimePeriod>('allTime');
-  const [userTokensTimePeriod, setUserTokensTimePeriod] = useState<TimePeriod>('day');
+  const [channelTimePeriod, setChannelTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'channel-performance-period', 'allTime');
+  const [channelTokensTimePeriod, setChannelTokensTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'channel-tokens-period', 'allTime');
+  const [modelTimePeriod, setModelTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'model-performance-period', 'allTime');
+  const [modelTokensTimePeriod, setModelTokensTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'model-tokens-period', 'allTime');
+  const [apiKeyTimePeriod, setApiKeyTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'api-key-requests-period', 'allTime');
+  const [apiKeyTokensTimePeriod, setApiKeyTokensTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'api-key-tokens-period', 'allTime');
+  const [userTokensTimePeriod, setUserTokensTimePeriod] = usePersistedFilter<TimePeriod>('dashboard', 'user-tokens-period', 'day');
 
   const modelPerformanceDescription = useMemo(() => {
     return t('dashboard.charts.performanceDescription', { count: formatNumber(modelTotalRequests) });

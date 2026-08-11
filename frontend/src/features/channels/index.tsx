@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react
 import { SortingState } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Header } from '@/components/layout/header';
@@ -26,15 +27,15 @@ function ChannelsContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'channels-table-page-size',
   });
-  const [nameFilter, setNameFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [tagFilter, setTagFilter] = useState<string>('');
-  const [modelFilter, setModelFilter] = useState<string[]>([]);
-  const [endpointFilter, setEndpointFilter] = useState<string[]>([]);
-  const [modelMatchMode, setModelMatchMode] = useState<ChannelModelsMatchMode>('any');
-  const [selectedTypeTab, setSelectedTypeTab] = useState<string>('all');
-  const [showErrorOnly, setShowErrorOnly] = useState<boolean>(false);
+  const [nameFilter, setNameFilter] = usePersistedFilter<string>('channels', 'name', '');
+  const [typeFilter, setTypeFilter] = usePersistedFilter<string[]>('channels', 'types', []);
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('channels', 'statuses', []);
+  const [tagFilter, setTagFilter] = usePersistedFilter<string>('channels', 'tag', '');
+  const [modelFilter, setModelFilter] = usePersistedFilter<string[]>('channels', 'models', []);
+  const [endpointFilter, setEndpointFilter] = usePersistedFilter<string[]>('channels', 'endpoints', []);
+  const [modelMatchMode, setModelMatchMode] = usePersistedFilter<ChannelModelsMatchMode>('channels', 'model-match-mode', 'any');
+  const [selectedTypeTab, setSelectedTypeTab] = usePersistedFilter<string>('channels', 'provider-tab', 'all');
+  const [showErrorOnly, setShowErrorOnly] = usePersistedFilter<boolean>('channels', 'errors-only', false);
   const [sorting, setSorting] = useState<SortingState>(() => {
     const stored = localStorage.getItem('channels-table-sorting');
     if (stored) {

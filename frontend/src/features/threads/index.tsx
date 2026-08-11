@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDateRangeWhereClause, type DateTimeRangeValue } from '@/utils/date-range';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import useInterval from '@/hooks/useInterval';
 import { Header } from '@/components/layout/header';
@@ -15,9 +16,9 @@ function ThreadsContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'threads-table-page-size',
   });
-  const [dateRange, setDateRange] = useState<DateTimeRangeValue | undefined>();
-  const [threadIdFilter, setThreadIdFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateRange, setDateRange] = usePersistedFilter<DateTimeRangeValue | undefined>('threads', 'date-range', undefined);
+  const [threadIdFilter, setThreadIdFilter] = usePersistedFilter<string>('threads', 'thread-id', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('threads', 'statuses', []);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const debouncedThreadIdFilter = useDebounce(threadIdFilter, 300);
 

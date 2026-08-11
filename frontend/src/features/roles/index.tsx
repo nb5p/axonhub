@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
@@ -23,7 +24,7 @@ function RolesContent() {
   });
 
   // Filter states - combined search for name or code
-  const [searchFilter, setSearchFilter] = useState<string>('');
+  const [searchFilter, setSearchFilter] = usePersistedFilter<string>('roles', 'search', '');
 
   const debouncedSearchFilter = useDebounce(searchFilter, 300);
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/utils/date-range';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import useInterval from '@/hooks/useInterval';
 import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
@@ -172,6 +173,10 @@ function clearRequestFilterSearch(draft: Record<string, unknown>) {
   });
 }
 
+function hasRequestFilterSearch(search: Record<string, unknown>) {
+  return Object.values(REQUEST_FILTER_SEARCH_KEYS).some((key) => search[key] !== undefined);
+}
+
 function RequestsContent() {
   const navigate = useNavigate();
   const currentSearch = useRouterState({
@@ -181,12 +186,18 @@ function RequestsContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'requests-table-page-size',
   });
-  const { statusFilter, sourceFilter, channelFilter, apiKeyFilter, modelIDFilter, dateRange } = useMemo(
-    () => parseRequestSearchFilters(currentSearch),
-    [currentSearch]
-  );
+  const searchFilters = useMemo(() => parseRequestSearchFilters(currentSearch), [currentSearch]);
+  const [persistedFilters, setPersistedFilters] = usePersistedFilter<RequestSearchFilters>('requests', 'all', searchFilters);
+  const hasURLFilters = hasRequestFilterSearch(currentSearch);
+  const { statusFilter, sourceFilter, channelFilter, apiKeyFilter, modelIDFilter, dateRange } = hasURLFilters ? searchFilters : persistedFilters;
   const debouncedModelIDFilter = useDebounce(modelIDFilter, 300);
   const [autoRefresh, setAutoRefresh] = useState(false);
+
+  useEffect(() => {
+    if (hasURLFilters) {
+      setPersistedFilters(searchFilters);
+    }
+  }, [hasURLFilters, searchFilters, setPersistedFilters]);
 
   // Build where clause with filters
   const whereClause = (() => {
@@ -266,6 +277,7 @@ function RequestsContent() {
 
   const handleFiltersChange = useCallback(
     (filters: RequestTableFilters) => {
+      setPersistedFilters((current) => ({ ...current, ...filters }));
       updateRequestSearch((draft) => {
         setSearchStringArray(draft, REQUEST_FILTER_SEARCH_KEYS.status, filters.statusFilter);
         setSearchStringArray(draft, REQUEST_FILTER_SEARCH_KEYS.source, filters.sourceFilter);
@@ -274,14 +286,14 @@ function RequestsContent() {
         setSearchString(draft, REQUEST_FILTER_SEARCH_KEYS.modelID, filters.modelIDFilter);
       });
     },
-    [updateRequestSearch]
+    [setPersistedFilters, updateRequestSearch]
   );
 
   const handleDateRangeChange = useCallback(
     (range: DateTimeRangeValue | undefined) => {
+      const normalizedRange = range ? normalizeDateTimeRangeValue(range) : undefined;
+      setPersistedFilters((current) => ({ ...current, dateRange: normalizedRange }));
       updateRequestSearch((draft) => {
-        const normalizedRange = range ? normalizeDateTimeRangeValue(range) : undefined;
-
         if (!normalizedRange || (!normalizedRange.from && !normalizedRange.to)) {
           delete draft[REQUEST_FILTER_SEARCH_KEYS.createdAtFrom];
           delete draft[REQUEST_FILTER_SEARCH_KEYS.createdAtTo];
@@ -315,12 +327,20 @@ function RequestsContent() {
         }
       });
     },
-    [updateRequestSearch]
+    [setPersistedFilters, updateRequestSearch]
   );
 
   const handleResetFilters = useCallback(() => {
+    setPersistedFilters({
+      statusFilter: [],
+      sourceFilter: [],
+      channelFilter: [],
+      apiKeyFilter: [],
+      modelIDFilter: '',
+      dateRange: undefined,
+    });
     updateRequestSearch(clearRequestFilterSearch);
-  }, [updateRequestSearch]);
+  }, [setPersistedFilters, updateRequestSearch]);
 
   const handleViewDetail = useCallback(
     (requestId: string) => {

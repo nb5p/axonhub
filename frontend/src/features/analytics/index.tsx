@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/layout/header';
@@ -16,6 +17,17 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const filter = useAnalyticsFilterStore((state) => state.filter);
   const { data: generalSettings } = useGeneralSettings();
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.storageArea === localStorage && event.key === 'axonhub:filters:v1:analytics:all') {
+        void useAnalyticsFilterStore.persist.rehydrate();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const currencyCode = generalSettings?.currencyCode || 'USD';
 

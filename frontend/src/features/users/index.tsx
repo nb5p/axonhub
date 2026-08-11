@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
@@ -21,9 +22,9 @@ function UsersContent() {
   });
 
   // Filter states
-  const [nameFilter, setNameFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [nameFilter, setNameFilter] = usePersistedFilter<string>('users', 'name', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('users', 'statuses', []);
+  const [roleFilter, setRoleFilter] = usePersistedFilter<string[]>('users', 'roles', []);
 
   const debouncedNameFilter = useDebounce(nameFilter, 300);
 

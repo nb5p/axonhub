@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, type TooltipProps } from 'recharts';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { formatNumber } from '@/utils/format-number';
 import { TimePeriodSelector, type FastestTimeWindow } from '@/components/time-period-selector';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { safeNumber, safeToFixed, sanitizeChartData, type ChartData } from '../utils/chart-helpers';
 import { ChartLegend, type ChartLegendItem } from './chart-legend';
 
@@ -85,6 +85,7 @@ interface ThroughputData {
 }
 
 interface FastestPerformersCardProps<T extends ThroughputData> {
+  filterStorageKey: string;
   title: string;
   description: (totalRequests: number) => string;
   noDataLabel: string;
@@ -93,6 +94,7 @@ interface FastestPerformersCardProps<T extends ThroughputData> {
 }
 
 export function FastestPerformersCard<T extends ThroughputData>({
+  filterStorageKey,
   title,
   description,
   noDataLabel,
@@ -100,7 +102,7 @@ export function FastestPerformersCard<T extends ThroughputData>({
   getName,
 }: FastestPerformersCardProps<T>) {
   const { t } = useTranslation();
-  const [timeWindow, setTimeWindow] = useState<FastestTimeWindow>('month');
+  const [timeWindow, setTimeWindow] = usePersistedFilter<FastestTimeWindow>('dashboard', filterStorageKey, 'month');
 
   const { data: items, isLoading, isFetching, error } = useData(timeWindow);
 

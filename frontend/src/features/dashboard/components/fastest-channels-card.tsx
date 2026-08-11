@@ -11,6 +11,7 @@ export function FastestChannelsCard() {
 
   return (
     <FastestPerformersCard<FastestChannel>
+      filterStorageKey='fastest-channels-period'
       title={t('dashboard.cards.fastestPerformers.channels')}
       description={(totalRequests) => t('dashboard.cards.fastestPerformers.description', { type: t('dashboard.cards.fastestPerformers.channelType'), count: formatNumber(totalRequests) })}
       noDataLabel={t('dashboard.cards.fastestPerformers.noData')}

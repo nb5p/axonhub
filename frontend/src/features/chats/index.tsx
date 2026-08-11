@@ -15,6 +15,7 @@ import {
   IconVideo,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +29,7 @@ import { type ChatUser, type Convo } from './data/chat-types';
 import { conversations } from './data/convo.json';
 
 export default function Chats() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePersistedFilter<string>('chats', 'search', '');
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [mobileSelectedUser, setMobileSelectedUser] = useState<ChatUser | null>(null);
   const [createConversationDialogOpened, setCreateConversationDialog] = useState(false);

@@ -3,6 +3,7 @@ import type { SortingState } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { type DateTimeRangeValue } from '@/utils/date-range';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,15 +59,15 @@ function ApiKeysContent() {
       pageSizeStorageKey: 'apikeys-table-page-size',
     });
 
-  const [activeTab, setActiveTab] = useState<ApiKeyTabKey>('all');
+  const [activeTab, setActiveTab] = usePersistedFilter<ApiKeyTabKey>('api-keys', 'type-tab', 'all');
   const [sorting, setSorting] = useState<SortingState>(loadSorting);
   const [sortingCursorResetPending, setSortingCursorResetPending] = useState(false);
 
   // Filter states - following the same pattern as roles and users
-  const [searchFilter, setSearchFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [userFilter, setUserFilter] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<DateTimeRangeValue | undefined>();
+  const [searchFilter, setSearchFilter] = usePersistedFilter<string>('api-keys', 'search', '');
+  const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('api-keys', 'statuses', []);
+  const [userFilter, setUserFilter] = usePersistedFilter<string[]>('api-keys', 'users', []);
+  const [dateRange, setDateRange] = usePersistedFilter<DateTimeRangeValue | undefined>('api-keys', 'date-range', undefined);
 
   const debouncedSearchFilter = useDebounce(searchFilter, 300);
 

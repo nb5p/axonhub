@@ -3,6 +3,7 @@ import { SortingState } from '@tanstack/react-table';
 import { IconPlus, IconSettings, IconAlertCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ function ModelsContent() {
   useDevelopersData();
   const { t } = useTranslation();
   const { modelPermissions } = usePermissions();
-  const [nameFilter, setNameFilter] = useState<string>('');
+  const [nameFilter, setNameFilter] = usePersistedFilter<string>('models', 'name', '');
   const [sorting, setSorting] = useState<SortingState>(() => {
     const stored = localStorage.getItem('models-table-sorting');
     if (stored) {

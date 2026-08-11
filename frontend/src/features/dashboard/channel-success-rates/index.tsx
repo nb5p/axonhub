@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ActivityIcon, AlertTriangleIcon, CheckCircle2Icon, CoinsIcon, XCircleIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import ContentSection from '@/features/settings/components/content-section';
@@ -20,12 +21,12 @@ export default function DashboardChannelSuccessRates() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [timeWindow, setTimeWindow] = useState<string>('day');
+  const [timeWindow, setTimeWindow] = usePersistedFilter<string>('channel-success-rates', 'time-window', 'day');
   const [sortField, setSortField] = useState<SortField>('successRate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState<string>('all');
-  const [showWarningsOnly, setShowWarningsOnly] = useState(false);
+  const [filterType, setFilterType] = usePersistedFilter<string>('channel-success-rates', 'channel-type', 'all');
+  const [showWarningsOnly, setShowWarningsOnly] = usePersistedFilter<boolean>('channel-success-rates', 'warnings-only', false);
 
   // Fetch all data (limit = undefined)
   const { data: channels, isLoading, error } = useChannelSuccessRates(undefined, timeWindow);

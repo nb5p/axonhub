@@ -4,6 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/header';
@@ -22,7 +23,7 @@ function RulesContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'prompt-protection-rules-table-page-size',
   });
-  const [nameFilter, setNameFilter] = useState('');
+  const [nameFilter, setNameFilter] = usePersistedFilter<string>('prompt-protection-rules', 'name', '');
   const [sorting, setSorting] = useState<SortingState>(() => {
     const stored = localStorage.getItem('prompt-protection-rules-table-sorting');
     if (stored) {

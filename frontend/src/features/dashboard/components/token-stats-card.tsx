@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { BarChart4 } from 'lucide-react';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { formatNumber } from '@/utils/format-number';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,7 +72,7 @@ function LastUpdatedInfo({ lastUpdated, locale, t }: LastUpdatedInfoProps) {
 export function TokenStatsCard() {
   const { t, i18n } = useTranslation();
   const { data: stats, isLoading, error } = useTokenStats();
-  const [timeRange, setTimeRange] = useState<TimeRange>('thisDay');
+  const [timeRange, setTimeRange] = usePersistedFilter<TimeRange>('dashboard', 'token-stats-period', 'thisDay');
 
   if (isLoading) {
     return (

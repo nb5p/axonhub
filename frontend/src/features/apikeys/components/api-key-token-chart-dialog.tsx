@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,7 +23,7 @@ interface ApiKeyTokenChartDialogProps {
 
 export function ApiKeyTokenChartDialog({ apiKey, open, onOpenChange }: ApiKeyTokenChartDialogProps) {
   const { t } = useTranslation();
-  const [timeRange, setTimeRange] = useState<TimeRange>('today');
+  const [timeRange, setTimeRange] = usePersistedFilter<TimeRange>('api-key-token-chart', 'time-range', 'today');
 
   const usageDateRangeWhere = useMemo(() => {
     const getDateRange = (range: TimeRange) => {
