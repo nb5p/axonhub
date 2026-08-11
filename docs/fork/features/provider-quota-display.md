@@ -18,6 +18,7 @@ local:
   commits:
     - e7205275a19f6e0822737ce09edd70bf8e2041db
     - ab06121a107a67e2411605ee866e35c96fb9c4f6
+    - ab88ca2641193524c3482c50dc7d32aa322e36d5
   modules:
     - frontend/src/components/quota-badges.tsx
     - frontend/src/features/system/components/quota-settings.tsx
@@ -51,7 +52,7 @@ database:
 ## 本地实现
 
 - Codex 默认采用与 OpenCode Go 相同的“主用量条 + 时间三角”布局。
-- 系统设置“配额设置”增加“反转用量（反转显示）”开关和时间窗口样式选择。
+- 系统设置增加独立的“配额显示”卡片，提供“反转用量（反转显示）”开关和时间窗口样式选择，并与会影响请求路由的“配额执行”分开保存。
 - 反转模式将进度条和文案改为剩余百分比，但颜色仍按真实已用量计算风险。
 - 已用与剩余文案统一为“已使用 X%”和“剩余 X%”。
 - 新字段保存在现有 `quota_enforcement_settings` JSON 中；旧值缺少字段时默认显示已用量并采用三角标记。
@@ -82,3 +83,4 @@ database:
 |---|---|---|---|
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `e7205275a19f6e0822737ce09edd70bf8e2041db` | 将 Codex 默认布局统一为主用量条和时间三角。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ab06121a107a67e2411605ee866e35c96fb9c4f6` | 增加全局反转显示、时间窗口样式和统一文案。 |
+| 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ab88ca2641193524c3482c50dc7d32aa322e36d5` | 将纯显示偏好与配额执行拆为独立卡片和独立保存操作，并明确路由影响文案。 |

@@ -23,7 +23,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `request-log-layout` | 本地原创 | `active` | `d476d57b`, `81c62c6e`, `1afef2be` | `none` | [`features/request-log-layout.md`](features/request-log-layout.md) |
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
 | `filter-state-persistence` | 本地原创 | `active` | `36b9e737` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
-| `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
+| `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a`, `ab88ca26` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-endpoint-filter` | 本地原创 | `active` | `437344f0` | `none` | [`features/channel-endpoint-filter.md`](features/channel-endpoint-filter.md) |
 | `channel-provider-tabs-default-hidden` | 本地原创 | `active` | `7f84e474` | `none` | [`features/channel-provider-tabs-default-hidden.md`](features/channel-provider-tabs-default-hidden.md) |
