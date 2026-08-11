@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -688,12 +689,32 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		}
 
 	case StreamEventTypeError:
+		detail := llm.ErrorDetail{
+			Code:    streamEvent.Code,
+			Message: streamEvent.Message,
+			Param:   lo.FromPtr(streamEvent.Param),
+		}
+		if streamEvent.Error != nil {
+			if detail.Type == "" {
+				detail.Type = streamEvent.Error.Type
+			}
+			if detail.Code == "" {
+				detail.Code = streamEvent.Error.Code
+			}
+			if detail.Message == "" {
+				detail.Message = streamEvent.Error.Message
+			}
+		}
+		if detail.Message == "" {
+			detail.Message = "upstream returned an empty error event"
+		}
+		if detail.Type == "" {
+			detail.Type = "server_error"
+		}
+
 		return &llm.ResponseError{
-			Detail: llm.ErrorDetail{
-				Code:    streamEvent.Code,
-				Message: streamEvent.Message,
-				Param:   lo.FromPtr(streamEvent.Param),
-			},
+			StatusCode: http.StatusInternalServerError,
+			Detail:     detail,
 		}
 
 	case StreamEventTypeImageGenerationPartialImage,

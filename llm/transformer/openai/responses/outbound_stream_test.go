@@ -136,6 +136,38 @@ func TestOutboundTransformer_StreamTransformation_ErrorEvent(t *testing.T) {
 	require.Contains(t, err.Error(), "Something went wrong")
 }
 
+func TestOutboundTransformer_StreamTransformation_NestedErrorEvent(t *testing.T) {
+	trans, err := NewOutboundTransformer("https://api.openai.com", "test-api-key")
+	require.NoError(t, err)
+
+	events := []*httpclient.StreamEvent{{
+		Type: "error",
+		Data: []byte(`{"type":"error","error":{"type":"server_error","code":"upstream_error","message":"upstream failed"}}`),
+	}}
+	stream, err := trans.TransformStream(t.Context(), nil, streams.SliceStream(events))
+	require.NoError(t, err)
+
+	_, err = streams.All(stream)
+	var responseErr *llm.ResponseError
+	require.ErrorAs(t, err, &responseErr)
+	require.Equal(t, 500, responseErr.StatusCode)
+	require.Equal(t, "server_error", responseErr.Detail.Type)
+	require.Equal(t, "upstream_error", responseErr.Detail.Code)
+	require.Equal(t, "upstream failed", responseErr.Detail.Message)
+}
+
+func TestOutboundTransformer_StreamTransformation_EmptyErrorEvent(t *testing.T) {
+	trans, err := NewOutboundTransformer("https://api.openai.com", "test-api-key")
+	require.NoError(t, err)
+
+	events := []*httpclient.StreamEvent{{Type: "error", Data: []byte(`{"type":"error"}`)}}
+	stream, err := trans.TransformStream(t.Context(), nil, streams.SliceStream(events))
+	require.NoError(t, err)
+
+	_, err = streams.All(stream)
+	require.ErrorContains(t, err, "upstream returned an empty error event")
+}
+
 func TestOutboundTransformer_TransformStream_UsesFinalEncryptedContentPerReasoningItem(t *testing.T) {
 	trans, err := NewOutboundTransformer("https://api.openai.com", "test-api-key")
 	require.NoError(t, err)
@@ -930,11 +962,11 @@ func TestOutboundTransformer_TransformStream_PreservesPreviousResponseID(t *test
 // Completions finish_reason must reflect that instead of defaulting to stop.
 func TestOutboundTransformer_TransformStream_MapsCompletedStatusToFinishReason(t *testing.T) {
 	tests := []struct {
-		name            string
-		status          string
+		name             string
+		status           string
 		incompleteReason string
-		expectedReason  string
-		withToolCalls   bool
+		expectedReason   string
+		withToolCalls    bool
 	}{
 		{name: "incomplete maps to length", status: "incomplete", expectedReason: "length"},
 		{name: "incomplete with content_filter reason maps to content_filter", status: "incomplete", incompleteReason: "content_filter", expectedReason: "content_filter"},
