@@ -11,7 +11,8 @@ import { formatNumber } from '@/utils/format-number';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -191,6 +192,13 @@ export function ApiKeyActivityHeatmap() {
     });
   };
 
+  const invertApiKeySelection = () => {
+    setStoredSelectedApiKeyIds((current) => {
+      const selected = new Set(current === null ? allApiKeyIds : current);
+      return allApiKeyIds.filter((apiKeyId) => !selected.has(apiKeyId));
+    });
+  };
+
   if (isLoading) {
     return (
       <div className='flex h-[360px] items-center justify-center'>
@@ -219,7 +227,11 @@ export function ApiKeyActivityHeatmap() {
 
   return (
     <div className='relative space-y-4'>
-      <div className='flex flex-wrap items-center justify-between gap-3'>
+      <div className='flex flex-wrap items-center justify-end gap-3'>
+        <div className='text-muted-foreground text-xs'>
+          {t('dashboard.charts.apiKeyActivityTotalRequests', { count: formatNumber(totalRequests) })}
+        </div>
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant='outline' size='sm' className='h-8 border-dashed'>
@@ -261,25 +273,22 @@ export function ApiKeyActivityHeatmap() {
                     );
                   })}
                 </CommandGroup>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem onSelect={() => setStoredSelectedApiKeyIds(null)} className='justify-center text-center'>
-                    {t('dashboard.charts.apiKeyActivitySelectAll')}
-                  </CommandItem>
-                  <CommandItem onSelect={() => setStoredSelectedApiKeyIds([])} className='justify-center text-center'>
-                    {t('dashboard.charts.apiKeyActivityClearSelection')}
-                  </CommandItem>
-                </CommandGroup>
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
 
-        {selectedApiKeyIds.size > 0 && (
-          <div className='text-muted-foreground text-xs'>
-            {t('dashboard.charts.apiKeyActivityTotalRequests', { count: formatNumber(totalRequests) })}
-          </div>
-        )}
+        <ButtonGroup>
+          <Button variant='outline' size='sm' className='h-8 px-3 text-xs' onClick={() => setStoredSelectedApiKeyIds(null)}>
+            {t('dashboard.charts.apiKeyActivitySelectAllShort')}
+          </Button>
+          <Button variant='outline' size='sm' className='h-8 px-3 text-xs' onClick={invertApiKeySelection}>
+            {t('dashboard.charts.apiKeyActivityInvertSelection')}
+          </Button>
+          <Button variant='outline' size='sm' className='h-8 px-3 text-xs' onClick={() => setStoredSelectedApiKeyIds([])}>
+            {t('dashboard.charts.apiKeyActivitySelectNone')}
+          </Button>
+        </ButtonGroup>
       </div>
 
       {selectedApiKeyIds.size === 0 ? (
