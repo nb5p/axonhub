@@ -25,7 +25,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-provider-tabs-default-hidden` | 本地原创 | `active` | `7f84e474` | `none` | [`features/channel-provider-tabs-default-hidden.md`](features/channel-provider-tabs-default-hidden.md) |
 | `prefer-pass-through-routing` | 本地原创 | `active` | `2fb3e82c` | `none` | [`features/prefer-pass-through-routing.md`](features/prefer-pass-through-routing.md) |
-| `api-key-profile-access-preview` | 本地原创 | `active` | `457caa1b`, `9a970fd3`, `701f33de`, `dccc2740` | `none` | [`features/api-key-profile-access-preview.md`](features/api-key-profile-access-preview.md) |
+| `api-key-profile-access-preview` | 本地原创 | `active` | `457caa1b`, `9a970fd3`, `701f33de`, `dccc2740`, `7fecec65` | `none` | [`features/api-key-profile-access-preview.md`](features/api-key-profile-access-preview.md) |
 | `api-key-profile-clear` | 本地原创 | `active` | `bf4e3a60`, `28109f87` | `none` | [`features/api-key-profile-clear.md`](features/api-key-profile-clear.md) |
 | `api-key-profile-template-sync` | 本地原创 | `active` | `b5ce7472` | `none` | [`features/api-key-profile-template-sync.md`](features/api-key-profile-template-sync.md) |
 | `sidebar-navigation-visibility` | 本地原创 | `active` | `3835c389` | `none` | [`features/sidebar-navigation-visibility.md`](features/sidebar-navigation-visibility.md) |
