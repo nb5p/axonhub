@@ -74,6 +74,9 @@ export function DataTableToolbar<TData>({
     }));
   }, [modelsData]);
 
+  const modelFilterValue = table.getColumn('model')?.getFilterValue();
+  const selectedModelCount = Array.isArray(modelFilterValue) ? modelFilterValue.length : 0;
+
   const endpointOptions = useMemo(
     () =>
       channelEndpointFilterApiFormats.map((value) => {
@@ -138,25 +141,33 @@ export function DataTableToolbar<TData>({
         <DataTableFacetedFilter column={table.getColumn('tags')} title={t('channels.filters.tags')} options={tagOptions} singleSelect />
       )}
       {table.getColumn('model') && modelOptions?.length > 0 && (
-        <div className='flex items-center gap-1'>
-          <DataTableFacetedFilter
-            column={table.getColumn('model')}
-            title={t('channels.filters.model')}
-            options={modelOptions}
-            selectedFirst
-            selectionSummaryThreshold={1}
-            selectionCountLabel={(count) => t('channels.filters.selectedModels', { count })}
-          />
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-8 min-w-11 px-2'
-            onClick={() => onModelMatchModeChange(modelMatchMode === 'any' ? 'all' : 'any')}
-            title={t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
-          >
-            {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
-          </Button>
-        </div>
+        <DataTableFacetedFilter
+          column={table.getColumn('model')}
+          title={t('channels.filters.model')}
+          options={modelOptions}
+          selectedFirst
+          selectionSummaryThreshold={1}
+          selectionCountLabel={(count) => t('channels.filters.selectedModels', { count })}
+          selectionControl={
+            selectedModelCount > 1 ? (
+              <span
+                className='hover:bg-accent hover:text-accent-foreground -my-1 rounded px-1.5 py-1 font-medium'
+                title={t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onModelMatchModeChange(modelMatchMode === 'any' ? 'all' : 'any');
+                }}
+              >
+                {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
+              </span>
+            ) : undefined
+          }
+        />
       )}
       {table.getColumn('endpoints') && (
         <DataTableFacetedFilter

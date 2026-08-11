@@ -21,6 +21,7 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   selectedFirst?: boolean;
   selectionSummaryThreshold?: number;
   selectionCountLabel?: (count: number) => string;
+  selectionControl?: React.ReactNode;
   contentClassName?: string;
   footer?: React.ReactNode;
 }
@@ -34,6 +35,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   selectedFirst = false,
   selectionSummaryThreshold = 2,
   selectionCountLabel,
+  selectionControl,
   contentClassName,
   footer,
 }: DataTableFacetedFilterProps<TData, TValue>) {
@@ -56,6 +58,12 @@ export function DataTableFacetedFilter<TData, TValue>({
           {selectedValues?.size > 0 && (
             <>
               <Separator orientation='vertical' className='mx-2 h-4' />
+              {selectionControl && (
+                <>
+                  {selectionControl}
+                  <Separator orientation='vertical' className='mx-2 h-4' />
+                </>
+              )}
               <Badge variant='secondary' className='rounded-sm px-1 font-normal lg:hidden'>
                 {selectionCountLabel ? selectedCountText : selectedValues.size}
               </Badge>
