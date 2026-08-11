@@ -18,6 +18,7 @@ local:
   commits:
     - 457caa1bcd1f5df0ae4dda3e8e22540d940e509c
     - 9a970fd34db8855e030a3e83ec0a968e3b891529
+    - 701f33dec724a633f60488160f8d8823b0463764
   modules:
     - internal/server/biz/api_key_profile_preview.go
     - internal/server/biz/api_key_profile_preview_test.go
@@ -53,6 +54,8 @@ database:
 - 服务端复用真实模型列表算法，应用项目上限、渠道 ID、标签模式、模型白名单、系统模型关联和黑名单。
 - 预览结果补充实际支持渠道与渠道 API 格式。
 - 配置文件对话框新增右侧面板、模型搜索和渠道 Tooltip，表单变化经短暂防抖后实时刷新。
+- 没有配置文件的 API Key 使用空限制条件发起真实预览，结果与该密钥的 `/v1/models` 可见模型保持一致。
+- 切换 API Key 或配置时不复用上一条预览数据，并在当前密钥详情加载完成后再请求预览，避免显示其他密钥的旧结果。
 - API 格式徽标可切换排序上下文；默认依次优先 Chat Completions、Responses、Anthropic Messages、Gemini Contents。
 - 支持渠道先按该 API 格式的系统透传优先级分层，再按渠道权重降序、名称和 ID 稳定排序，并显示调用序号、透传标记和权重。
 
@@ -71,10 +74,10 @@ database:
 ## 验证
 
 - `go test ./internal/server/biz -run 'TestModelService_(PreviewAPIKeyProfile|ListEnabledModels)$' -count=1`：通过。
-- GraphQL 包编译测试通过。
-- TypeScript 检查通过。
+- `node --test src/features/apikeys/api-key-profile-preview.test.mjs`：2 个用例通过，覆盖无配置预览和跨密钥旧数据残留。
+- `./node_modules/.bin/tsc --noEmit`：通过。
 - 排序元数据与 API 格式优先级已纳入 `TestModelService_PreviewAPIKeyProfile`。
-- 本地前端开发服务在 Orb 重启后未恢复，页面视觉验证延后至绿色镜像部署。
+- 无限制预览与真实 `ListEnabledModels` 的模型 ID 集合一致性已纳入后端回归测试。
 
 ## 更新历史
 
@@ -82,3 +85,4 @@ database:
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `457caa1bcd1f5df0ae4dda3e8e22540d940e509c` | 新增真实服务端计算的未保存配置实时预览。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `9a970fd34db8855e030a3e83ec0a968e3b891529` | 按所选 API 的透传优先级和渠道权重展示固定调用顺序。 |
+| 2026-08-11 | `upstream/unstable@9dfd6ac0` | `701f33dec724a633f60488160f8d8823b0463764` | 修复无配置密钥未发起无限制预览及切换密钥时沿用旧预览结果。 |
