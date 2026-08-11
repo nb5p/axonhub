@@ -22,6 +22,9 @@ import {
 interface QuotaEnforcementFormData {
   enabled: boolean;
   mode: QuotaEnforcementMode;
+}
+
+interface QuotaDisplayFormData {
   reverseUsageDisplay: boolean;
   timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle;
 }
@@ -36,11 +39,14 @@ export function QuotaSettings() {
   const { data: quotaSettings, isLoading: isQuotaSettingsLoading } = useQuotaEnforcementSettings();
   const { data: collectionSettings, isLoading: isCollectionSettingsLoading } = useProviderQuotaCollectionSettings();
   const updateQuotaEnforcementSettings = useUpdateQuotaEnforcementSettings();
+  const updateQuotaDisplaySettings = useUpdateQuotaEnforcementSettings();
   const updateProviderQuotaCollectionSettings = useUpdateProviderQuotaCollectionSettings();
 
   const [quotaFormData, setQuotaFormData] = useState<QuotaEnforcementFormData>({
     enabled: false,
     mode: 'EXHAUSTED_ONLY',
+  });
+  const [displayFormData, setDisplayFormData] = useState<QuotaDisplayFormData>({
     reverseUsageDisplay: false,
     timeWindowDisplayStyle: 'TRIANGLE',
   });
@@ -54,6 +60,8 @@ export function QuotaSettings() {
       setQuotaFormData({
         enabled: quotaSettings.enabled,
         mode: quotaSettings.mode,
+      });
+      setDisplayFormData({
         reverseUsageDisplay: quotaSettings.reverseUsageDisplay,
         timeWindowDisplayStyle: quotaSettings.timeWindowDisplayStyle,
       });
@@ -92,6 +100,14 @@ export function QuotaSettings() {
       await updateQuotaEnforcementSettings.mutateAsync(quotaFormData);
     },
     [quotaFormData, updateQuotaEnforcementSettings]
+  );
+
+  const handleDisplaySubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      await updateQuotaDisplaySettings.mutateAsync(displayFormData);
+    },
+    [displayFormData, updateQuotaDisplaySettings]
   );
 
   if (isQuotaSettingsLoading || isCollectionSettingsLoading) {
@@ -161,53 +177,64 @@ export function QuotaSettings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>{t('system.quota.display.title')}</CardTitle>
+          <CardDescription>{t('system.quota.display.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleDisplaySubmit} className='space-y-6'>
+            <div className='flex items-center justify-between gap-6' id='quota-reverse-usage-display-switch'>
+              <div className='space-y-0.5'>
+                <Label htmlFor='quota-reverse-usage-display'>{t('system.quota.display.reverse.label')}</Label>
+                <div className='text-muted-foreground text-sm'>{t('system.quota.display.reverse.description')}</div>
+              </div>
+              <Switch
+                id='quota-reverse-usage-display'
+                checked={displayFormData.reverseUsageDisplay}
+                onCheckedChange={(checked) => setDisplayFormData((prev) => ({ ...prev, reverseUsageDisplay: checked }))}
+              />
+            </div>
+
+            <Separator />
+
+            <div className='flex items-center justify-between gap-6'>
+              <div className='space-y-0.5'>
+                <Label htmlFor='quota-time-window-display-style'>{t('system.quota.display.timeWindow.label')}</Label>
+                <div className='text-muted-foreground text-sm'>{t('system.quota.display.timeWindow.description')}</div>
+              </div>
+              <Select
+                value={displayFormData.timeWindowDisplayStyle}
+                onValueChange={(value) =>
+                  setDisplayFormData((prev) => ({ ...prev, timeWindowDisplayStyle: value as QuotaTimeWindowDisplayStyle }))
+                }
+              >
+                <SelectTrigger id='quota-time-window-display-style' className='w-40 shrink-0'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='TRIANGLE'>{t('system.quota.display.timeWindow.options.triangle')}</SelectItem>
+                  <SelectItem value='BAR'>{t('system.quota.display.timeWindow.options.bar')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            <div className='flex justify-end'>
+              <Button type='submit' disabled={updateQuotaDisplaySettings.isPending} className='min-w-24'>
+                {updateQuotaDisplaySettings.isPending ? <Loader2 className='h-4 w-4 animate-spin' /> : t('common.buttons.save')}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{t('system.quota.title')}</CardTitle>
           <CardDescription>{t('system.quota.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleQuotaSubmit} className='space-y-6'>
-            <div className='space-y-5'>
-              <div>
-                <div className='text-base font-medium'>{t('system.quota.display.title')}</div>
-                <div className='text-muted-foreground text-sm'>{t('system.quota.display.description')}</div>
-              </div>
-
-              <div className='flex items-center justify-between gap-6' id='quota-reverse-usage-display-switch'>
-                <div className='space-y-0.5'>
-                  <Label htmlFor='quota-reverse-usage-display'>{t('system.quota.display.reverse.label')}</Label>
-                  <div className='text-muted-foreground text-sm'>{t('system.quota.display.reverse.description')}</div>
-                </div>
-                <Switch
-                  id='quota-reverse-usage-display'
-                  checked={quotaFormData.reverseUsageDisplay}
-                  onCheckedChange={(checked) => setQuotaFormData((prev) => ({ ...prev, reverseUsageDisplay: checked }))}
-                />
-              </div>
-
-              <div className='flex items-center justify-between gap-6'>
-                <div className='space-y-0.5'>
-                  <Label htmlFor='quota-time-window-display-style'>{t('system.quota.display.timeWindow.label')}</Label>
-                  <div className='text-muted-foreground text-sm'>{t('system.quota.display.timeWindow.description')}</div>
-                </div>
-                <Select
-                  value={quotaFormData.timeWindowDisplayStyle}
-                  onValueChange={(value) =>
-                    setQuotaFormData((prev) => ({ ...prev, timeWindowDisplayStyle: value as QuotaTimeWindowDisplayStyle }))
-                  }
-                >
-                  <SelectTrigger id='quota-time-window-display-style' className='w-40 shrink-0'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='TRIANGLE'>{t('system.quota.display.timeWindow.options.triangle')}</SelectItem>
-                    <SelectItem value='BAR'>{t('system.quota.display.timeWindow.options.bar')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Separator />
-
             <div className='flex items-center justify-between' id='quota-enabled-switch'>
               <div className='space-y-0.5'>
                 <Label htmlFor='quota-enabled' className='text-base'>
