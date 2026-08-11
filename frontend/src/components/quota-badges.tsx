@@ -254,6 +254,7 @@ function UsageTimeBar({
   displayPercent = usagePercent,
   durationPercent,
   timeWindowDisplayStyle = 'TRIANGLE',
+  reverseTimeProgress = false,
   durationLabel,
   tooltip,
 }: {
@@ -261,10 +262,13 @@ function UsageTimeBar({
   displayPercent?: number;
   durationPercent?: number;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
+  reverseTimeProgress?: boolean;
   durationLabel?: ReactNode;
   tooltip: ReactNode;
 }) {
-  const markerLeft = durationPercent === undefined ? undefined : Math.min(Math.max(durationPercent, 0), 100);
+  const displayDurationPercent =
+    durationPercent === undefined ? undefined : getQuotaDisplayPercentage(durationPercent, reverseTimeProgress);
+  const markerLeft = displayDurationPercent;
   const showTriangle = timeWindowDisplayStyle === 'TRIANGLE';
 
   return (
@@ -276,20 +280,20 @@ function UsageTimeBar({
             severityPercentage={usagePercent}
             durationPercentage={durationPercent}
           />
-          {!showTriangle && durationPercent !== undefined && (
+          {!showTriangle && displayDurationPercent !== undefined && (
             <div className='space-y-1'>
               {durationLabel && (
                 <div className='text-muted-foreground flex items-center justify-between text-[11px]'>
                   <span>{durationLabel}</span>
-                  <span>{Math.round(durationPercent)}%</span>
+                  <span>{Math.round(displayDurationPercent)}%</span>
                 </div>
               )}
-              <ProgressBar type='duration' percentage={durationPercent} />
+              <ProgressBar type='duration' percentage={displayDurationPercent} />
             </div>
           )}
           {showTriangle && markerLeft !== undefined && (
             <div className='absolute top-2 -translate-x-1/2' style={{ left: `${markerLeft}%` }} aria-hidden>
-              {/* upward triangle pointing at the bar, marking elapsed time */}
+              {/* upward triangle pointing at the displayed elapsed/remaining time position */}
               <div className='border-b-muted-foreground h-0 w-0 border-x-[3px] border-b-[4px] border-x-transparent' />
             </div>
           )}
@@ -342,6 +346,9 @@ function QuotaRow({
       percent: Math.round(displayPercentage),
     });
   };
+  const timeProgressLabel = t(reverseUsageDisplay ? 'quota.label.time_remaining' : 'quota.label.time_elapsed');
+  const getTimeDisplayPercentage = (elapsedPercentage: number) =>
+    getQuotaDisplayPercentage(elapsedPercentage, reverseUsageDisplay);
 
   const handleResetCodexQuota = async () => {
     if (channel.type !== 'codex') return;
@@ -721,14 +728,15 @@ function QuotaRow({
                       displayPercent={getQuotaDisplayPercentage(primaryWindow.used_percent || 0, reverseUsageDisplay)}
                       durationPercent={primaryDurationPct}
                       timeWindowDisplayStyle={timeWindowDisplayStyle}
-                      durationLabel={t('quota.label.time_elapsed')}
+                      reverseTimeProgress={reverseUsageDisplay}
+                      durationLabel={timeProgressLabel}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t('quota.label.primary_window')}</div>
                           <div>{formatQuotaUsage(primaryWindow.used_percent || 0)}</div>
                           {primaryDurationPct !== undefined && (
                             <div>
-                              {t('quota.label.time_elapsed')}: {Math.round(primaryDurationPct)}%
+                              {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(primaryDurationPct))}%
                             </div>
                           )}
                           {primaryWindow.reset_at && (
@@ -759,14 +767,15 @@ function QuotaRow({
                       displayPercent={getQuotaDisplayPercentage(secondaryWindow.used_percent, reverseUsageDisplay)}
                       durationPercent={secondaryDurationPct}
                       timeWindowDisplayStyle={timeWindowDisplayStyle}
-                      durationLabel={t('quota.label.time_elapsed')}
+                      reverseTimeProgress={reverseUsageDisplay}
+                      durationLabel={timeProgressLabel}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t('quota.label.secondary_window')}</div>
                           <div>{formatQuotaUsage(secondaryWindow.used_percent)}</div>
                           {secondaryDurationPct !== undefined && (
                             <div>
-                              {t('quota.label.time_elapsed')}: {Math.round(secondaryDurationPct)}%
+                              {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(secondaryDurationPct))}%
                             </div>
                           )}
                           {secondaryWindow.reset_at && (
@@ -1014,14 +1023,15 @@ function QuotaRow({
                       displayPercent={getQuotaDisplayPercentage(usedPct, reverseUsageDisplay)}
                       durationPercent={durationPct}
                       timeWindowDisplayStyle={timeWindowDisplayStyle}
-                      durationLabel={t('quota.label.time_elapsed')}
+                      reverseTimeProgress={reverseUsageDisplay}
+                      durationLabel={timeProgressLabel}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t(labelKey)}</div>
                           <div>{formatQuotaUsage(usedPct)}</div>
                           {durationPct !== undefined && (
                             <div>
-                              {t('quota.label.time_elapsed')}: {Math.round(durationPct)}%
+                              {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(durationPct))}%
                             </div>
                           )}
                           {resetText && <div>{resetText}</div>}

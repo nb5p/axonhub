@@ -370,6 +370,7 @@
   "quota.label.5h_duration": "5h duration",
   "quota.label.7d_duration": "7d duration",
   "quota.label.time_elapsed": "Time elapsed",
+  "quota.label.time_remaining": "Time remaining",
   "quota.label.unlimited": "Unlimited",
   "quota.label.percent_used": "{{percent}}% used",
   "quota.label.percent_remaining": "{{percent}}% remaining",

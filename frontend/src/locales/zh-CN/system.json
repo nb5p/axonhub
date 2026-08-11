@@ -370,6 +370,7 @@
   "quota.label.5h_duration": "5小时周期",
   "quota.label.7d_duration": "7天周期",
   "quota.label.time_elapsed": "时间进度",
+  "quota.label.time_remaining": "剩余时间",
   "quota.label.unlimited": "无限制",
   "quota.label.percent_used": "已使用 {{percent}}%",
   "quota.label.percent_remaining": "剩余 {{percent}}%",

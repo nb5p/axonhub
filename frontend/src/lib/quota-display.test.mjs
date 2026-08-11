@@ -17,6 +17,7 @@ const { clampQuotaPercentage, getQuotaDisplayPercentage } = await import(moduleU
 test('quota display can switch between used and remaining percentages', () => {
   assert.equal(getQuotaDisplayPercentage(33, false), 33);
   assert.equal(getQuotaDisplayPercentage(33, true), 67);
+  assert.equal(getQuotaDisplayPercentage(6, true), 94);
 });
 
 test('quota display percentages stay within the visible range', () => {
