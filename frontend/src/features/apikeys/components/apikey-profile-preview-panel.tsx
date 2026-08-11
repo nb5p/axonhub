@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { IconLoader2, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ApiKeyProfilePreview } from '../data/schema';
+import { selectConversationAPIFormats } from './api-key-profile-preview-formats';
 
 interface ApiKeyProfilePreviewPanelProps {
   profileName?: string;
@@ -18,15 +19,15 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
   const { t } = useTranslation();
   const [modelSearch, setModelSearch] = useState('');
   const [selectedApiFormat, setSelectedApiFormat] = useState('');
+  const conversationApiFormats = useMemo(() => selectConversationAPIFormats(preview?.apiFormats ?? []), [preview?.apiFormats]);
 
   useEffect(() => {
-    const apiFormats = preview?.apiFormats ?? [];
-    if (apiFormats.length === 0) {
+    if (conversationApiFormats.length === 0) {
       setSelectedApiFormat('');
-    } else if (!apiFormats.includes(selectedApiFormat)) {
-      setSelectedApiFormat(apiFormats[0]);
+    } else if (!conversationApiFormats.includes(selectedApiFormat)) {
+      setSelectedApiFormat(conversationApiFormats[0]);
     }
-  }, [preview?.apiFormats, selectedApiFormat]);
+  }, [conversationApiFormats, selectedApiFormat]);
 
   const visibleModels = useMemo(() => {
     const query = modelSearch.trim().toLowerCase();
@@ -76,25 +77,22 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
             <section className='space-y-2'>
               <div className='flex items-center justify-between gap-2'>
                 <h4 className='text-sm font-medium'>{t('apikeys.profiles.preview.apis')}</h4>
-                <Badge variant='secondary'>{preview?.apiFormats.length ?? 0}</Badge>
+                <Badge variant='secondary'>{conversationApiFormats.length}</Badge>
               </div>
-              {(preview?.apiFormats.length ?? 0) > 0 ? (
-                <div className='flex flex-wrap gap-1.5'>
-                  {preview?.apiFormats.map((apiFormat) => (
-                    <button
-                      key={apiFormat}
-                      type='button'
-                      aria-pressed={selectedApiFormat === apiFormat}
-                      className={cn(
-                        'rounded-full border px-2.5 py-0.5 text-xs font-normal transition-colors',
-                        selectedApiFormat === apiFormat ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent'
-                      )}
-                      onClick={() => setSelectedApiFormat(apiFormat)}
-                    >
-                      {apiFormatLabel(apiFormat)}
-                    </button>
-                  ))}
-                </div>
+              {conversationApiFormats.length > 0 ? (
+                <Tabs value={selectedApiFormat} onValueChange={setSelectedApiFormat} className='gap-0'>
+                  <TabsList className='h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-transparent p-0'>
+                    {conversationApiFormats.map((apiFormat) => (
+                      <TabsTrigger
+                        key={apiFormat}
+                        value={apiFormat}
+                        className='text-muted-foreground data-[state=active]:text-foreground h-auto flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2 text-xs shadow-none data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:text-foreground'
+                      >
+                        {apiFormatLabel(apiFormat)}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
               ) : (
                 <p className='text-muted-foreground text-xs'>{t('apikeys.profiles.preview.noApis')}</p>
               )}

@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveAPIKeyProfilePreview } from './components/api-key-profile-preview-state.ts';
+import { selectConversationAPIFormats } from './components/api-key-profile-preview-formats.ts';
 
 const featureDir = import.meta.dirname;
 
@@ -31,4 +32,23 @@ test('profile preview loads an unrestricted preview when the API key has no prof
   assert.deepEqual(previewProfile.modelIDs, []);
   assert.deepEqual(previewProfile.channelIDs, []);
   assert.deepEqual(previewProfile.channelTags, []);
+});
+
+test('profile preview only exposes conversational API formats in tab order', () => {
+  assert.deepEqual(
+    selectConversationAPIFormats([
+      'openai/images',
+      'gemini/contents',
+      'openai/responses',
+      'anthropic/messages',
+      'openai/chat_completions',
+      'openai/videos',
+    ]),
+    ['openai/chat_completions', 'openai/responses', 'anthropic/messages', 'gemini/contents']
+  );
+
+  const panelSource = read('components/apikey-profile-preview-panel.tsx');
+  assert.match(panelSource, /<Tabs value=\{selectedApiFormat\}/);
+  assert.match(panelSource, /<TabsTrigger/);
+  assert.doesNotMatch(panelSource, /aria-pressed=\{selectedApiFormat === apiFormat\}/);
 });
