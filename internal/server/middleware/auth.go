@@ -248,6 +248,12 @@ func withSessionScopeForAPIKey(ctx context.Context, key *ent.APIKey) context.Con
 	return shared.WithSessionScope(ctx, scope)
 }
 
+// IsAPIKeyRequestIPAllowed applies the same client IP allowlist check used by
+// API key authentication to an already authenticated API key.
+func IsAPIKeyRequestIPAllowed(c *gin.Context, key *ent.APIKey) bool {
+	return key != nil && (len(key.AllowedIps) == 0 || isAnyAllowedIP(clientIPCandidates(c), key.AllowedIps))
+}
+
 func withUserPrincipal(ctx context.Context, user *ent.User) (context.Context, error) {
 	principal := authz.Principal{Type: authz.PrincipalTypeUser, UserID: &user.ID}
 	return authz.WithPrincipal(ctx, principal)

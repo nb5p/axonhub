@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import { useSelectedProjectId } from '@/stores/projectStore';
+import { cn } from '@/lib/utils';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,17 +24,18 @@ import { PromptInput, PromptInputTextarea, PromptInputSubmit } from '@/component
 import { Reasoning, ReasoningTrigger, ReasoningContent } from '@/components/ai-elements/reasoning';
 import { Response as UIResponse } from '@/components/ai-elements/response';
 import { AutoCompleteSelect } from '@/components/auto-complete-select';
+import { resolveAPIKeyProfilePreview } from '@/features/apikeys/components/api-key-profile-preview-state';
+import { useApiKey, useApiKeyProfilePreview, useApiKeys } from '@/features/apikeys/data/apikeys';
 import { useAllChannelSummarys } from '@/features/channels/data/channels';
 import { useQueryModels } from '@/features/models/data/models';
-import { usePermissions } from '@/hooks/usePermissions';
-import { cn } from '@/lib/utils';
 
-type PlaygroundModelSource = 'channel' | 'model_gateway';
+type PlaygroundModelSource = 'channel' | 'api_key' | 'model_gateway';
 
 export default function Playground() {
   const { t } = useTranslation();
   const [modelSource, setModelSource] = useState<PlaygroundModelSource>('channel');
   const [selectedChannel, setSelectedChannel] = useState<string>('');
+  const [selectedApiKey, setSelectedApiKey] = useState<string>('');
   const [model, setModel] = useState('');
   const [temperature, setTemperature] = useState(0.6);
   const [maxTokens, setMaxTokens] = useState(4096);
@@ -44,6 +47,7 @@ export default function Playground() {
   const maxTokensRef = useRef(maxTokens);
   const systemPromptRef = useRef(systemPrompt);
   const selectedChannelRef = useRef(selectedChannel);
+  const selectedApiKeyRef = useRef(selectedApiKey);
   const modelSourceRef = useRef(modelSource);
 
   // Keep refs synchronized with state
@@ -68,17 +72,39 @@ export default function Playground() {
   }, [selectedChannel]);
 
   useEffect(() => {
+    selectedApiKeyRef.current = selectedApiKey;
+  }, [selectedApiKey]);
+
+  useEffect(() => {
     modelSourceRef.current = modelSource;
   }, [modelSource]);
 
   const { accessToken } = useAuthStore((state) => state.auth);
   const selectedProjectId = useSelectedProjectId();
-  const { hasSystemScope } = usePermissions();
+  const { hasSystemScope, apiKeyPermissions } = usePermissions();
   const canUseModelGateway = hasSystemScope('read_channels');
+  const canUseAPIKeyMode = apiKeyPermissions.canRead;
 
   // 获取 channels 数据
   const { data: channelsData, isLoading: channelsLoading } = useAllChannelSummarys(selectedProjectId);
   const isModelGatewaySource = modelSource === 'model_gateway';
+  const isAPIKeySource = modelSource === 'api_key';
+  const { data: apiKeysData, isLoading: apiKeysLoading } = useApiKeys(
+    {
+      first: 10000,
+      orderBy: { field: 'NAME', direction: 'ASC' },
+      where: { status: 'enabled' },
+    },
+    { disableAutoFetch: !canUseAPIKeyMode }
+  );
+  const { data: selectedApiKeyData, isLoading: selectedApiKeyLoading } = useApiKey(isAPIKeySource ? selectedApiKey : '');
+  const selectedApiKeyProfile = useMemo(() => {
+    const profiles = selectedApiKeyData?.profiles;
+    return profiles?.profiles?.find((profile) => profile.name === profiles.activeProfile);
+  }, [selectedApiKeyData]);
+  const apiKeyProfilePreview = useApiKeyProfilePreview(selectedApiKey, resolveAPIKeyProfilePreview(selectedApiKeyProfile), {
+    enabled: isAPIKeySource && !!selectedApiKey,
+  });
   const { data: modelsData, isLoading: modelsLoading } = useQueryModels(
     {
       first: 10000,
@@ -104,6 +130,9 @@ export default function Playground() {
         };
         if (modelSourceRef.current === 'channel' && selectedChannelRef.current) {
           headers['X-Channel-ID'] = selectedChannelRef.current;
+        }
+        if (modelSourceRef.current === 'api_key' && selectedApiKeyRef.current) {
+          headers['X-Playground-API-Key-ID'] = selectedApiKeyRef.current;
         }
         return headers;
       },
@@ -237,6 +266,14 @@ export default function Playground() {
       }));
   }, [channelsData]);
 
+  const apiKeyOptions = useMemo(() => {
+    if (!apiKeysData?.edges) return [];
+    return apiKeysData.edges.map((edge) => ({
+      value: edge.node.id,
+      label: edge.node.name,
+    }));
+  }, [apiKeysData]);
+
   const modelPageModelOptions = useMemo(() => {
     if (!modelsData?.edges) return [];
     return modelsData.edges.map((edge) => {
@@ -248,9 +285,17 @@ export default function Playground() {
     });
   }, [modelsData]);
 
+  const apiKeyModelOptions = useMemo(() => {
+    return (apiKeyProfilePreview.data?.models ?? []).map((previewModel) => ({
+      value: previewModel.id,
+      label: previewModel.id,
+    }));
+  }, [apiKeyProfilePreview.data?.models]);
+
   // 根据选中渠道过滤出模型列表
   const modelOptions = useMemo(() => {
     if (isModelGatewaySource) return modelPageModelOptions;
+    if (isAPIKeySource) return apiKeyModelOptions;
     if (!channelsData?.edges || !selectedChannel) return [];
     const channelEdge = channelsData.edges.find((edge) => edge.node.id === selectedChannel);
     if (!channelEdge) return [];
@@ -258,9 +303,13 @@ export default function Playground() {
       value: entry.requestModel,
       label: entry.requestModel,
     }));
-  }, [channelsData, isModelGatewaySource, modelPageModelOptions, selectedChannel]);
+  }, [apiKeyModelOptions, channelsData, isAPIKeySource, isModelGatewaySource, modelPageModelOptions, selectedChannel]);
 
-  const selectedModelSourceLoading = isModelGatewaySource ? modelsLoading : channelsLoading;
+  const selectedModelSourceLoading = isModelGatewaySource
+    ? modelsLoading
+    : isAPIKeySource
+      ? apiKeysLoading || selectedApiKeyLoading || apiKeyProfilePreview.isLoading
+      : channelsLoading;
 
   // 处理渠道选择，自动选第一个模型
   const handleChannelChange = useCallback(
@@ -273,10 +322,18 @@ export default function Playground() {
     [channelsData]
   );
 
+  const handleApiKeyChange = useCallback((apiKeyId: string) => {
+    setSelectedApiKey(apiKeyId);
+    setModel('');
+  }, []);
+
   const handleModelSourceChange = useCallback(
     (source: string) => {
       const nextSource = source as PlaygroundModelSource;
       if (nextSource === 'model_gateway' && !canUseModelGateway) {
+        return;
+      }
+      if (nextSource === 'api_key' && !canUseAPIKeyMode) {
         return;
       }
       setModelSource(nextSource);
@@ -284,10 +341,14 @@ export default function Playground() {
         setModel(modelPageModelOptions[0]?.value ?? '');
         return;
       }
+      if (nextSource === 'api_key') {
+        setModel(apiKeyModelOptions[0]?.value ?? '');
+        return;
+      }
       const channelEdge = channelsData?.edges?.find((edge) => edge.node.id === selectedChannel);
       setModel(channelEdge?.node.allModelEntries[0]?.requestModel ?? '');
     },
-    [canUseModelGateway, channelsData, modelPageModelOptions, selectedChannel]
+    [apiKeyModelOptions, canUseAPIKeyMode, canUseModelGateway, channelsData, modelPageModelOptions, selectedChannel]
   );
 
   useEffect(() => {
@@ -295,6 +356,12 @@ export default function Playground() {
       setModelSource('channel');
     }
   }, [canUseModelGateway, modelSource]);
+
+  useEffect(() => {
+    if (!canUseAPIKeyMode && modelSource === 'api_key') {
+      setModelSource('channel');
+    }
+  }, [canUseAPIKeyMode, modelSource]);
 
   // 初始化：默认选第一个渠道和第一个模型
   useEffect(() => {
@@ -308,6 +375,18 @@ export default function Playground() {
       setModel(modelPageModelOptions[0].value);
     }
   }, [isModelGatewaySource, model, modelPageModelOptions]);
+
+  useEffect(() => {
+    if (!selectedApiKey && !apiKeysLoading && apiKeyOptions.length > 0) {
+      setSelectedApiKey(apiKeyOptions[0].value);
+    }
+  }, [apiKeyOptions, apiKeysLoading, selectedApiKey]);
+
+  useEffect(() => {
+    if (isAPIKeySource && apiKeyModelOptions.length > 0 && !apiKeyModelOptions.some((option) => option.value === model)) {
+      setModel(apiKeyModelOptions[0].value);
+    }
+  }, [apiKeyModelOptions, isAPIKeySource, model]);
 
   return (
     <TooltipProvider>
@@ -329,7 +408,7 @@ export default function Playground() {
       <div className='bg-background flex h-screen w-full flex-col md:flex-row'>
         {/* Settings Sidebar */}
 
-        <div className='bg-card shadow-soft border-border m-4 flex max-h-[60vh] w-auto flex-col rounded-2xl border border-r md:max-h-none md:w-[340px] md:min-w-[280px] md:max-w-[400px]'>
+        <div className='bg-card shadow-soft border-border m-4 flex max-h-[60vh] w-auto flex-col rounded-2xl border border-r md:max-h-none md:w-[340px] md:max-w-[400px] md:min-w-[280px]'>
           <div className='border-b p-4'>
             <h1 className='text-xl font-bold tracking-tight'>{t('playground.title')}</h1>
             <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>{t('playground.description')}</p>
@@ -340,8 +419,18 @@ export default function Playground() {
               <div className='space-y-3'>
                 <Label className='text-xs font-semibold'>{t('playground.settings.modelSource')}</Label>
                 <Tabs value={modelSource} onValueChange={handleModelSourceChange}>
-                  <TabsList className={cn('grid w-full', canUseModelGateway ? 'grid-cols-2' : 'grid-cols-1')}>
+                  <TabsList
+                    className={cn(
+                      'grid w-full',
+                      canUseModelGateway && canUseAPIKeyMode
+                        ? 'grid-cols-3'
+                        : canUseModelGateway || canUseAPIKeyMode
+                          ? 'grid-cols-2'
+                          : 'grid-cols-1'
+                    )}
+                  >
                     <TabsTrigger value='channel'>{t('playground.settings.channel')}</TabsTrigger>
+                    {canUseAPIKeyMode && <TabsTrigger value='api_key'>{t('playground.settings.apiKey')}</TabsTrigger>}
                     {canUseModelGateway && <TabsTrigger value='model_gateway'>{t('playground.settings.modelGateway')}</TabsTrigger>}
                   </TabsList>
                 </Tabs>
@@ -359,6 +448,22 @@ export default function Playground() {
                     isLoading={channelsLoading}
                     emptyMessage={t('playground.errors.noChannelsAvailable')}
                     placeholder={channelsLoading ? t('loading') : t('playground.settings.selectChannel')}
+                  />
+                </div>
+              )}
+
+              {modelSource === 'api_key' && (
+                <div className='space-y-3'>
+                  <Label htmlFor='apiKey' className='text-xs font-semibold'>
+                    {t('playground.settings.apiKey')}
+                  </Label>
+                  <AutoCompleteSelect
+                    selectedValue={selectedApiKey}
+                    onSelectedValueChange={handleApiKeyChange}
+                    items={apiKeyOptions}
+                    isLoading={apiKeysLoading}
+                    emptyMessage={t('playground.errors.noApiKeysAvailable')}
+                    placeholder={apiKeysLoading ? t('loading') : t('playground.settings.selectApiKey')}
                   />
                 </div>
               )}
@@ -382,10 +487,14 @@ export default function Playground() {
                       ? t('playground.modelPageModelsAvailable', {
                           count: modelOptions.length,
                         })
-                      : t('playground.modelsAvailable', {
-                          count: modelOptions.length,
-                          channels: channelOptions.length,
-                        })}
+                      : isAPIKeySource
+                        ? t('playground.apiKeyModelsAvailable', {
+                            count: modelOptions.length,
+                          })
+                        : t('playground.modelsAvailable', {
+                            count: modelOptions.length,
+                            channels: channelOptions.length,
+                          })}
                   </p>
                 )}
               </div>

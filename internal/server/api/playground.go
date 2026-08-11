@@ -14,12 +14,16 @@ import (
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
 	"github.com/looplj/axonhub/internal/server/biz"
+	"github.com/looplj/axonhub/internal/server/middleware"
 	"github.com/looplj/axonhub/internal/server/orchestrator"
 	"github.com/looplj/axonhub/llm"
 	"github.com/looplj/axonhub/llm/httpclient"
 	"github.com/looplj/axonhub/llm/transformer"
 	"github.com/looplj/axonhub/llm/transformer/aisdk"
+	"github.com/looplj/axonhub/llm/transformer/shared"
 )
+
+const playgroundAPIKeyIDHeader = "X-Playground-API-Key-ID"
 
 type PlaygroundResponseError struct {
 	Status int `json:"-"`
@@ -32,29 +36,35 @@ type PlaygroundResponseError struct {
 type PlaygroundHandlersParams struct {
 	fx.In
 
-	ChannelService  *biz.ChannelService
-	ModelService    *biz.ModelService
-	DefaultSelector *orchestrator.DefaultSelector
-	RequestService  *biz.RequestService
-	SystemService   *biz.SystemService
-	UsageLogService *biz.UsageLogService
-	PromptService   *biz.PromptService
+	ChannelService              *biz.ChannelService
+	APIKeyService               *biz.APIKeyService
+	AuthService                 *biz.AuthService
+	ModelService                *biz.ModelService
+	DefaultSelector             *orchestrator.DefaultSelector
+	RequestService              *biz.RequestService
+	SystemService               *biz.SystemService
+	UsageLogService             *biz.UsageLogService
+	PromptService               *biz.PromptService
 	PromptProtectionRuleService *biz.PromptProtectionRuleService
-	QuotaService    *biz.QuotaService
-	HttpClient      *httpclient.HttpClient
-	LiveStreamRegistry *biz.LiveStreamRegistry
+	QuotaService                *biz.QuotaService
+	HttpClient                  *httpclient.HttpClient
+	LiveStreamRegistry          *biz.LiveStreamRegistry
 	ChannelLimiterManager       *orchestrator.ChannelLimiterManager
 	ProviderQuotaStatusProvider orchestrator.ProviderQuotaStatusProvider
 }
 
 type PlaygroundHandlers struct {
 	ChannelService             *biz.ChannelService
+	APIKeyService              *biz.APIKeyService
+	AuthService                *biz.AuthService
 	ChatCompletionOrchestrator *orchestrator.ChatCompletionOrchestrator
 }
 
 func NewPlaygroundHandlers(params PlaygroundHandlersParams) *PlaygroundHandlers {
 	return &PlaygroundHandlers{
 		ChannelService: params.ChannelService,
+		APIKeyService:  params.APIKeyService,
+		AuthService:    params.AuthService,
 		ChatCompletionOrchestrator: orchestrator.NewChatCompletionOrchestrator(
 			params.ChannelService,
 			params.DefaultSelector,
@@ -227,6 +237,74 @@ func (handlers *PlaygroundHandlers) ChatCompletion(c *gin.Context) {
 		})
 
 		return
+	}
+
+	apiKeyIDStr := c.GetHeader(playgroundAPIKeyIDHeader)
+	if apiKeyIDStr != "" {
+		// This is an internal selector, not a provider request header.
+		genericReq.Headers.Del(playgroundAPIKeyIDHeader)
+		c.Request.Header.Del(playgroundAPIKeyIDHeader)
+
+		apiKeyID, parseErr := objects.ParseGUID(apiKeyIDStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, PlaygroundResponseError{
+				Error: struct {
+					Code    int    `json:"code,omitempty"`
+					Message string `json:"message"`
+				}{Code: http.StatusBadRequest, Message: "Invalid API key ID: " + parseErr.Error()},
+			})
+
+			return
+		}
+
+		selectedAPIKey, lookupErr := handlers.APIKeyService.GetForRead(ctx, &apiKeyID.ID, nil, nil)
+		if lookupErr != nil {
+			c.JSON(http.StatusNotFound, PlaygroundResponseError{
+				Error: struct {
+					Code    int    `json:"code,omitempty"`
+					Message string `json:"message"`
+				}{Code: http.StatusNotFound, Message: "API key not found"},
+			})
+
+			return
+		}
+
+		apiKey, authErr := handlers.AuthService.AuthenticateAPIKey(ctx, selectedAPIKey.Key)
+		if authErr != nil || apiKey.ID != selectedAPIKey.ID {
+			c.JSON(http.StatusUnauthorized, PlaygroundResponseError{
+				Error: struct {
+					Code    int    `json:"code,omitempty"`
+					Message string `json:"message"`
+				}{Code: http.StatusUnauthorized, Message: "API key is not available"},
+			})
+
+			return
+		}
+		if projectID, ok := contexts.GetProjectID(ctx); ok && projectID != apiKey.ProjectID {
+			c.JSON(http.StatusForbidden, PlaygroundResponseError{
+				Error: struct {
+					Code    int    `json:"code,omitempty"`
+					Message string `json:"message"`
+				}{Code: http.StatusForbidden, Message: "API key does not belong to the selected project"},
+			})
+
+			return
+		}
+		if !middleware.IsAPIKeyRequestIPAllowed(c, apiKey) {
+			c.JSON(http.StatusForbidden, PlaygroundResponseError{
+				Error: struct {
+					Code    int    `json:"code,omitempty"`
+					Message string `json:"message"`
+				}{Code: http.StatusForbidden, Message: "IP address is not allowed for this API key"},
+			})
+
+			return
+		}
+
+		ctx = contexts.WithAPIKey(ctx, apiKey)
+		ctx = contexts.WithProjectID(ctx, apiKey.ProjectID)
+		ctx = shared.WithSessionScope(ctx, "api_key:"+strconv.Itoa(apiKey.ID)+":project:"+strconv.Itoa(apiKey.ProjectID))
+		c.Request = c.Request.WithContext(ctx)
 	}
 
 	channelIDStr := c.Query("channel_id")
