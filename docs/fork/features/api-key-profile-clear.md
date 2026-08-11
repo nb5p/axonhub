@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - bf4e3a60a1937763338b84cbb6e5f025c16e8ad8
+    - 28109f87639e895529cf7e06b07fa63cbbcc090a
   modules:
     - internal/server/biz/api_key.go
     - internal/server/biz/api_key_test.go
@@ -48,7 +49,7 @@ database:
 
 ## 本地实现
 
-- 配置文件管理底部新增“清除配置”按钮和危险操作确认框。
+- 配置文件管理的“增加配置”右侧新增“清除配置”按钮和危险操作确认框。
 - 复用现有 `updateAPIKeyProfiles` mutation，提交 `activeProfile: ""` 与空配置数组。
 - 后端只在配置数组为空且生效配置同时为空时接受清除；其他不存在的生效配置仍按原规则拒绝。
 - 清除后失效 API Key、列表和模板关联计数查询缓存。
@@ -76,3 +77,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `bf4e3a60a1937763338b84cbb6e5f025c16e8ad8` | 新增带二次确认的一键清除，并严格限定空配置合法条件。 |
+| 2026-08-11 | `upstream/unstable@9dfd6ac0` | `28109f87639e895529cf7e06b07fa63cbbcc090a` | 将清除操作移到增加配置右侧，保持配置操作入口集中。 |

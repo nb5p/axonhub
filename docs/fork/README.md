@@ -25,8 +25,8 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-provider-tabs-default-hidden` | 本地原创 | `active` | `7f84e474` | `none` | [`features/channel-provider-tabs-default-hidden.md`](features/channel-provider-tabs-default-hidden.md) |
 | `prefer-pass-through-routing` | 本地原创 | `active` | `2fb3e82c` | `none` | [`features/prefer-pass-through-routing.md`](features/prefer-pass-through-routing.md) |
-| `api-key-profile-access-preview` | 本地原创 | `active` | `457caa1b`, `9a970fd3`, `701f33de` | `none` | [`features/api-key-profile-access-preview.md`](features/api-key-profile-access-preview.md) |
-| `api-key-profile-clear` | 本地原创 | `active` | `bf4e3a60` | `none` | [`features/api-key-profile-clear.md`](features/api-key-profile-clear.md) |
+| `api-key-profile-access-preview` | 本地原创 | `active` | `457caa1b`, `9a970fd3`, `701f33de`, `dccc2740` | `none` | [`features/api-key-profile-access-preview.md`](features/api-key-profile-access-preview.md) |
+| `api-key-profile-clear` | 本地原创 | `active` | `bf4e3a60`, `28109f87` | `none` | [`features/api-key-profile-clear.md`](features/api-key-profile-clear.md) |
 | `api-key-profile-template-sync` | 本地原创 | `active` | `b5ce7472` | `none` | [`features/api-key-profile-template-sync.md`](features/api-key-profile-template-sync.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
