@@ -361,6 +361,19 @@ export function ApiKeyProfilesDialog({
                         <IconPlus className='h-4 w-4' />
                         {t('apikeys.profiles.addProfile')}
                       </Button>
+                      {canClear && (
+                        <Button
+                          type='button'
+                          variant='destructive'
+                          size='sm'
+                          onClick={() => setClearConfirmOpen(true)}
+                          disabled={loading || templateLoadPending}
+                          className='flex items-center gap-2'
+                        >
+                          <IconTrash className='h-4 w-4' />
+                          {t('apikeys.profiles.clear')}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </form>
@@ -461,18 +474,6 @@ export function ApiKeyProfilesDialog({
               {form.formState.errors.profiles?.message || t('apikeys.validation.duplicateProfileName')}
             </div>
           )} */}
-          {canClear && (
-            <Button
-              type='button'
-              variant='destructive'
-              onClick={() => setClearConfirmOpen(true)}
-              disabled={loading || templateLoadPending}
-              className='sm:mr-auto'
-            >
-              <IconTrash className='h-4 w-4' />
-              {t('apikeys.profiles.clear')}
-            </Button>
-          )}
           <div className='flex w-full gap-2 sm:w-auto'>
             <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
               {t('common.buttons.cancel')}
