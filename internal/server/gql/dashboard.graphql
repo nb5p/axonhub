@@ -55,6 +55,21 @@ type APIKeyTokenUsageStats {
   topModels: [ModelTokenUsageStats!]!
 }
 
+input APIKeyActivityHeatmapInput {
+  apiKeyIds: [ID!]
+  createdAtGTE: Time!
+  createdAtLT: Time!
+}
+
+type APIKeyActivityHeatmapBucket {
+  apiKeyId: ID!
+  apiKeyName: String!
+  date: String!
+  requestCount: Int!
+  totalTokens: Int!
+  cost: Float!
+}
+
 type ModelTokenUsageStats {
   modelId: String!
   inputTokens: Int!
@@ -221,6 +236,9 @@ extend type Query {
   apiKeyTokenUsageStats(
     input: APIKeyTokenUsageStatsInput
   ): [APIKeyTokenUsageStats!]!
+  apiKeyActivityHeatmap(
+    input: APIKeyActivityHeatmapInput!
+  ): [APIKeyActivityHeatmapBucket!]!
   dailyRequestStats: [DailyRequestStats!]!
   topRequestsProjects: [TopRequestsProjects!]!
   tokenStats: TokenStats!

@@ -78,6 +78,15 @@ export const costByAPIKeySchema = z.object({
   cost: z.number(),
 });
 
+export const apiKeyActivityHeatmapBucketSchema = z.object({
+  apiKeyId: z.string(),
+  apiKeyName: z.string(),
+  date: z.string(),
+  requestCount: z.number(),
+  totalTokens: z.number(),
+  cost: z.number(),
+});
+
 export const dailyRequestStatsSchema = z.object({
   date: z.string(),
   count: z.number(),
@@ -136,6 +145,7 @@ export type TokensByModel = z.infer<typeof tokensByModelSchema>;
 export type CostByChannel = z.infer<typeof costByChannelSchema>;
 export type CostByModel = z.infer<typeof costByModelSchema>;
 export type CostByAPIKey = z.infer<typeof costByAPIKeySchema>;
+export type APIKeyActivityHeatmapBucket = z.infer<typeof apiKeyActivityHeatmapBucketSchema>;
 export type DailyRequestStats = z.infer<typeof dailyRequestStatsSchema>;
 export type HourlyRequestStats = z.infer<typeof hourlyRequestStatsSchema>;
 export type TopProjects = z.infer<typeof topProjectsSchema>;
@@ -286,6 +296,19 @@ const DAILY_REQUEST_STATS_QUERY = `
   }
 `;
 
+const API_KEY_ACTIVITY_HEATMAP_QUERY = `
+  query GetAPIKeyActivityHeatmap($input: APIKeyActivityHeatmapInput!) {
+    apiKeyActivityHeatmap(input: $input) {
+      apiKeyId
+      apiKeyName
+      date
+      requestCount
+      totalTokens
+      cost
+    }
+  }
+`;
+
 const HOURLY_REQUEST_STATS_QUERY = `
   query GetHourlyRequestStats($date: String) {
     hourlyRequestStats(date: $date) {
@@ -385,10 +408,7 @@ export function useRequestsByChannel(timeWindow?: string) {
   return useQuery({
     queryKey: ['requestStatsByChannel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ requestStatsByChannel: RequestsByChannel[] }>(
-        REQUESTS_BY_CHANNEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ requestStatsByChannel: RequestsByChannel[] }>(REQUESTS_BY_CHANNEL_QUERY, { timeWindow });
       return data.requestStatsByChannel.map((item) => requestsByChannelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -400,10 +420,7 @@ export function useRequestsByModel(timeWindow?: string) {
   return useQuery({
     queryKey: ['requestStatsByModel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ requestStatsByModel: RequestsByModel[] }>(
-        REQUESTS_BY_MODEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ requestStatsByModel: RequestsByModel[] }>(REQUESTS_BY_MODEL_QUERY, { timeWindow });
       return data.requestStatsByModel.map((item) => requestsByModelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -415,10 +432,7 @@ export function useRequestsByAPIKey(timeWindow?: string) {
   return useQuery({
     queryKey: ['requestStatsByAPIKey', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ requestStatsByAPIKey: RequestsByAPIKey[] }>(
-        REQUESTS_BY_API_KEY_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ requestStatsByAPIKey: RequestsByAPIKey[] }>(REQUESTS_BY_API_KEY_QUERY, { timeWindow });
       return data.requestStatsByAPIKey.map((item) => requestsByAPIKeySchema.parse(item));
     },
     refetchInterval: 60000,
@@ -430,10 +444,7 @@ export function useTokensByAPIKey(timeWindow?: string) {
   return useQuery({
     queryKey: ['tokenStatsByAPIKey', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ tokenStatsByAPIKey: TokensByAPIKey[] }>(
-        TOKENS_BY_API_KEY_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ tokenStatsByAPIKey: TokensByAPIKey[] }>(TOKENS_BY_API_KEY_QUERY, { timeWindow });
       return data.tokenStatsByAPIKey.map((item) => tokensByAPIKeySchema.parse(item));
     },
     refetchInterval: 60000,
@@ -445,10 +456,7 @@ export function useTokensByChannel(timeWindow?: string) {
   return useQuery({
     queryKey: ['tokenStatsByChannel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ tokenStatsByChannel: TokensByChannel[] }>(
-        TOKENS_BY_CHANNEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ tokenStatsByChannel: TokensByChannel[] }>(TOKENS_BY_CHANNEL_QUERY, { timeWindow });
       return data.tokenStatsByChannel.map((item) => tokensByChannelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -460,10 +468,7 @@ export function useTokensByModel(timeWindow?: string) {
   return useQuery({
     queryKey: ['tokenStatsByModel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ tokenStatsByModel: TokensByModel[] }>(
-        TOKENS_BY_MODEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ tokenStatsByModel: TokensByModel[] }>(TOKENS_BY_MODEL_QUERY, { timeWindow });
       return data.tokenStatsByModel.map((item) => tokensByModelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -475,10 +480,7 @@ export function useCostByChannel(timeWindow?: string) {
   return useQuery({
     queryKey: ['costStatsByChannel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ costStatsByChannel: CostByChannel[] }>(
-        COST_BY_CHANNEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ costStatsByChannel: CostByChannel[] }>(COST_BY_CHANNEL_QUERY, { timeWindow });
       return data.costStatsByChannel.map((item) => costByChannelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -490,10 +492,7 @@ export function useCostByModel(timeWindow?: string) {
   return useQuery({
     queryKey: ['costStatsByModel', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ costStatsByModel: CostByModel[] }>(
-        COST_BY_MODEL_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ costStatsByModel: CostByModel[] }>(COST_BY_MODEL_QUERY, { timeWindow });
       return data.costStatsByModel.map((item) => costByModelSchema.parse(item));
     },
     refetchInterval: 60000,
@@ -505,10 +504,7 @@ export function useCostByAPIKey(timeWindow?: string) {
   return useQuery({
     queryKey: ['costStatsByAPIKey', timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ costStatsByAPIKey: CostByAPIKey[] }>(
-        COST_BY_API_KEY_QUERY,
-        { timeWindow }
-      );
+      const data = await graphqlRequest<{ costStatsByAPIKey: CostByAPIKey[] }>(COST_BY_API_KEY_QUERY, { timeWindow });
       return data.costStatsByAPIKey.map((item) => costByAPIKeySchema.parse(item));
     },
     refetchInterval: 60000,
@@ -524,6 +520,20 @@ export function useDailyRequestStats() {
       return data.dailyRequestStats.map((item) => dailyRequestStatsSchema.parse(item));
     },
     refetchInterval: 300000, // Refetch every 5 minutes
+  });
+}
+
+export function useAPIKeyActivityHeatmap(input: { apiKeyIds?: string[]; createdAtGTE: string; createdAtLT: string }) {
+  return useQuery({
+    queryKey: ['apiKeyActivityHeatmap', input],
+    queryFn: async () => {
+      const data = await graphqlRequest<{ apiKeyActivityHeatmap: APIKeyActivityHeatmapBucket[] }>(API_KEY_ACTIVITY_HEATMAP_QUERY, {
+        input,
+      });
+      return data.apiKeyActivityHeatmap.map((item) => apiKeyActivityHeatmapBucketSchema.parse(item));
+    },
+    refetchInterval: 300000,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -564,10 +574,10 @@ export function useChannelSuccessRates(limit?: number, timeWindow?: string) {
   return useQuery({
     queryKey: ['channelSuccessRates', limit, timeWindow],
     queryFn: async () => {
-      const data = await graphqlRequest<{ channelSuccessRates: ChannelSuccessRate[] }>(
-        CHANNEL_SUCCESS_RATES_QUERY,
-        { ...(timeWindow != null && { timeWindow }), ...(limit != null && { limit }) }
-      );
+      const data = await graphqlRequest<{ channelSuccessRates: ChannelSuccessRate[] }>(CHANNEL_SUCCESS_RATES_QUERY, {
+        ...(timeWindow != null && { timeWindow }),
+        ...(limit != null && { limit }),
+      });
       return data.channelSuccessRates.map((item) => channelSuccessRateSchema.parse(item));
     },
     refetchInterval: 300000,
