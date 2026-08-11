@@ -91,7 +91,7 @@ export default function Playground() {
   const isAPIKeySource = modelSource === 'api_key';
   const { data: apiKeysData, isLoading: apiKeysLoading } = useApiKeys(
     {
-      first: 10000,
+      first: 1000,
       orderBy: { field: 'NAME', direction: 'ASC' },
       where: { status: 'enabled' },
     },
