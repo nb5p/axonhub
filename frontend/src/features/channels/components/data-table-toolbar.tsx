@@ -52,8 +52,7 @@ export function DataTableToolbar<TData>({
   useEffect(() => {
     fetchModels({
       statusIn: ['enabled', 'disabled'],
-      includeMapping: true,
-      includePrefix: true,
+      includeAllChannelModels: true,
     });
   }, [fetchModels]);
 

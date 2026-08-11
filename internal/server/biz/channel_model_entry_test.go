@@ -182,6 +182,22 @@ func TestChannel_GetUnifiedModels(t *testing.T) {
 			},
 		},
 		{
+			name: "hideOriginalModels: false keeps direct and auto-trimmed models",
+			channel: &Channel{
+				Channel: &ent.Channel{
+					SupportedModels: []string{"google/gemma-4-26b-a4b-it:free"},
+					Settings: &objects.ChannelSettings{
+						AutoTrimedModelPrefixes: []string{"google"},
+						HideOriginalModels:      false,
+					},
+				},
+			},
+			expected: []ChannelModelEntry{
+				{RequestModel: "google/gemma-4-26b-a4b-it:free", ActualModel: "google/gemma-4-26b-a4b-it:free", Source: "direct"},
+				{RequestModel: "gemma-4-26b-a4b-it:free", ActualModel: "google/gemma-4-26b-a4b-it:free", Source: "auto_trim"},
+			},
+		},
+		{
 			name: "hideOriginalModels: combined features",
 			channel: &Channel{
 				Channel: &ent.Channel{

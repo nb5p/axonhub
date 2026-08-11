@@ -120,3 +120,14 @@ test('channel proxy connection reuse setting is submitted, echoed, and localized
     '适用于 Resin 等按连接切换节点的代理池。开启后每个请求都会重新建立代理连接，并增加 CONNECT 与 TLS 握手开销。'
   );
 });
+
+test('channel model filter requests the effective channel model IDs', () => {
+  const toolbar = read('features/channels/components/data-table-toolbar.tsx');
+  const fetchModelsCall = toolbar.match(/fetchModels\(\{[\s\S]*?\}\);/)?.[0] ?? '';
+
+  assert.match(
+    fetchModelsCall,
+    /includeAllChannelModels:\s*true/,
+    'model filter options must honor auto-trimmed prefixes and hidden original models'
+  );
+});
