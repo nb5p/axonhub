@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -92,6 +93,10 @@ const (
 	// The value is JSON-encoded SystemGeneralSettings struct.
 	SystemKeyGeneralSettings = "system_general_settings"
 
+	// SystemKeySidebarNavigationSettings stores the sidebar items hidden for all users.
+	// The value is JSON-encoded SidebarNavigationSettings.
+	SystemKeySidebarNavigationSettings = "system_sidebar_navigation_settings"
+
 	// SystemKeyAutoBackupSettings is the key used to store auto backup configuration.
 	// The value is JSON-encoded AutoBackupSettings struct.
 	SystemKeyAutoBackupSettings = "system_auto_backup_settings"
@@ -132,6 +137,12 @@ type SystemGeneralSettings struct {
 	// CurrencyCode is the code used for currency display (e.g., USD, RMB).
 	CurrencyCode string `json:"currency_code"`
 	Timezone     string `json:"timezone"`
+}
+
+// SidebarNavigationSettings controls which navigation entries are hidden in the UI.
+// Hiding an entry does not change route permissions or disable direct navigation.
+type SidebarNavigationSettings struct {
+	HiddenItems []string `json:"hidden_items"`
 }
 
 // VideoStorageSettings represents system settings for persisting generated videos.
@@ -1581,6 +1592,64 @@ func (s *SystemService) SetGeneralSettings(ctx context.Context, settings SystemG
 	s.mu.Unlock()
 
 	return nil
+}
+
+// SidebarNavigationSettings retrieves the global sidebar visibility configuration.
+// Every authenticated user needs this read-only UI preference, so the system setting
+// read bypasses the settings scope without changing route authorization.
+func (s *SystemService) SidebarNavigationSettings(ctx context.Context) (*SidebarNavigationSettings, error) {
+	return authz.RunWithSystemBypass(ctx, "sidebar-navigation-settings", func(bypassCtx context.Context) (*SidebarNavigationSettings, error) {
+		value, err := s.getSystemValue(bypassCtx, SystemKeySidebarNavigationSettings)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return &SidebarNavigationSettings{HiddenItems: []string{}}, nil
+			}
+
+			return nil, fmt.Errorf("failed to get sidebar navigation settings: %w", err)
+		}
+
+		var settings SidebarNavigationSettings
+		if err := json.Unmarshal([]byte(value), &settings); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal sidebar navigation settings: %w", err)
+		}
+
+		settings.HiddenItems = normalizeHiddenSidebarItems(settings.HiddenItems)
+		return &settings, nil
+	})
+}
+
+// SetSidebarNavigationSettings updates the global sidebar visibility configuration.
+func (s *SystemService) SetSidebarNavigationSettings(ctx context.Context, settings SidebarNavigationSettings) error {
+	settings.HiddenItems = normalizeHiddenSidebarItems(settings.HiddenItems)
+
+	jsonBytes, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal sidebar navigation settings: %w", err)
+	}
+
+	if err := s.setSystemValue(ctx, SystemKeySidebarNavigationSettings, string(jsonBytes)); err != nil {
+		return fmt.Errorf("failed to set sidebar navigation settings: %w", err)
+	}
+
+	return nil
+}
+
+func normalizeHiddenSidebarItems(items []string) []string {
+	normalized := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		normalized = append(normalized, item)
+	}
+	slices.Sort(normalized)
+	return normalized
 }
 
 // DefaultDataStorageID retrieves the default data storage ID from system settings.

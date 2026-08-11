@@ -161,6 +161,15 @@ func (r *mutationResolver) UpdateSystemGeneralSettings(ctx context.Context, inpu
 	return true, nil
 }
 
+// UpdateSidebarNavigationSettings is the resolver for the updateSidebarNavigationSettings field.
+func (r *mutationResolver) UpdateSidebarNavigationSettings(ctx context.Context, input biz.SidebarNavigationSettings) (bool, error) {
+	if err := r.systemService.SetSidebarNavigationSettings(ctx, input); err != nil {
+		return false, fmt.Errorf("failed to update sidebar navigation settings: %w", err)
+	}
+
+	return true, nil
+}
+
 // UpdateVideoStorageSettings is the resolver for the updateVideoStorageSettings field.
 func (r *mutationResolver) UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error) {
 	err := r.systemService.SetVideoStorageSettings(ctx, input)
@@ -541,6 +550,11 @@ func (r *queryResolver) SystemChannelSettings(ctx context.Context) (*biz.SystemC
 // SystemGeneralSettings is the resolver for the systemGeneralSettings field.
 func (r *queryResolver) SystemGeneralSettings(ctx context.Context) (*biz.SystemGeneralSettings, error) {
 	return r.systemService.GeneralSettings(ctx)
+}
+
+// SidebarNavigationSettings is the resolver for the sidebarNavigationSettings field.
+func (r *queryResolver) SidebarNavigationSettings(ctx context.Context) (*biz.SidebarNavigationSettings, error) {
+	return r.systemService.SidebarNavigationSettings(ctx)
 }
 
 // VideoStorageSettings is the resolver for the videoStorageSettings field.

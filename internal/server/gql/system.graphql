@@ -332,6 +332,14 @@ input UpdateSystemGeneralSettingsInput {
   timezone: String
 }
 
+type SidebarNavigationSettings {
+  hiddenItems: [String!]!
+}
+
+input UpdateSidebarNavigationSettingsInput {
+  hiddenItems: [String!]!
+}
+
 type VideoStorageSettings {
   enabled: Boolean!
   dataStorageID: Int!
@@ -402,6 +410,7 @@ extend type Mutation {
   completeAutoDisableChannelOnboarding(input: CompleteAutoDisableChannelOnboardingInput!): Boolean!
   updateSystemChannelSettings(input: UpdateSystemChannelSettingsInput!): Boolean!
   updateSystemGeneralSettings(input: UpdateSystemGeneralSettingsInput!): Boolean!
+  updateSidebarNavigationSettings(input: UpdateSidebarNavigationSettingsInput!): Boolean!
   updateVideoStorageSettings(input: UpdateVideoStorageSettingsInput!): Boolean!
   updateQuotaEnforcementSettings(input: UpdateQuotaEnforcementSettingsInput!): Boolean!
   updateProviderQuotaCollectionSettings(input: UpdateProviderQuotaCollectionSettingsInput!): Boolean!
@@ -472,6 +481,7 @@ extend type Query {
   checkForUpdate(includeBeta: Boolean! = false): VersionCheck!
   systemChannelSettings: SystemChannelSettings!
   systemGeneralSettings: SystemGeneralSettings!
+  sidebarNavigationSettings: SidebarNavigationSettings!
   videoStorageSettings: VideoStorageSettings!
   quotaEnforcementSettings: QuotaEnforcementSettings!
   providerQuotaCollectionSettings: ProviderQuotaCollectionSettings!

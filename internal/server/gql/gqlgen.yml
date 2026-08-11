@@ -670,6 +670,12 @@ models:
   UpdateSystemGeneralSettingsInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.SystemGeneralSettings
+  SidebarNavigationSettings:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.SidebarNavigationSettings
+  UpdateSidebarNavigationSettingsInput:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.SidebarNavigationSettings
   VideoStorageSettings:
     model:
       - github.com/looplj/axonhub/internal/server/biz.VideoStorageSettings

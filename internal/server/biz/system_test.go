@@ -176,6 +176,28 @@ func TestSystemService_WithNoopCache(t *testing.T) {
 	require.Equal(t, "noop", service.Cache.GetType())
 }
 
+func TestSystemService_SidebarNavigationSettings(t *testing.T) {
+	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
+	service, client := setupTestSystemService(t, cacheConfig)
+	defer client.Close()
+
+	baseCtx := ent.NewContext(context.Background(), client)
+	settings, err := service.SidebarNavigationSettings(baseCtx)
+	require.NoError(t, err)
+	require.Empty(t, settings.HiddenItems)
+
+	writeCtx := authz.WithTestBypass(baseCtx)
+	err = service.SetSidebarNavigationSettings(writeCtx, SidebarNavigationSettings{
+		HiddenItems: []string{" project.threads ", "admin.users", "project.threads", ""},
+	})
+	require.NoError(t, err)
+
+	// Reading this UI-only setting does not require the settings scope.
+	settings, err = service.SidebarNavigationSettings(baseCtx)
+	require.NoError(t, err)
+	require.Equal(t, []string{"admin.users", "project.threads"}, settings.HiddenItems)
+}
+
 func TestSystemService_StoragePolicy(t *testing.T) {
 	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
 

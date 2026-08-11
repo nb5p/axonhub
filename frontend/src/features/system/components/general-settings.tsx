@@ -19,6 +19,7 @@ import {
   useUpdatePassThroughSettings,
 } from '../data/system';
 import { GMTTimeZoneOptions } from '../data/timezones';
+import { SidebarNavigationSettings } from './sidebar-navigation-settings';
 
 export function GeneralSettings() {
   const { t } = useTranslation();
@@ -168,6 +169,8 @@ export function GeneralSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <SidebarNavigationSettings />
 
       <Card>
         <CardHeader>

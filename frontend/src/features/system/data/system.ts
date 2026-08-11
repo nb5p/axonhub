@@ -239,6 +239,14 @@ export interface UpdateSystemGeneralSettingsInput {
   timezone?: string;
 }
 
+export interface SidebarNavigationSettings {
+  hiddenItems: string[];
+}
+
+export interface UpdateSidebarNavigationSettingsInput {
+  hiddenItems: string[];
+}
+
 export interface VideoStorageSettings {
   enabled: boolean;
   dataStorageID: number;
@@ -927,6 +935,20 @@ const UPDATE_SYSTEM_GENERAL_SETTINGS_MUTATION = `
   }
 `;
 
+const SIDEBAR_NAVIGATION_SETTINGS_QUERY = `
+  query SidebarNavigationSettings {
+    sidebarNavigationSettings {
+      hiddenItems
+    }
+  }
+`;
+
+const UPDATE_SIDEBAR_NAVIGATION_SETTINGS_MUTATION = `
+  mutation UpdateSidebarNavigationSettings($input: UpdateSidebarNavigationSettingsInput!) {
+    updateSidebarNavigationSettings(input: $input)
+  }
+`;
+
 const VIDEO_STORAGE_SETTINGS_QUERY = `
   query VideoStorageSettings {
     videoStorageSettings {
@@ -1128,6 +1150,47 @@ export function useUpdateGeneralSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generalSettings'] });
+      toast.success(i18n.t('common.success.systemUpdated'));
+    },
+    onError: () => {
+      toast.error(i18n.t('common.errors.systemUpdateFailed'));
+    },
+  });
+}
+
+export function useSidebarNavigationSettings() {
+  const { handleError } = useErrorHandler();
+
+  return useQuery({
+    queryKey: ['sidebarNavigationSettings'],
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ sidebarNavigationSettings: SidebarNavigationSettings }>(SIDEBAR_NAVIGATION_SETTINGS_QUERY);
+        return data.sidebarNavigationSettings;
+      } catch (error) {
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useUpdateSidebarNavigationSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateSidebarNavigationSettingsInput) => {
+      const data = await graphqlRequest<{ updateSidebarNavigationSettings: boolean }>(UPDATE_SIDEBAR_NAVIGATION_SETTINGS_MUTATION, {
+        input,
+      });
+      return data.updateSidebarNavigationSettings;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.setQueryData<SidebarNavigationSettings>(['sidebarNavigationSettings'], {
+        hiddenItems: variables.hiddenItems,
+      });
+      queryClient.invalidateQueries({ queryKey: ['sidebarNavigationSettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },
     onError: () => {

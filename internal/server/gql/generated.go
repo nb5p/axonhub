@@ -1071,6 +1071,7 @@ type ComplexityRoot struct {
 		UpdateRetryPolicy                     func(childComplexity int, input biz.RetryPolicy) int
 		UpdateRole                            func(childComplexity int, id objects.GUID, input ent.UpdateRoleInput) int
 		UpdateSecuritySettings                func(childComplexity int, input UpdateSecuritySettingsInput) int
+		UpdateSidebarNavigationSettings       func(childComplexity int, input biz.SidebarNavigationSettings) int
 		UpdateStoragePolicy                   func(childComplexity int, input biz.StoragePolicy) int
 		UpdateSystemChannelSettings           func(childComplexity int, input biz.UpdateSystemChannelSettings) int
 		UpdateSystemGeneralSettings           func(childComplexity int, input biz.SystemGeneralSettings) int
@@ -1421,6 +1422,7 @@ type ComplexityRoot struct {
 		RetryPolicy                     func(childComplexity int) int
 		Roles                           func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.RoleOrder, where *ent.RoleWhereInput) int
 		SecuritySettings                func(childComplexity int) int
+		SidebarNavigationSettings       func(childComplexity int) int
 		StoragePolicy                   func(childComplexity int) int
 		SystemChannelSettings           func(childComplexity int) int
 		SystemGeneralSettings           func(childComplexity int) int
@@ -1659,6 +1661,10 @@ type ComplexityRoot struct {
 		RequestSpans  func(childComplexity int) int
 		ResponseSpans func(childComplexity int) int
 		StartTime     func(childComplexity int) int
+	}
+
+	SidebarNavigationSettings struct {
+		HiddenItems func(childComplexity int) int
 	}
 
 	SignInPayload struct {
@@ -2282,6 +2288,7 @@ type MutationResolver interface {
 	CompleteAutoDisableChannelOnboarding(ctx context.Context, input CompleteAutoDisableChannelOnboardingInput) (bool, error)
 	UpdateSystemChannelSettings(ctx context.Context, input biz.UpdateSystemChannelSettings) (bool, error)
 	UpdateSystemGeneralSettings(ctx context.Context, input biz.SystemGeneralSettings) (bool, error)
+	UpdateSidebarNavigationSettings(ctx context.Context, input biz.SidebarNavigationSettings) (bool, error)
 	UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error)
 	UpdateQuotaEnforcementSettings(ctx context.Context, input UpdateQuotaEnforcementSettingsInput) (bool, error)
 	UpdateProviderQuotaCollectionSettings(ctx context.Context, input UpdateProviderQuotaCollectionSettingsInput) (bool, error)
@@ -2413,6 +2420,7 @@ type QueryResolver interface {
 	CheckForUpdate(ctx context.Context, includeBeta bool) (*VersionCheck, error)
 	SystemChannelSettings(ctx context.Context) (*biz.SystemChannelSettings, error)
 	SystemGeneralSettings(ctx context.Context) (*biz.SystemGeneralSettings, error)
+	SidebarNavigationSettings(ctx context.Context) (*biz.SidebarNavigationSettings, error)
 	VideoStorageSettings(ctx context.Context) (*biz.VideoStorageSettings, error)
 	QuotaEnforcementSettings(ctx context.Context) (*biz.QuotaEnforcementSettings, error)
 	ProviderQuotaCollectionSettings(ctx context.Context) (*biz.ProviderQuotaCollectionSettings, error)
@@ -6939,6 +6947,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateSecuritySettings(childComplexity, args["input"].(UpdateSecuritySettingsInput)), true
+	case "Mutation.updateSidebarNavigationSettings":
+		if e.complexity.Mutation.UpdateSidebarNavigationSettings == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateSidebarNavigationSettings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateSidebarNavigationSettings(childComplexity, args["input"].(biz.SidebarNavigationSettings)), true
 	case "Mutation.updateStoragePolicy":
 		if e.complexity.Mutation.UpdateStoragePolicy == nil {
 			break
@@ -8649,6 +8668,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SecuritySettings(childComplexity), true
+	case "Query.sidebarNavigationSettings":
+		if e.complexity.Query.SidebarNavigationSettings == nil {
+			break
+		}
+
+		return e.complexity.Query.SidebarNavigationSettings(childComplexity), true
 	case "Query.storagePolicy":
 		if e.complexity.Query.StoragePolicy == nil {
 			break
@@ -9712,6 +9737,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Segment.StartTime(childComplexity), true
+
+	case "SidebarNavigationSettings.hiddenItems":
+		if e.complexity.SidebarNavigationSettings.HiddenItems == nil {
+			break
+		}
+
+		return e.complexity.SidebarNavigationSettings.HiddenItems(childComplexity), true
 
 	case "SignInPayload.token":
 		if e.complexity.SignInPayload.Token == nil {
@@ -11746,6 +11778,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateRetryPolicyInput,
 		ec.unmarshalInputUpdateRoleInput,
 		ec.unmarshalInputUpdateSecuritySettingsInput,
+		ec.unmarshalInputUpdateSidebarNavigationSettingsInput,
 		ec.unmarshalInputUpdateStoragePolicyInput,
 		ec.unmarshalInputUpdateSystemChannelSettingsInput,
 		ec.unmarshalInputUpdateSystemGeneralSettingsInput,
@@ -13474,6 +13507,17 @@ func (ec *executionContext) field_Mutation_updateSecuritySettings_args(ctx conte
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateSecuritySettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐUpdateSecuritySettingsInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSidebarNavigationSettings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateSidebarNavigationSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSidebarNavigationSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -36376,6 +36420,47 @@ func (ec *executionContext) fieldContext_Mutation_updateSystemGeneralSettings(ct
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateSidebarNavigationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateSidebarNavigationSettings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateSidebarNavigationSettings(ctx, fc.Args["input"].(biz.SidebarNavigationSettings))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateSidebarNavigationSettings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateSidebarNavigationSettings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateVideoStorageSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -46540,6 +46625,39 @@ func (ec *executionContext) fieldContext_Query_systemGeneralSettings(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_sidebarNavigationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_sidebarNavigationSettings,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().SidebarNavigationSettings(ctx)
+		},
+		nil,
+		ec.marshalNSidebarNavigationSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSidebarNavigationSettings,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_sidebarNavigationSettings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hiddenItems":
+				return ec.fieldContext_SidebarNavigationSettings_hiddenItems(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SidebarNavigationSettings", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_videoStorageSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -52312,6 +52430,35 @@ func (ec *executionContext) fieldContext_Segment_duration(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SidebarNavigationSettings_hiddenItems(ctx context.Context, field graphql.CollectedField, obj *biz.SidebarNavigationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SidebarNavigationSettings_hiddenItems,
+		func(ctx context.Context) (any, error) {
+			return obj.HiddenItems, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SidebarNavigationSettings_hiddenItems(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SidebarNavigationSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -85595,6 +85742,33 @@ func (ec *executionContext) unmarshalInputUpdateSecuritySettingsInput(ctx contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateSidebarNavigationSettingsInput(ctx context.Context, obj any) (biz.SidebarNavigationSettings, error) {
+	var it biz.SidebarNavigationSettings
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"hiddenItems"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "hiddenItems":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hiddenItems"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HiddenItems = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateStoragePolicyInput(ctx context.Context, obj any) (biz.StoragePolicy, error) {
 	var it biz.StoragePolicy
 	asMap := map[string]any{}
@@ -97967,6 +98141,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateSidebarNavigationSettings":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateSidebarNavigationSettings(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateVideoStorageSettings":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateVideoStorageSettings(ctx, field)
@@ -102287,6 +102468,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "sidebarNavigationSettings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_sidebarNavigationSettings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "videoStorageSettings":
 			field := field
 
@@ -105110,6 +105313,45 @@ func (ec *executionContext) _Segment(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Segment_duration(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sidebarNavigationSettingsImplementors = []string{"SidebarNavigationSettings"}
+
+func (ec *executionContext) _SidebarNavigationSettings(ctx context.Context, sel ast.SelectionSet, obj *biz.SidebarNavigationSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sidebarNavigationSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SidebarNavigationSettings")
+		case "hiddenItems":
+			out.Values[i] = ec._SidebarNavigationSettings_hiddenItems(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -115239,6 +115481,20 @@ func (ec *executionContext) marshalNSegment2ᚖgithubᚗcomᚋloopljᚋaxonhub�
 	return ec._Segment(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSidebarNavigationSettings2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSidebarNavigationSettings(ctx context.Context, sel ast.SelectionSet, v biz.SidebarNavigationSettings) graphql.Marshaler {
+	return ec._SidebarNavigationSettings(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSidebarNavigationSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSidebarNavigationSettings(ctx context.Context, sel ast.SelectionSet, v *biz.SidebarNavigationSettings) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SidebarNavigationSettings(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNSpan2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSpan(ctx context.Context, sel ast.SelectionSet, v biz.Span) graphql.Marshaler {
 	return ec._Span(ctx, sel, &v)
 }
@@ -116053,6 +116309,11 @@ func (ec *executionContext) unmarshalNUpdateRoleInput2githubᚗcomᚋloopljᚋax
 
 func (ec *executionContext) unmarshalNUpdateSecuritySettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐUpdateSecuritySettingsInput(ctx context.Context, v any) (UpdateSecuritySettingsInput, error) {
 	res, err := ec.unmarshalInputUpdateSecuritySettingsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateSidebarNavigationSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSidebarNavigationSettings(ctx context.Context, v any) (biz.SidebarNavigationSettings, error) {
+	res, err := ec.unmarshalInputUpdateSidebarNavigationSettingsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
