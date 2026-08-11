@@ -23,6 +23,8 @@ import { useApiKeysContext } from '../context/apikeys-context';
 import { ApiKey, ApiKeyConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
 
+const COLUMN_VISIBILITY_STORAGE_KEY = 'apikeys-table-column-visibility';
+
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -82,7 +84,14 @@ export function ApiKeysTable({
   const { t } = useTranslation();
   const { setResetRowSelection, setSelectedApiKeys, openDialog } = useApiKeysContext();
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    try {
+      const stored = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   useEffect(() => {
@@ -91,6 +100,14 @@ export function ApiKeysTable({
     };
     setResetRowSelection(resetFn);
   }, [setResetRowSelection]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility));
+    } catch {
+      // Ignore unavailable or full browser storage; column toggles still work for this session.
+    }
+  }, [columnVisibility]);
 
   React.useEffect(() => {
     const newFilters: ColumnFiltersState = [];

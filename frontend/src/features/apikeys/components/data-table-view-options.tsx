@@ -17,11 +17,22 @@ interface DataTableViewOptionsProps<TData> {
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
+  const columnLabels: Record<string, string> = {
+    id: t('common.columns.id'),
+    name: t('common.columns.name'),
+    key: t('apikeys.columns.key'),
+    creator: t('apikeys.columns.creator'),
+    type: t('apikeys.columns.type'),
+    status: t('common.columns.status'),
+    activeProfile: t('apikeys.columns.activeProfile'),
+    createdAt: t('common.columns.createdAt'),
+    updatedAt: t('common.columns.updatedAt'),
+  };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant='outline' size='sm' className='ml-auto hidden h-8 lg:flex'>
+        <Button variant='outline' size='sm' className='ml-2 h-8 shrink-0'>
           <MixerHorizontalIcon className='mr-2 h-4 w-4' />
           {t('common.view')}
         </Button>
@@ -31,7 +42,10 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
-          .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())
+          .filter((column) => {
+            const accessorKey = column.columnDef.accessorKey;
+            return (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined') && column.getCanHide();
+          })
           .map((column) => {
             return (
               <DropdownMenuCheckboxItem
@@ -40,7 +54,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {t(`apikeys.columns.${column.id}`, { defaultValue: column.id })}
+                {columnLabels[column.id] ?? column.id}
               </DropdownMenuCheckboxItem>
             );
           })}

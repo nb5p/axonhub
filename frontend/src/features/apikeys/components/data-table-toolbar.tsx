@@ -9,6 +9,7 @@ import type { DateTimeRangeValue } from '@/utils/date-range';
 import { DataTableFacetedFilter } from '@/components/data-table-faceted-filter';
 import { useUsers } from '@/features/users/data/users';
 import { ApiKeyStatus } from '../data/schema';
+import { DataTableViewOptions } from './data-table-view-options';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -94,6 +95,7 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
+      <DataTableViewOptions table={table} />
     </div>
   );
 }
