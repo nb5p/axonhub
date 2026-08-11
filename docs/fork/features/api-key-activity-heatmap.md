@@ -18,6 +18,7 @@ local:
   commit_marker: "🧩"
   commits:
     - 71c2bd7d41d0f675af0312623c3512f4cc3c71dc
+    - 410985934a950d47434173fcc7e0fd08ecef2334
   modules:
     - internal/server/gql/dashboard.graphql
     - internal/server/gql/dashboard.resolvers.go
@@ -41,20 +42,24 @@ database:
 
 ## 目的
 
-在仪表盘按 API Key 展示最近 90 天的请求活动热力图，帮助个人用户快速判断密钥的活跃日期和用量分布。日期单元格悬停时展示请求数、Token 数和费用；支持隐藏单个密钥或仅查看单个密钥。
+在仪表盘用一张共享热力图展示最近 90 天的 API Key 请求活动，帮助个人用户快速判断所选密钥的整体活跃日期和用量分布。默认选择全部 API Key，用户可以从顶部的多选筛选中增减密钥；日期单元格悬停时展示汇总请求数、Token、费用和各密钥的请求贡献。
 
 ## 来源与采用范围
 
 - `71c2bd7d41d0f675af0312623c3512f4cc3c71dc` 是 `feature/api-key-activity-heatmap` 上的完整本地原创实现。
+- `410985934a950d47434173fcc7e0fd08ecef2334` 将逐密钥多图布局修正为所选密钥共用一张聚合热力图。
 - 采用前端热力图组件、Dashboard GraphQL 查询和按日聚合解析器；未引入数据库 Schema 或后台定时任务。
 - 源分支与 `ai-slop` 具有共同历史，因此通过真实 merge 集成，并保留源提交。
+- 源分支完成合并后已删除；实现提交和 merge 历史继续保留在 `ai-slop`。
 
 ## 本地实现
 
 - GraphQL 查询接收 API Key ID 和日期范围，执行权限及数据可见性检查后按日聚合 `usage_logs`。
 - 查询最多接受 100 个 API Key，日期范围最多 366 天；无活动日期由解析器补零。
 - 前端默认展示最近 90 天，并在页面挂载期间每 5 分钟刷新一次；页面卸载后不会继续刷新。
-- 热力图使用 `react-activity-calendar`，展示请求数、Token 数和费用提示。
+- 前端把选中密钥的每日请求数、Token 和费用按日期相加，再交给唯一的 `react-activity-calendar` 实例展示。
+- API Key 多选状态使用通用 `usePersistedFilter` 保存到浏览器本地；首次进入默认选择全部密钥。
+- 提示气泡除汇总值外，最多列出当天请求量最高的 5 个密钥，其余贡献者显示数量摘要。
 
 ## 与来源的差异
 
@@ -76,10 +81,12 @@ database:
 
 - `make generate`：通过，GraphQL 生成代码已与当前 Schema 同步。
 - `go test ./internal/server/gql -count=1`：通过。
-- Docker 生产镜像构建及绿色实例健康检查：部署阶段执行。
+- 初始合并提交 `590670acec954ad880a87873cb5ce5c688a92b81` 的 Docker 生产镜像构建及绿色实例健康检查：通过。
+- 单图叠加修正：`git diff --check` 和中英文 JSON 语法检查通过；本轮未收到构建或部署要求，因此未执行新的构建。
 
 ## 更新历史
 
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-11 | `062da210..71c2bd7d` | `71c2bd7d41d0f675af0312623c3512f4cc3c71dc` | merged：保留源提交，并适配当前 `ai-slop` 仪表盘与 GraphQL 生成代码。 |
+| 2026-08-11 | 用户反馈 | `410985934a950d47434173fcc7e0fd08ecef2334` | reworked：把每个 API Key 一张图改为多选密钥在同一张图中按日期叠加，并持久化选择。 |

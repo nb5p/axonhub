@@ -22,7 +22,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
 | `request-log-layout` | 本地原创 | `active` | `d476d57b`, `81c62c6e`, `1afef2be` | `none` | [`features/request-log-layout.md`](features/request-log-layout.md) |
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
-| `filter-state-persistence` | 本地原创 | `active` | `36b9e737` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
+| `filter-state-persistence` | 本地原创 | `active` | `36b9e737`, `41098593` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
 | `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a`, `ab88ca26`, `e20024a6` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-endpoint-filter` | 本地原创 | `active` | `437344f0` | `none` | [`features/channel-endpoint-filter.md`](features/channel-endpoint-filter.md) |
@@ -32,7 +32,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `api-key-profile-clear` | 本地原创 | `active` | `bf4e3a60`, `28109f87` | `none` | [`features/api-key-profile-clear.md`](features/api-key-profile-clear.md) |
 | `api-key-profile-template-sync` | 本地原创 | `active` | `b5ce7472` | `none` | [`features/api-key-profile-template-sync.md`](features/api-key-profile-template-sync.md) |
 | `sidebar-navigation-visibility` | 本地原创 | `active` | `3835c389` | `none` | [`features/sidebar-navigation-visibility.md`](features/sidebar-navigation-visibility.md) |
-| `api-key-activity-heatmap` | 本地原创 | `active` | `71c2bd7d` | `none` | [`features/api-key-activity-heatmap.md`](features/api-key-activity-heatmap.md) |
+| `api-key-activity-heatmap` | 本地原创 | `active` | `71c2bd7d`, `41098593` | `none` | [`features/api-key-activity-heatmap.md`](features/api-key-activity-heatmap.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
 

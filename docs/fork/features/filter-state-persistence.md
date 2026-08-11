@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - 36b9e73749ef0ded1c074bda2ed80527f793e6c2
+    - 410985934a950d47434173fcc7e0fd08ecef2334
   modules:
     - frontend/src/hooks/use-persisted-filter.ts
     - frontend/src/lib/filter-storage.ts
@@ -51,6 +52,7 @@ database:
 - 自定义序列化保留日期范围中的 `Date` 类型；损坏或不可用的本地存储安全回落到页面默认值。
 - 请求日志继续支持 URL 筛选参数；显式 URL 条件同步到本地，移除 URL 条件后恢复最近保存状态。
 - Zustand 分析筛选仅持久化筛选数据，不持久化操作函数。
+- 仪表盘 API Key 活动热力图保存密钥多选状态；没有保存值时默认选择全部密钥，显式清空后保持空选择。
 
 ## 与来源的差异
 
@@ -75,3 +77,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `36b9e73749ef0ded1c074bda2ed80527f793e6c2` | 为页面级筛选增加本地持久化、刷新恢复和跨标签页同步。 |
+| 2026-08-11 | API Key 活动热力图 | `410985934a950d47434173fcc7e0fd08ecef2334` | 复用通用 hook 保存热力图的 API Key 多选状态。 |
