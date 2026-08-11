@@ -737,6 +737,10 @@ func validateProfileNames(profiles []objects.APIKeyProfile) error {
 
 // validateActiveProfile checks that the active profile exists in the profiles list.
 func validateActiveProfile(activeProfile string, profiles []objects.APIKeyProfile) error {
+	if len(profiles) == 0 && strings.TrimSpace(activeProfile) == "" {
+		return nil
+	}
+
 	for _, profile := range profiles {
 		if profile.Name == activeProfile {
 			return nil

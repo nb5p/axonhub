@@ -51,11 +51,17 @@ function ApiKeysProfilesDialogWrapper() {
     );
   };
 
+  const handleClear = () => {
+    handleSubmit({ activeProfile: '', profiles: [] });
+  };
+
   return (
     <ApiKeyProfilesDialog
       open={isDialogOpen.profiles}
       onOpenChange={(open) => !open && closeDialog('profiles')}
       onSubmit={handleSubmit}
+      onClear={handleClear}
+      canClear={(apiKeyDetail?.profiles?.profiles?.length ?? 0) > 0}
       loading={updateProfilesMutation.isPending}
       initialDataLoading={apiKeyDetailLoading}
       initialData={

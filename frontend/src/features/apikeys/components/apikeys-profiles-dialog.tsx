@@ -10,6 +10,16 @@ import { useSelectedProjectId } from '@/stores/projectStore';
 import { extractNumberID } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -78,6 +88,8 @@ interface ApiKeyProfilesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: UpdateApiKeyProfilesInput) => void;
+  onClear: () => void;
+  canClear?: boolean;
   loading?: boolean;
   initialDataLoading?: boolean;
   initialData?: {
@@ -90,6 +102,8 @@ export function ApiKeyProfilesDialog({
   open,
   onOpenChange,
   onSubmit,
+  onClear,
+  canClear = false,
   loading = false,
   initialDataLoading = false,
   initialData,
@@ -99,6 +113,7 @@ export function ApiKeyProfilesDialog({
   const selectedProjectId = useSelectedProjectId();
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const [templateLoadPending, setTemplateLoadPending] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   // 用于解决 Dialog 内 Popover 无法滚动的问题
   const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
   const locale = i18n.language === 'zh' ? zhCN : enUS;
@@ -446,6 +461,18 @@ export function ApiKeyProfilesDialog({
               {form.formState.errors.profiles?.message || t('apikeys.validation.duplicateProfileName')}
             </div>
           )} */}
+          {canClear && (
+            <Button
+              type='button'
+              variant='destructive'
+              onClick={() => setClearConfirmOpen(true)}
+              disabled={loading || templateLoadPending}
+              className='sm:mr-auto'
+            >
+              <IconTrash className='h-4 w-4' />
+              {t('apikeys.profiles.clear')}
+            </Button>
+          )}
           <div className='flex w-full gap-2 sm:w-auto'>
             <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
               {t('common.buttons.cancel')}
@@ -470,6 +497,24 @@ export function ApiKeyProfilesDialog({
             projectID={selectedProjectId}
           />
         )}
+        <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('apikeys.profiles.clearConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('apikeys.profiles.clearConfirmDescription')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>{t('common.buttons.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onClear}
+                disabled={loading}
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                {t('apikeys.profiles.clearConfirmAction')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

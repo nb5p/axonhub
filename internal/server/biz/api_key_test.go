@@ -325,6 +325,26 @@ func TestAPIKeyService_UpdateAPIKeyProfiles(t *testing.T) {
 		require.Len(t, updatedAPIKey.Profiles.Profiles, 2)
 	})
 
+	t.Run("Clear all profiles", func(t *testing.T) {
+		updatedAPIKey, err := apiKeyService.UpdateAPIKeyProfiles(ctx, apiKey.ID, objects.APIKeyProfiles{
+			ActiveProfile: "",
+			Profiles:      []objects.APIKeyProfile{},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, updatedAPIKey.Profiles)
+		require.Empty(t, updatedAPIKey.Profiles.ActiveProfile)
+		require.Empty(t, updatedAPIKey.Profiles.Profiles)
+	})
+
+	t.Run("Reject active profile when profiles are empty", func(t *testing.T) {
+		_, err := apiKeyService.UpdateAPIKeyProfiles(ctx, apiKey.ID, objects.APIKeyProfiles{
+			ActiveProfile: "production",
+			Profiles:      []objects.APIKeyProfile{},
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "does not exist in the profiles list")
+	})
+
 	t.Run("Duplicate profile names - exact match", func(t *testing.T) {
 		profiles := objects.APIKeyProfiles{
 			ActiveProfile: "production",
