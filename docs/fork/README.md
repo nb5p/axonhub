@@ -21,7 +21,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
 | `request-log-layout` | 本地原创 | `active` | `d476d57b`, `81c62c6e`, `1afef2be` | `none` | [`features/request-log-layout.md`](features/request-log-layout.md) |
-| `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
+| `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
 | `filter-state-persistence` | 本地原创 | `active` | `36b9e737` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
 | `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a`, `ab88ca26`, `e20024a6` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
