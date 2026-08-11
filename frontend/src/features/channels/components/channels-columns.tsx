@@ -827,7 +827,7 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
         className: 'text-center',
       },
       enableSorting: true,
-      enableHiding: false,
+      enableHiding: true,
     },
     ...(canWrite
       ? [
