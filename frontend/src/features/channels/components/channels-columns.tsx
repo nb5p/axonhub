@@ -27,7 +27,7 @@ import {
   IconClockPlay,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
+import { cn, extractNumberID } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -690,6 +690,16 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
           },
         ]
       : []),
+    {
+      accessorKey: 'id',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.id')} className='justify-center' />,
+      cell: ({ row }) => <div className='text-center font-mono text-xs'>#{extractNumberID(row.getValue('id'))}</div>,
+      meta: {
+        className: 'w-20 min-w-20 text-center',
+      },
+      enableSorting: false,
+      enableHiding: true,
+    },
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.name')} className='justify-center' />,

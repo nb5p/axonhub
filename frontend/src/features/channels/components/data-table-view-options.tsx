@@ -37,11 +37,13 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
             const labelKey =
               column.id === 'select'
                 ? 'common.columns.selection'
-                : column.id === 'endpoints'
-                  ? 'channels.columns.supportedEndpoints'
-                  : column.id === 'createdAt'
-                    ? 'common.columns.createdAt'
-                    : `channels.columns.${column.id}`;
+                : column.id === 'id'
+                  ? 'common.columns.id'
+                  : column.id === 'endpoints'
+                    ? 'channels.columns.supportedEndpoints'
+                    : column.id === 'createdAt'
+                      ? 'common.columns.createdAt'
+                      : `channels.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
