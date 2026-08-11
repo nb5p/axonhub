@@ -19,6 +19,7 @@ local:
     - ba6c2fca6bf63338d31fb78233e9d7d5c4cf953b
     - 68ba2b662c661c84ecbe588a990d1ea2ae9ab144
     - 08846674c44849fe3e42d70938130b4cf119cc40
+    - d04464eeaabe0a5130d9f2a0667e746de8882f6c
   modules:
     - frontend/src/features/channels/components/channel-endpoints-cell.tsx
     - frontend/src/features/channels/components/channels-columns.tsx
@@ -49,7 +50,7 @@ database:
 ## 本地实现
 
 - 新增默认可见、允许手动隐藏的“支持端点”列。
-- 主端点使用 `C`、`R`、`M`、`G` 的 32×24、6px 圆角矩形徽标，并按 OpenAI、Anthropic、Gemini 使用不同颜色。
+- 主端点使用 `C`、`R`、`M`、`G` 的 28×28、6px 圆角正方形徽标，字母大小为 14px，并按 OpenAI、Anthropic、Gemini 使用不同颜色。
 - 悬停主徽标展示完整名称；其他端点折叠到 `…`，气泡显示剩余数量与完整列表。
 - 自定义端点与默认端点按 API 格式去重，覆盖项不会重复展示。
 - 仅增加行内常量计算，不新增后台任务、查询或网络请求。
@@ -78,3 +79,4 @@ database:
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ba6c2fca6bf63338d31fb78233e9d7d5c4cf953b` | 本地原创端点摘要列。 |
 | 2026-08-11 | 本地反馈 | `68ba2b66` | 将 24×24 徽标调整为至少 32×24，恢复明显的圆角矩形外观。 |
 | 2026-08-11 | 浏览器计算样式验证 | `08846674` | 将主题下实际为 12px 的圆角缩小到 6px，避免徽标呈胶囊形。 |
+| 2026-08-11 | 本地反馈 | `d04464ee` | 调整为 28×28、6px 圆角正方形，并将字母增大到 14px。 |
