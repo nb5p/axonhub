@@ -18,6 +18,7 @@ local:
   commits:
     - 20d01ec69e370cac6d29e888f8e3cc7427be5b48
     - 408fe33391b361ce37c63a2efa427804edbe38c2
+    - b665efffd90f2d2d6b05eebbedfc6678735131dc
   modules:
     - frontend/src/features/playground
     - internal/server/api/playground.go
@@ -50,6 +51,7 @@ database:
 ## 本地实现
 
 - 前端增加“API 密钥”测试模式，只列出已启用密钥；模型选项来自所选密钥当前生效配置的可用模型预览。
+- 密钥列表单次请求限定为 GraphQL 允许的 1000 条，避免超限错误触发 React Query 连续重试并最终误报无密钥、无模型。
 - 请求通过内部控制头携带所选 API Key ID；后端在进入 LLM 管线前移除该头，并使用数据库中的完整密钥重新执行认证、项目和 IP 白名单检查。
 - 成功认证后把 API Key、项目和会话放入请求上下文，因此实际路由遵守该密钥的配置、配额和渠道 fallback，而不是固定测试场渠道。
 - `aisdk/datastream` 是前端 AI SDK 的内部流式协议标识，不等于上游渠道格式；渠道执行仍转换为其实际 API 格式。
@@ -71,7 +73,8 @@ database:
 
 - `go test ./transformer/openai/responses -run 'TestOutboundTransformer_StreamTransformation_(Error|Nested|Empty)ErrorEvent' -count=1`：通过。
 - `go test ./internal/server/api ./internal/server/middleware -count=1`：通过。
-- `pnpm build`：通过。
+- `pnpm build`（2026-08-12）：通过。
+- `node --test src/features/playground/playground-api-key-query.test.mjs`：先在 `first: 10000` 上复现失败，改为合法上限后通过。
 - 使用本地绿色数据库核对请求 `#45862`：入站 `aisdk/datastream` 已转换为渠道的 `openai/responses`，原始空错误来自上游流事件。
 
 ## 更新历史
@@ -80,3 +83,4 @@ database:
 |---|---|---|---|
 | 2026-08-11 | 请求 `#45862` 诊断 | `20d01ec69e370cac6d29e888f8e3cc7427be5b48` | 修复嵌套及空 Responses 流错误，保留可诊断错误消息。 |
 | 2026-08-11 | 用户需求 | `408fe33391b361ce37c63a2efa427804edbe38c2` | 新增按 API Key 可见模型与真实路由执行的测试模式。 |
+| 2026-08-12 | 绿色运行日志 | `b665efffd90f2d2d6b05eebbedfc6678735131dc` | 修复密钥查询超过 GraphQL 1000 条硬上限导致的重试、长时间加载和空结果。 |
