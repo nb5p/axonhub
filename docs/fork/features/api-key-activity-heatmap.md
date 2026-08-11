@@ -19,6 +19,7 @@ local:
   commits:
     - 71c2bd7d41d0f675af0312623c3512f4cc3c71dc
     - 410985934a950d47434173fcc7e0fd08ecef2334
+    - 55c0df9d5c91a9180f462f60dd679f84a1018ef3
   modules:
     - internal/server/gql/dashboard.graphql
     - internal/server/gql/dashboard.resolvers.go
@@ -59,6 +60,7 @@ database:
 - 前端默认展示最近 90 天，并在页面挂载期间每 5 分钟刷新一次；页面卸载后不会继续刷新。
 - 前端把选中密钥的每日请求数、Token 和费用按日期相加，再交给唯一的 `react-activity-calendar` 实例展示。
 - API Key 多选状态使用通用 `usePersistedFilter` 保存到浏览器本地；首次进入默认选择全部密钥。
+- 顶部从左到右显示汇总说明、API Key 多选器和“全选 / 反选 / 全不选”联合按钮，批量操作不会打开选择器。
 - 提示气泡除汇总值外，最多列出当天请求量最高的 5 个密钥，其余贡献者显示数量摘要。
 
 ## 与来源的差异
@@ -82,7 +84,7 @@ database:
 - `make generate`：通过，GraphQL 生成代码已与当前 Schema 同步。
 - `go test ./internal/server/gql -count=1`：通过。
 - 初始合并提交 `590670acec954ad880a87873cb5ce5c688a92b81` 的 Docker 生产镜像构建及绿色实例健康检查：通过。
-- 单图叠加修正：`git diff --check` 和中英文 JSON 语法检查通过；本轮未收到构建或部署要求，因此未执行新的构建。
+- 控件布局修正随本批需求执行 `pnpm build`：通过。
 
 ## 更新历史
 
@@ -90,3 +92,4 @@ database:
 |---|---|---|---|
 | 2026-08-11 | `062da210..71c2bd7d` | `71c2bd7d41d0f675af0312623c3512f4cc3c71dc` | merged：保留源提交，并适配当前 `ai-slop` 仪表盘与 GraphQL 生成代码。 |
 | 2026-08-11 | 用户反馈 | `410985934a950d47434173fcc7e0fd08ecef2334` | reworked：把每个 API Key 一张图改为多选密钥在同一张图中按日期叠加，并持久化选择。 |
+| 2026-08-11 | 用户反馈 | `55c0df9d5c91a9180f462f60dd679f84a1018ef3` | refined：重排汇总、密钥选择器与三项批量选择按钮。 |

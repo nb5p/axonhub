@@ -19,9 +19,12 @@ local:
     - d476d57b5f4ff6b29d890e844baee2566ab568ab
     - 81c62c6e190ee7c5868173577301cc131bd9c1d9
     - 1afef2bec18329f7ccf987cd21cf1664896f1423
+    - 8d9a437cc9aa46ecd419b725762cd4bc76bc3428
   modules:
     - frontend/src/features/requests/components/requests-columns.tsx
     - frontend/src/features/requests/components/requests-table.tsx
+    - frontend/src/features/requests/components/request-detail-content.tsx
+    - frontend/src/components/json-tree-view.tsx
     - frontend/src/features/requests/data/requests.ts
     - frontend/src/locales
 upstream:
@@ -54,6 +57,7 @@ database:
 - 表格以内容宽度布局，并以容器宽度作为下限；宽屏填满容器，窄屏保持内容宽度并横向滚动。
 - “调用方”列改名为“密钥”，并移动到客户端 IP 与渠道之间。
 - 在用量右侧恢复独立的缓存命中率列；输入不少于 40,000 Token 且命中率低于 80% 时使用红色提醒。
+- 请求详情的 JSON 框随根节点折叠状态在最小内容高度和完整高度间切换；滚动导致根节点离开视口时，在框中央显示“折叠全部”悬浮按钮并复用根节点折叠行为。
 
 ## 与来源的差异
 
@@ -72,6 +76,7 @@ database:
 - TypeScript 检查通过。
 - Vite 前端构建通过。
 - 浏览器布局回归验证：1500、1550、1580、1590px 视口下表格右侧空白均为 0；1280px 视口保留横向滚动。
+- JSON 折叠交互修正随本批需求再次执行 `pnpm build`：通过。
 
 ## 更新历史
 
@@ -79,3 +84,4 @@ database:
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `d476d57b5f4ff6b29d890e844baee2566ab568ab`, `81c62c6e190ee7c5868173577301cc131bd9c1d9` | 恢复请求序号并修正颜色和自适应列宽。 |
 | 2026-08-11 | 本地反馈与上游历史缓存命中率逻辑 | `1afef2bec18329f7ccf987cd21cf1664896f1423` | 修复宽屏右侧空白，调整密钥列，并恢复缓存命中率。 |
+| 2026-08-11 | 用户反馈 | `8d9a437cc9aa46ecd419b725762cd4bc76bc3428` | 让请求详情 JSON 框跟随根节点折叠，并增加滚动时的居中折叠入口。 |

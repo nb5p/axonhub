@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - b5ce74722cecf2e49ff4b078832a6e51928b341e
+    - 94b9edd65a1733aa776bc402cd8130c4ea720612
   modules:
     - internal/objects/apikey.go
     - internal/server/biz/api_key.go
@@ -57,6 +58,7 @@ database:
 - 直接编辑联动配置时，在同一数据库事务内更新模板、所有关联配置和当前 Key；冲突的同模板多份编辑会被拒绝。
 - 同步、加载和删除模板后主动失效所有受影响 API Key 的运行时缓存。
 - 模板管理、模板加载、API Key 列表和配置卡片统一使用循环箭头图标标识联动模板。
+- 普通模板脱离时立即清除关联并把配置名称重置为第一个未占用的 `Profile N`；表单与后端共同阻止忽略大小写和首尾空格后的重名。
 - GraphQL 的 Profile 输入与输出均传递 `templateSync`，并通过 `make generate` 更新生成代码。
 
 ## 与来源的差异
@@ -77,9 +79,11 @@ database:
 - `go test ./internal/server/gql -run 'TestAPIKeyProfileTemplate|Test.*ProfileTemplate' -count=1`：通过。
 - `./node_modules/.bin/tsc --noEmit`：通过。
 - `TestSynchronizedTemplatePublishesAPIKeyProfileEdits` 覆盖新关联、Key 端修改、跨 Key 传播、运行时缓存失效和开关不可关闭。
+- 脱离模板重命名修正：`go test ./internal/server/biz -run TestAPIKeyService_UpdateAPIKeyProfiles -count=1` 与 `pnpm build` 通过。
 
 ## 更新历史
 
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `b5ce74722cecf2e49ff4b078832a6e51928b341e` | 新增模板永久联动、反向发布、缓存失效、开关和专用图标。 |
+| 2026-08-11 | 用户反馈 | `94b9edd65a1733aa776bc402cd8130c4ea720612` | 脱离模板时立即恢复唯一默认配置名，并在编辑期间实时校验重名。 |
