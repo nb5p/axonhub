@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - 42e7db95a0c834e39cc72f869c72421e5cc45a73
+    - b3e3aba6b493ffcdb384835c513d41368f8a0d21
   modules:
     - internal/server/biz/channel_query.go
     - internal/server/biz/channel_query_test.go
@@ -51,6 +52,7 @@ database:
 - 新增 `models` 和 `modelsMatchMode` 查询参数，默认按任一模型命中。
 - 服务端基于渠道最终模型集合判断，包含渠道映射、前缀和自动裁剪模型。
 - 前端模型筛选改为多选，已选项稳定置顶，并提供“或/且”切换。
+- “或/且”控制位于“模型”和已选数量之间；只选择一个模型时隐藏，选择至少两个模型后显示并可点击切换。
 
 ## 与来源的差异
 
@@ -74,3 +76,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `42e7db95a0c834e39cc72f869c72421e5cc45a73` | 新增多模型 OR/AND 服务端筛选和前端交互。 |
+| 2026-08-11 | `upstream/unstable@9dfd6ac0` | `b3e3aba6b493ffcdb384835c513d41368f8a0d21` | 将关系切换移入模型筛选触发器，并仅在多选时显示。 |
