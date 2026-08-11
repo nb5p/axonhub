@@ -176,14 +176,23 @@ enum QuotaEnforcementMode {
   DE_PRIORITIZE
 }
 
+enum QuotaTimeWindowDisplayStyle {
+  TRIANGLE
+  BAR
+}
+
 type QuotaEnforcementSettings {
   enabled: Boolean!
   mode: QuotaEnforcementMode!
+  reverseUsageDisplay: Boolean!
+  timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle!
 }
 
 input UpdateQuotaEnforcementSettingsInput {
   enabled: Boolean
   mode: QuotaEnforcementMode
+  reverseUsageDisplay: Boolean
+  timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle
 }
 
 type ProviderQuotaCollectionProvider {

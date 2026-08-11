@@ -198,6 +198,55 @@ func TestSystemService_SidebarNavigationSettings(t *testing.T) {
 	require.Equal(t, []string{"admin.users", "project.threads"}, settings.HiddenItems)
 }
 
+func TestSystemService_QuotaEnforcementDisplaySettings(t *testing.T) {
+	t.Run("defaults", func(t *testing.T) {
+		service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})
+		defer client.Close()
+
+		ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+		settings, err := service.QuotaEnforcementSettings(ctx)
+		require.NoError(t, err)
+		require.False(t, settings.ReverseUsageDisplay)
+		require.Equal(t, QuotaTimeWindowDisplayStyleTriangle, settings.TimeWindowDisplayStyle)
+	})
+
+	t.Run("legacy JSON", func(t *testing.T) {
+		service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})
+		defer client.Close()
+
+		ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+		_, err := client.System.Create().
+			SetKey(SystemKeyQuotaEnforcementSettings).
+			SetValue(`{"enabled":true,"mode":"exhausted_only"}`).
+			Save(ctx)
+		require.NoError(t, err)
+
+		settings, err := service.QuotaEnforcementSettings(ctx)
+		require.NoError(t, err)
+		require.True(t, settings.Enabled)
+		require.False(t, settings.ReverseUsageDisplay)
+		require.Equal(t, QuotaTimeWindowDisplayStyleTriangle, settings.TimeWindowDisplayStyle)
+	})
+
+	t.Run("persists preferences", func(t *testing.T) {
+		service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})
+		defer client.Close()
+
+		ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+		err := service.SetQuotaEnforcementSettings(ctx, QuotaEnforcementSettings{
+			Mode:                   QuotaEnforcementModeDePrioritize,
+			ReverseUsageDisplay:    true,
+			TimeWindowDisplayStyle: QuotaTimeWindowDisplayStyleBar,
+		})
+		require.NoError(t, err)
+
+		settings, err := service.QuotaEnforcementSettings(ctx)
+		require.NoError(t, err)
+		require.True(t, settings.ReverseUsageDisplay)
+		require.Equal(t, QuotaTimeWindowDisplayStyleBar, settings.TimeWindowDisplayStyle)
+	})
+}
+
 func TestSystemService_StoragePolicy(t *testing.T) {
 	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
 

@@ -189,14 +189,22 @@ func (r *mutationResolver) UpdateQuotaEnforcementSettings(ctx context.Context, i
 		return false, fmt.Errorf("failed to read current quota enforcement settings: %w", err)
 	}
 	newSettings := biz.QuotaEnforcementSettings{
-		Enabled: current.Enabled,
-		Mode:    current.Mode,
+		Enabled:                current.Enabled,
+		Mode:                   current.Mode,
+		ReverseUsageDisplay:    current.ReverseUsageDisplay,
+		TimeWindowDisplayStyle: current.TimeWindowDisplayStyle,
 	}
 	if input.Enabled != nil {
 		newSettings.Enabled = *input.Enabled
 	}
 	if input.Mode != nil {
 		newSettings.Mode = *input.Mode
+	}
+	if input.ReverseUsageDisplay != nil {
+		newSettings.ReverseUsageDisplay = *input.ReverseUsageDisplay
+	}
+	if input.TimeWindowDisplayStyle != nil {
+		newSettings.TimeWindowDisplayStyle = *input.TimeWindowDisplayStyle
 	}
 
 	err = r.systemService.SetQuotaEnforcementSettings(ctx, newSettings)

@@ -718,6 +718,9 @@ models:
   QuotaEnforcementMode:
     model:
       - github.com/looplj/axonhub/internal/server/biz.QuotaEnforcementMode
+  QuotaTimeWindowDisplayStyle:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.QuotaTimeWindowDisplayStyle
   TraceStickyMode:
     model:
       - github.com/looplj/axonhub/internal/server/biz.TraceStickyMode

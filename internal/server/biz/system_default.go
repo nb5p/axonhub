@@ -84,8 +84,10 @@ var defaultVideoStorageSettings = VideoStorageSettings{
 }
 
 var defaultQuotaEnforcementSettings = QuotaEnforcementSettings{
-	Enabled: false,
-	Mode:    QuotaEnforcementModeExhaustedOnly,
+	Enabled:                false,
+	Mode:                   QuotaEnforcementModeExhaustedOnly,
+	ReverseUsageDisplay:    false,
+	TimeWindowDisplayStyle: QuotaTimeWindowDisplayStyleTriangle,
 }
 
 var defaultSecuritySettings = SecuritySettings{

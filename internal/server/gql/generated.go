@@ -1446,8 +1446,10 @@ type ComplexityRoot struct {
 	}
 
 	QuotaEnforcementSettings struct {
-		Enabled func(childComplexity int) int
-		Mode    func(childComplexity int) int
+		Enabled                func(childComplexity int) int
+		Mode                   func(childComplexity int) int
+		ReverseUsageDisplay    func(childComplexity int) int
+		TimeWindowDisplayStyle func(childComplexity int) int
 	}
 
 	ReasoningEffortMapping struct {
@@ -8852,6 +8854,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.QuotaEnforcementSettings.Mode(childComplexity), true
+	case "QuotaEnforcementSettings.reverseUsageDisplay":
+		if e.complexity.QuotaEnforcementSettings.ReverseUsageDisplay == nil {
+			break
+		}
+
+		return e.complexity.QuotaEnforcementSettings.ReverseUsageDisplay(childComplexity), true
+	case "QuotaEnforcementSettings.timeWindowDisplayStyle":
+		if e.complexity.QuotaEnforcementSettings.TimeWindowDisplayStyle == nil {
+			break
+		}
+
+		return e.complexity.QuotaEnforcementSettings.TimeWindowDisplayStyle(childComplexity), true
 
 	case "ReasoningEffortMapping.from":
 		if e.complexity.ReasoningEffortMapping.From == nil {
@@ -46725,6 +46739,10 @@ func (ec *executionContext) fieldContext_Query_quotaEnforcementSettings(_ contex
 				return ec.fieldContext_QuotaEnforcementSettings_enabled(ctx, field)
 			case "mode":
 				return ec.fieldContext_QuotaEnforcementSettings_mode(ctx, field)
+			case "reverseUsageDisplay":
+				return ec.fieldContext_QuotaEnforcementSettings_reverseUsageDisplay(ctx, field)
+			case "timeWindowDisplayStyle":
+				return ec.fieldContext_QuotaEnforcementSettings_timeWindowDisplayStyle(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type QuotaEnforcementSettings", field.Name)
 		},
@@ -47609,6 +47627,64 @@ func (ec *executionContext) fieldContext_QuotaEnforcementSettings_mode(_ context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type QuotaEnforcementMode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaEnforcementSettings_reverseUsageDisplay(ctx context.Context, field graphql.CollectedField, obj *biz.QuotaEnforcementSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_QuotaEnforcementSettings_reverseUsageDisplay,
+		func(ctx context.Context) (any, error) {
+			return obj.ReverseUsageDisplay, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_QuotaEnforcementSettings_reverseUsageDisplay(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaEnforcementSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuotaEnforcementSettings_timeWindowDisplayStyle(ctx context.Context, field graphql.CollectedField, obj *biz.QuotaEnforcementSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_QuotaEnforcementSettings_timeWindowDisplayStyle,
+		func(ctx context.Context) (any, error) {
+			return obj.TimeWindowDisplayStyle, nil
+		},
+		nil,
+		ec.marshalNQuotaTimeWindowDisplayStyle2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_QuotaEnforcementSettings_timeWindowDisplayStyle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuotaEnforcementSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type QuotaTimeWindowDisplayStyle does not have child fields")
 		},
 	}
 	return fc, nil
@@ -85283,7 +85359,7 @@ func (ec *executionContext) unmarshalInputUpdateQuotaEnforcementSettingsInput(ct
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"enabled", "mode"}
+	fieldsInOrder := [...]string{"enabled", "mode", "reverseUsageDisplay", "timeWindowDisplayStyle"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -85304,6 +85380,20 @@ func (ec *executionContext) unmarshalInputUpdateQuotaEnforcementSettingsInput(ct
 				return it, err
 			}
 			it.Mode = data
+		case "reverseUsageDisplay":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reverseUsageDisplay"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ReverseUsageDisplay = data
+		case "timeWindowDisplayStyle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timeWindowDisplayStyle"))
+			data, err := ec.unmarshalOQuotaTimeWindowDisplayStyle2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TimeWindowDisplayStyle = data
 		}
 	}
 
@@ -102945,6 +103035,16 @@ func (ec *executionContext) _QuotaEnforcementSettings(ctx context.Context, sel a
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "reverseUsageDisplay":
+			out.Values[i] = ec._QuotaEnforcementSettings_reverseUsageDisplay(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timeWindowDisplayStyle":
+			out.Values[i] = ec._QuotaEnforcementSettings_timeWindowDisplayStyle(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -114935,6 +115035,16 @@ func (ec *executionContext) marshalNQuotaEnforcementSettings2ᚖgithubᚗcomᚋl
 	return ec._QuotaEnforcementSettings(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNQuotaTimeWindowDisplayStyle2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle(ctx context.Context, v any) (biz.QuotaTimeWindowDisplayStyle, error) {
+	var res biz.QuotaTimeWindowDisplayStyle
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNQuotaTimeWindowDisplayStyle2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle(ctx context.Context, sel ast.SelectionSet, v biz.QuotaTimeWindowDisplayStyle) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNReasoningEffortMapping2githubᚗcomᚋloopljᚋaxonhubᚋllmᚐReasoningEffortMapping(ctx context.Context, sel ast.SelectionSet, v llm.ReasoningEffortMapping) graphql.Marshaler {
 	return ec._ReasoningEffortMapping(ctx, sel, &v)
 }
@@ -121562,6 +121672,22 @@ func (ec *executionContext) unmarshalOQuotaEnforcementMode2ᚖgithubᚗcomᚋloo
 }
 
 func (ec *executionContext) marshalOQuotaEnforcementMode2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaEnforcementMode(ctx context.Context, sel ast.SelectionSet, v *biz.QuotaEnforcementMode) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOQuotaTimeWindowDisplayStyle2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle(ctx context.Context, v any) (*biz.QuotaTimeWindowDisplayStyle, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(biz.QuotaTimeWindowDisplayStyle)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOQuotaTimeWindowDisplayStyle2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐQuotaTimeWindowDisplayStyle(ctx context.Context, sel ast.SelectionSet, v *biz.QuotaTimeWindowDisplayStyle) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

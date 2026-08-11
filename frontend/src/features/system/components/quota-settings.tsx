@@ -16,11 +16,14 @@ import {
   useUpdateQuotaEnforcementSettings,
   type ProviderQuotaCollectionProvider,
   type QuotaEnforcementMode,
+  type QuotaTimeWindowDisplayStyle,
 } from '../data/system';
 
 interface QuotaEnforcementFormData {
   enabled: boolean;
   mode: QuotaEnforcementMode;
+  reverseUsageDisplay: boolean;
+  timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle;
 }
 
 interface ProviderQuotaCollectionFormData {
@@ -38,6 +41,8 @@ export function QuotaSettings() {
   const [quotaFormData, setQuotaFormData] = useState<QuotaEnforcementFormData>({
     enabled: false,
     mode: 'EXHAUSTED_ONLY',
+    reverseUsageDisplay: false,
+    timeWindowDisplayStyle: 'TRIANGLE',
   });
   const [collectionFormData, setCollectionFormData] = useState<ProviderQuotaCollectionFormData>({
     enabled: true,
@@ -49,6 +54,8 @@ export function QuotaSettings() {
       setQuotaFormData({
         enabled: quotaSettings.enabled,
         mode: quotaSettings.mode,
+        reverseUsageDisplay: quotaSettings.reverseUsageDisplay,
+        timeWindowDisplayStyle: quotaSettings.timeWindowDisplayStyle,
       });
     }
   }, [quotaSettings]);
@@ -159,6 +166,48 @@ export function QuotaSettings() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleQuotaSubmit} className='space-y-6'>
+            <div className='space-y-5'>
+              <div>
+                <div className='text-base font-medium'>{t('system.quota.display.title')}</div>
+                <div className='text-muted-foreground text-sm'>{t('system.quota.display.description')}</div>
+              </div>
+
+              <div className='flex items-center justify-between gap-6' id='quota-reverse-usage-display-switch'>
+                <div className='space-y-0.5'>
+                  <Label htmlFor='quota-reverse-usage-display'>{t('system.quota.display.reverse.label')}</Label>
+                  <div className='text-muted-foreground text-sm'>{t('system.quota.display.reverse.description')}</div>
+                </div>
+                <Switch
+                  id='quota-reverse-usage-display'
+                  checked={quotaFormData.reverseUsageDisplay}
+                  onCheckedChange={(checked) => setQuotaFormData((prev) => ({ ...prev, reverseUsageDisplay: checked }))}
+                />
+              </div>
+
+              <div className='flex items-center justify-between gap-6'>
+                <div className='space-y-0.5'>
+                  <Label htmlFor='quota-time-window-display-style'>{t('system.quota.display.timeWindow.label')}</Label>
+                  <div className='text-muted-foreground text-sm'>{t('system.quota.display.timeWindow.description')}</div>
+                </div>
+                <Select
+                  value={quotaFormData.timeWindowDisplayStyle}
+                  onValueChange={(value) =>
+                    setQuotaFormData((prev) => ({ ...prev, timeWindowDisplayStyle: value as QuotaTimeWindowDisplayStyle }))
+                  }
+                >
+                  <SelectTrigger id='quota-time-window-display-style' className='w-40 shrink-0'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='TRIANGLE'>{t('system.quota.display.timeWindow.options.triangle')}</SelectItem>
+                    <SelectItem value='BAR'>{t('system.quota.display.timeWindow.options.bar')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator />
+
             <div className='flex items-center justify-between' id='quota-enabled-switch'>
               <div className='space-y-0.5'>
                 <Label htmlFor='quota-enabled' className='text-base'>

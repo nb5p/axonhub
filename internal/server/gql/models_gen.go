@@ -616,8 +616,10 @@ type UpdateProviderQuotaCollectionSettingsInput struct {
 }
 
 type UpdateQuotaEnforcementSettingsInput struct {
-	Enabled *bool                     `json:"enabled,omitempty"`
-	Mode    *biz.QuotaEnforcementMode `json:"mode,omitempty"`
+	Enabled                *bool                            `json:"enabled,omitempty"`
+	Mode                   *biz.QuotaEnforcementMode        `json:"mode,omitempty"`
+	ReverseUsageDisplay    *bool                            `json:"reverseUsageDisplay,omitempty"`
+	TimeWindowDisplayStyle *biz.QuotaTimeWindowDisplayStyle `json:"timeWindowDisplayStyle,omitempty"`
 }
 
 type UpdateSecuritySettingsInput struct {

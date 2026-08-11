@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { clampQuotaPercentage, getQuotaDisplayPercentage } from '@/lib/quota-display';
 import {
   useProviderQuotaStatuses,
   ProviderQuotaChannel,
@@ -28,7 +29,12 @@ import {
   resetChannelQuotaNow,
   checkProviderQuotas,
 } from '@/features/system/data/quotas';
-import { useQuotaEnforcementSettings, type QuotaEnforcementMode } from '@/features/system/data/system';
+import {
+  useQuotaDisplaySettings,
+  useQuotaEnforcementSettings,
+  type QuotaEnforcementMode,
+  type QuotaTimeWindowDisplayStyle,
+} from '@/features/system/data/system';
 
 const syntheticWeeklyRegenTickPct = 0.02;
 
@@ -196,18 +202,20 @@ function ProgressBar({
   percentage,
   type = 'usage',
   durationPercentage,
+  severityPercentage,
 }: {
   percentage: number;
   type?: 'usage' | 'duration';
   durationPercentage?: number;
+  severityPercentage?: number;
 }) {
-  const clamped = Math.min(Math.max(percentage || 0, 0), 100);
+  const clamped = clampQuotaPercentage(percentage);
 
   let bgStyle = {};
   if (type === 'duration') {
     bgStyle = { backgroundColor: '#71717a' }; // zinc-500
   } else {
-    const u = clamped / 100;
+    const u = clampQuotaPercentage(severityPercentage ?? percentage) / 100;
     let severity = u;
     if (durationPercentage !== undefined && durationPercentage > 0) {
       const d = Math.max(durationPercentage / 100, 0.01);
@@ -239,18 +247,47 @@ function ProgressBar({
   );
 }
 
-// UsageTimeBar shows usage on a single progress bar with a small triangle below
-// it marking how far the reset window has elapsed (time progress). Hovering
-// reveals the detailed figures via tooltip, keeping the row compact.
-function UsageTimeBar({ usagePercent, durationPercent, tooltip }: { usagePercent: number; durationPercent?: number; tooltip: ReactNode }) {
+// UsageTimeBar combines quota usage with elapsed reset-window time. Time can be
+// rendered as a compact triangle marker or as a separate progress bar.
+function UsageTimeBar({
+  usagePercent,
+  displayPercent = usagePercent,
+  durationPercent,
+  timeWindowDisplayStyle = 'TRIANGLE',
+  durationLabel,
+  tooltip,
+}: {
+  usagePercent: number;
+  displayPercent?: number;
+  durationPercent?: number;
+  timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
+  durationLabel?: ReactNode;
+  tooltip: ReactNode;
+}) {
   const markerLeft = durationPercent === undefined ? undefined : Math.min(Math.max(durationPercent, 0), 100);
+  const showTriangle = timeWindowDisplayStyle === 'TRIANGLE';
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className='relative cursor-default pb-1.5'>
-          <ProgressBar percentage={usagePercent} durationPercentage={durationPercent} />
-          {markerLeft !== undefined && (
+        <div className={`relative cursor-default ${showTriangle ? 'pb-1.5' : 'space-y-1.5'}`}>
+          <ProgressBar
+            percentage={displayPercent}
+            severityPercentage={usagePercent}
+            durationPercentage={durationPercent}
+          />
+          {!showTriangle && durationPercent !== undefined && (
+            <div className='space-y-1'>
+              {durationLabel && (
+                <div className='text-muted-foreground flex items-center justify-between text-[11px]'>
+                  <span>{durationLabel}</span>
+                  <span>{Math.round(durationPercent)}%</span>
+                </div>
+              )}
+              <ProgressBar type='duration' percentage={durationPercent} />
+            </div>
+          )}
+          {showTriangle && markerLeft !== undefined && (
             <div className='absolute top-2 -translate-x-1/2' style={{ left: `${markerLeft}%` }} aria-hidden>
               {/* upward triangle pointing at the bar, marking elapsed time */}
               <div className='border-b-muted-foreground h-0 w-0 border-x-[3px] border-b-[4px] border-x-transparent' />
@@ -269,7 +306,17 @@ function formatTokenCount(n: number): string {
   return `${n}`;
 }
 
-function QuotaRow({ channel, enforcementMode }: { channel: ProviderQuotaChannel; enforcementMode?: QuotaEnforcementMode | null }) {
+function QuotaRow({
+  channel,
+  enforcementMode,
+  reverseUsageDisplay = false,
+  timeWindowDisplayStyle = 'TRIANGLE',
+}: {
+  channel: ProviderQuotaChannel;
+  enforcementMode?: QuotaEnforcementMode | null;
+  reverseUsageDisplay?: boolean;
+  timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
+}) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [isResetting, setIsResetting] = useState(false);
@@ -289,6 +336,12 @@ function QuotaRow({ channel, enforcementMode }: { channel: ProviderQuotaChannel;
   const percentage = getChannelPercentage(channel);
   const batteryLevel = getBatteryLevel(percentage, status);
   const BatteryIcon = getBatteryIcon(batteryLevel);
+  const formatQuotaUsage = (usedPercentage: number) => {
+    const displayPercentage = getQuotaDisplayPercentage(usedPercentage, reverseUsageDisplay);
+    return t(reverseUsageDisplay ? 'quota.label.percent_remaining' : 'quota.label.percent_used', {
+      percent: Math.round(displayPercentage),
+    });
+  };
 
   const handleResetCodexQuota = async () => {
     if (channel.type !== 'codex') return;
@@ -661,15 +714,18 @@ function QuotaRow({ channel, enforcementMode }: { channel: ProviderQuotaChannel;
                   <div className='space-y-1.5'>
                     <div className='flex items-center justify-between text-xs'>
                       <span className='text-muted-foreground font-medium'>{t('quota.label.primary_window')}</span>
-                      <span className='text-foreground font-medium'>{Math.round(primaryWindow.used_percent || 0)}%</span>
+                      <span className='text-foreground font-medium'>{formatQuotaUsage(primaryWindow.used_percent || 0)}</span>
                     </div>
                     <UsageTimeBar
                       usagePercent={primaryWindow.used_percent || 0}
+                      displayPercent={getQuotaDisplayPercentage(primaryWindow.used_percent || 0, reverseUsageDisplay)}
                       durationPercent={primaryDurationPct}
+                      timeWindowDisplayStyle={timeWindowDisplayStyle}
+                      durationLabel={t('quota.label.time_elapsed')}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t('quota.label.primary_window')}</div>
-                          <div>{Math.round(primaryWindow.used_percent || 0)}%</div>
+                          <div>{formatQuotaUsage(primaryWindow.used_percent || 0)}</div>
                           {primaryDurationPct !== undefined && (
                             <div>
                               {t('quota.label.time_elapsed')}: {Math.round(primaryDurationPct)}%
@@ -696,15 +752,18 @@ function QuotaRow({ channel, enforcementMode }: { channel: ProviderQuotaChannel;
                   <div className='border-border/60 mt-3 space-y-1.5 border-t border-dashed pt-3'>
                     <div className='flex items-center justify-between text-xs'>
                       <span className='text-muted-foreground font-medium'>{t('quota.label.secondary_window')}</span>
-                      <span className='text-foreground font-medium'>{Math.round(secondaryWindow.used_percent)}%</span>
+                      <span className='text-foreground font-medium'>{formatQuotaUsage(secondaryWindow.used_percent)}</span>
                     </div>
                     <UsageTimeBar
                       usagePercent={secondaryWindow.used_percent}
+                      displayPercent={getQuotaDisplayPercentage(secondaryWindow.used_percent, reverseUsageDisplay)}
                       durationPercent={secondaryDurationPct}
+                      timeWindowDisplayStyle={timeWindowDisplayStyle}
+                      durationLabel={t('quota.label.time_elapsed')}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t('quota.label.secondary_window')}</div>
-                          <div>{Math.round(secondaryWindow.used_percent)}%</div>
+                          <div>{formatQuotaUsage(secondaryWindow.used_percent)}</div>
                           {secondaryDurationPct !== undefined && (
                             <div>
                               {t('quota.label.time_elapsed')}: {Math.round(secondaryDurationPct)}%
@@ -948,15 +1007,18 @@ function QuotaRow({ channel, enforcementMode }: { channel: ProviderQuotaChannel;
                   <div key={key} className={index > 0 ? 'border-border/60 space-y-1.5 border-t border-dashed pt-3' : 'space-y-1.5'}>
                     <div className='flex items-center justify-between text-xs'>
                       <span className='text-muted-foreground font-medium'>{t(labelKey)}</span>
-                      <span className='text-foreground font-medium'>{t('quota.label.percent_used', { percent: Math.round(usedPct) })}</span>
+                      <span className='text-foreground font-medium'>{formatQuotaUsage(usedPct)}</span>
                     </div>
                     <UsageTimeBar
                       usagePercent={usedPct}
+                      displayPercent={getQuotaDisplayPercentage(usedPct, reverseUsageDisplay)}
                       durationPercent={durationPct}
+                      timeWindowDisplayStyle={timeWindowDisplayStyle}
+                      durationLabel={t('quota.label.time_elapsed')}
                       tooltip={
                         <div className='space-y-0.5'>
                           <div className='font-medium'>{t(labelKey)}</div>
-                          <div>{t('quota.label.percent_used', { percent: Math.round(usedPct) })}</div>
+                          <div>{formatQuotaUsage(usedPct)}</div>
                           {durationPct !== undefined && (
                             <div>
                               {t('quota.label.time_elapsed')}: {Math.round(durationPct)}%
@@ -1545,6 +1607,7 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
   const { t } = useTranslation();
   const { channels, isLoading, isError, error } = useProviderQuotaStatuses();
   const { data: enforcementSettings } = useQuotaEnforcementSettings();
+  const { data: displaySettings } = useQuotaDisplaySettings();
   const enforcementMode = enforcementSettings?.enabled ? enforcementSettings.mode : null;
 
   if (!isLoading && !isError && channels.length === 0) return null;
@@ -1599,7 +1662,13 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
         className={`max-h-[60vh] overflow-y-auto pr-1 pl-1 ${groupedChannels.length > 4 ? 'grid grid-cols-1 gap-x-4 sm:grid-cols-2' : ''}`}
       >
         {groupedChannels.map((channel: ProviderQuotaChannel) => (
-          <QuotaRow key={channel.id} channel={channel} enforcementMode={enforcementMode} />
+          <QuotaRow
+            key={channel.id}
+            channel={channel}
+            enforcementMode={enforcementMode}
+            reverseUsageDisplay={displaySettings?.reverseUsageDisplay}
+            timeWindowDisplayStyle={displaySettings?.timeWindowDisplayStyle}
+          />
         ))}
       </div>
     );

@@ -219,12 +219,71 @@ func (m *QuotaEnforcementMode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// QuotaTimeWindowDisplayStyle controls how elapsed time is shown next to quota usage.
+type QuotaTimeWindowDisplayStyle string
+
+const (
+	// QuotaTimeWindowDisplayStyleTriangle marks elapsed time with a compact triangle.
+	QuotaTimeWindowDisplayStyleTriangle QuotaTimeWindowDisplayStyle = "triangle"
+	// QuotaTimeWindowDisplayStyleBar renders elapsed time as a separate progress bar.
+	QuotaTimeWindowDisplayStyleBar QuotaTimeWindowDisplayStyle = "bar"
+)
+
+func (s QuotaTimeWindowDisplayStyle) MarshalGQL(w io.Writer) {
+	value := "TRIANGLE"
+	if s == QuotaTimeWindowDisplayStyleBar {
+		value = "BAR"
+	}
+
+	_, _ = fmt.Fprintf(w, "%q", value)
+}
+
+func (s *QuotaTimeWindowDisplayStyle) UnmarshalGQL(v any) error {
+	value, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("QuotaTimeWindowDisplayStyle must be a string")
+	}
+
+	switch value {
+	case "TRIANGLE":
+		*s = QuotaTimeWindowDisplayStyleTriangle
+	case "BAR":
+		*s = QuotaTimeWindowDisplayStyleBar
+	default:
+		return fmt.Errorf("invalid QuotaTimeWindowDisplayStyle: %s", value)
+	}
+
+	return nil
+}
+
+func (s *QuotaTimeWindowDisplayStyle) UnmarshalJSON(data []byte) error {
+	var raw string
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("invalid QuotaTimeWindowDisplayStyle: %w", err)
+	}
+
+	switch raw {
+	case "TRIANGLE", string(QuotaTimeWindowDisplayStyleTriangle):
+		*s = QuotaTimeWindowDisplayStyleTriangle
+	case "BAR", string(QuotaTimeWindowDisplayStyleBar):
+		*s = QuotaTimeWindowDisplayStyleBar
+	default:
+		return fmt.Errorf("invalid QuotaTimeWindowDisplayStyle: %q", raw)
+	}
+
+	return nil
+}
+
 // QuotaEnforcementSettings represents quota enforcement configuration.
 type QuotaEnforcementSettings struct {
 	// Enabled controls whether quota enforcement is active.
 	Enabled bool `json:"enabled"`
 	// Mode defines how quota is enforced.
 	Mode QuotaEnforcementMode `json:"mode"`
+	// ReverseUsageDisplay shows remaining quota instead of consumed quota.
+	ReverseUsageDisplay bool `json:"reverse_usage_display"`
+	// TimeWindowDisplayStyle controls whether elapsed time uses a triangle or bar.
+	TimeWindowDisplayStyle QuotaTimeWindowDisplayStyle `json:"time_window_display_style"`
 }
 
 // SecuritySettings represents system-wide request access controls.
@@ -1900,6 +1959,9 @@ func (s *SystemService) QuotaEnforcementSettings(ctx context.Context) (*QuotaEnf
 	if settings.Mode == "" {
 		settings.Mode = defaultQuotaEnforcementSettings.Mode
 	}
+	if settings.TimeWindowDisplayStyle == "" {
+		settings.TimeWindowDisplayStyle = defaultQuotaEnforcementSettings.TimeWindowDisplayStyle
+	}
 
 	return &settings, nil
 }
@@ -1921,9 +1983,15 @@ func (s *SystemService) SetQuotaEnforcementSettings(ctx context.Context, setting
 	if settings.Mode == "" {
 		settings.Mode = defaultQuotaEnforcementSettings.Mode
 	}
+	if settings.TimeWindowDisplayStyle == "" {
+		settings.TimeWindowDisplayStyle = defaultQuotaEnforcementSettings.TimeWindowDisplayStyle
+	}
 
 	if settings.Mode != QuotaEnforcementModeExhaustedOnly && settings.Mode != QuotaEnforcementModeDePrioritize {
 		return fmt.Errorf("invalid quota enforcement mode: %q", settings.Mode)
+	}
+	if settings.TimeWindowDisplayStyle != QuotaTimeWindowDisplayStyleTriangle && settings.TimeWindowDisplayStyle != QuotaTimeWindowDisplayStyleBar {
+		return fmt.Errorf("invalid quota time window display style: %q", settings.TimeWindowDisplayStyle)
 	}
 
 	jsonBytes, err := json.Marshal(settings)

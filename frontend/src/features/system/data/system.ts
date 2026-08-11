@@ -1742,6 +1742,17 @@ const QUOTA_ENFORCEMENT_SETTINGS_QUERY = `
     quotaEnforcementSettings {
       enabled
       mode
+      reverseUsageDisplay
+      timeWindowDisplayStyle
+    }
+  }
+`;
+
+const QUOTA_DISPLAY_SETTINGS_QUERY = `
+  query QuotaDisplaySettings {
+    quotaEnforcementSettings {
+      reverseUsageDisplay
+      timeWindowDisplayStyle
     }
   }
 `;
@@ -1753,15 +1764,22 @@ const UPDATE_QUOTA_ENFORCEMENT_SETTINGS_MUTATION = `
 `;
 
 export type QuotaEnforcementMode = 'EXHAUSTED_ONLY' | 'DE_PRIORITIZE';
+export type QuotaTimeWindowDisplayStyle = 'TRIANGLE' | 'BAR';
 
 export interface QuotaEnforcementSettings {
   enabled: boolean;
   mode: QuotaEnforcementMode;
+  reverseUsageDisplay: boolean;
+  timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle;
 }
+
+export type QuotaDisplaySettings = Pick<QuotaEnforcementSettings, 'reverseUsageDisplay' | 'timeWindowDisplayStyle'>;
 
 export interface UpdateQuotaEnforcementSettingsInput {
   enabled?: boolean;
   mode?: QuotaEnforcementMode;
+  reverseUsageDisplay?: boolean;
+  timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
 }
 
 export function useQuotaEnforcementSettings() {
@@ -1783,6 +1801,23 @@ export function useQuotaEnforcementSettings() {
   });
 }
 
+export function useQuotaDisplaySettings() {
+  const { handleError } = useErrorHandler();
+
+  return useQuery({
+    queryKey: ['quotaDisplaySettings'],
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ quotaEnforcementSettings: QuotaDisplaySettings }>(QUOTA_DISPLAY_SETTINGS_QUERY);
+        return data.quotaEnforcementSettings;
+      } catch (error) {
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+  });
+}
+
 export function useUpdateQuotaEnforcementSettings() {
   const queryClient = useQueryClient();
 
@@ -1793,6 +1828,7 @@ export function useUpdateQuotaEnforcementSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotaEnforcementSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['quotaDisplaySettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },
     onError: () => {
