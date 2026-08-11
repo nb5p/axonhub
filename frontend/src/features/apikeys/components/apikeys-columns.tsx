@@ -116,7 +116,7 @@ export const createColumns = (
             />
           ),
           enableSorting: false,
-          enableHiding: false,
+          enableHiding: true,
         },
       ]
     : []),

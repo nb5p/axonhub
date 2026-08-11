@@ -18,6 +18,7 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
   const columnLabels: Record<string, string> = {
+    select: t('common.columns.selection'),
     id: t('common.columns.id'),
     name: t('common.columns.name'),
     key: t('apikeys.columns.key'),
@@ -44,7 +45,10 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           .getAllColumns()
           .filter((column) => {
             const accessorKey = column.columnDef.accessorKey;
-            return (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined') && column.getCanHide();
+            return (
+              (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined' || column.id === 'select') &&
+              column.getCanHide()
+            );
           })
           .map((column) => {
             return (
