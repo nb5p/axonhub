@@ -4,7 +4,6 @@ import { cloneElement, useMemo } from 'react';
 import { CheckIcon, PlusCircledIcon } from '@radix-ui/react-icons';
 import { Loader2 } from 'lucide-react';
 import { ActivityCalendar, type Activity } from 'react-activity-calendar';
-import 'react-activity-calendar/tooltips.css';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/format-number';
@@ -16,6 +15,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TruncatedText } from '@/components/truncated-text';
 import { useGeneralSettings } from '../../system/data/system';
 import { useAPIKeyActivityHeatmap, type APIKeyActivityHeatmapBucket } from '../data/dashboard';
 
@@ -180,6 +181,32 @@ export function ApiKeyActivityHeatmap() {
     level: getActivityLevel(bucket.requestCount, maxRequestCount),
   }));
 
+  const getActivityTooltip = (activity: Activity) => {
+    const bucket = activityByDate.get(activity.date);
+    if (!bucket) return activity.date;
+
+    const contributionLines = bucket.contributions.slice(0, MAX_TOOLTIP_CONTRIBUTORS).map((contribution) =>
+      t('dashboard.charts.apiKeyActivityContribution', {
+        name: contribution.apiKeyName,
+        requests: formatNumber(contribution.requestCount),
+      })
+    );
+    const remainingContributors = bucket.contributions.length - contributionLines.length;
+    if (remainingContributors > 0) {
+      contributionLines.push(t('dashboard.charts.apiKeyActivityMoreContributors', { count: remainingContributors }));
+    }
+    const breakdown = contributionLines.length ? `\n${t('dashboard.charts.apiKeyActivityBreakdown')}\n${contributionLines.join('\n')}` : '';
+
+    return t('dashboard.charts.apiKeyActivityTooltip', {
+      date: activity.date,
+      keys: selectedApiKeyIds.size,
+      requests: formatNumber(bucket.requestCount),
+      tokens: formatNumber(bucket.totalTokens),
+      cost: formatCurrency(bucket.cost),
+      breakdown,
+    });
+  };
+
   const toggleApiKey = (apiKeyId: string) => {
     setStoredSelectedApiKeyIds((current) => {
       const next = new Set(current === null ? allApiKeyIds : current);
@@ -265,9 +292,7 @@ export function ApiKeyActivityHeatmap() {
                         >
                           <CheckIcon className='size-4' />
                         </div>
-                        <span className='min-w-0 flex-1 truncate' title={group.apiKeyName}>
-                          {group.apiKeyName}
-                        </span>
+                        <TruncatedText className='block min-w-0 flex-1'>{group.apiKeyName}</TruncatedText>
                         <span className='text-muted-foreground ml-auto font-mono text-xs'>{formatNumber(group.totalRequests)}</span>
                       </CommandItem>
                     );
@@ -312,46 +337,23 @@ export function ApiKeyActivityHeatmap() {
               showTotalCount={false}
               showWeekdayLabels={['mon', 'wed', 'fri']}
               theme={getCalendarTheme()}
-              tooltips={{
-                activity: {
-                  text: (activity) => {
-                    const bucket = activityByDate.get(activity.date);
-                    if (!bucket) return activity.date;
-
-                    const contributionLines = bucket.contributions.slice(0, MAX_TOOLTIP_CONTRIBUTORS).map((contribution) =>
-                      t('dashboard.charts.apiKeyActivityContribution', {
-                        name: contribution.apiKeyName,
-                        requests: formatNumber(contribution.requestCount),
-                      })
-                    );
-                    const remainingContributors = bucket.contributions.length - contributionLines.length;
-                    if (remainingContributors > 0) {
-                      contributionLines.push(t('dashboard.charts.apiKeyActivityMoreContributors', { count: remainingContributors }));
-                    }
-                    const breakdown = contributionLines.length
-                      ? `\n${t('dashboard.charts.apiKeyActivityBreakdown')}\n${contributionLines.join('\n')}`
-                      : '';
-
-                    return t('dashboard.charts.apiKeyActivityTooltip', {
-                      date: activity.date,
-                      keys: selectedApiKeyIds.size,
-                      requests: formatNumber(bucket.requestCount),
-                      tokens: formatNumber(bucket.totalTokens),
-                      cost: formatCurrency(bucket.cost),
-                      breakdown,
-                    });
-                  },
-                },
-              }}
-              renderBlock={(block, activity) =>
-                cloneElement(block, {
-                  'aria-label': t('dashboard.charts.apiKeyActivityAriaLabel', {
-                    date: activity.date,
-                    keys: selectedApiKeyIds.size,
-                    count: activity.count,
-                  }),
-                })
-              }
+              renderBlock={(block, activity) => (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {cloneElement(block, {
+                      tabIndex: 0,
+                      'aria-label': t('dashboard.charts.apiKeyActivityAriaLabel', {
+                        date: activity.date,
+                        keys: selectedApiKeyIds.size,
+                        count: activity.count,
+                      }),
+                    })}
+                  </TooltipTrigger>
+                  <TooltipContent side='top' className='max-w-80 whitespace-pre-line'>
+                    {getActivityTooltip(activity)}
+                  </TooltipContent>
+                </Tooltip>
+              )}
             />
           </div>
         </div>

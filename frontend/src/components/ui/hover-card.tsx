@@ -2,14 +2,44 @@
 
 import * as React from 'react';
 import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
+import { useControllableState } from '@radix-ui/react-use-controllable-state';
 import { cn } from '@/lib/utils';
+import { getTooltipOpenStateAfterPress } from './tap-tooltip-state';
 
-function HoverCard({ ...props }: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
-  return <HoverCardPrimitive.Root data-slot='hover-card' {...props} />;
+interface HoverCardTouchContextValue {
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
-function HoverCardTrigger({ ...props }: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
-  return <HoverCardPrimitive.Trigger data-slot='hover-card-trigger' {...props} />;
+const HoverCardTouchContext = React.createContext<HoverCardTouchContextValue | null>(null);
+
+function HoverCard({ open: openProp, defaultOpen, onOpenChange, ...props }: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
+  const [open = false, setOpen] = useControllableState({
+    prop: openProp,
+    defaultProp: defaultOpen ?? false,
+    onChange: onOpenChange,
+    caller: 'HoverCard',
+  });
+
+  return (
+    <HoverCardTouchContext.Provider value={{ open, setOpen }}>
+      <HoverCardPrimitive.Root data-slot='hover-card' open={open} onOpenChange={setOpen} {...props} />
+    </HoverCardTouchContext.Provider>
+  );
+}
+
+function HoverCardTrigger({ onPointerDown, ...props }: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
+  const touchContext = React.useContext(HoverCardTouchContext);
+
+  const handlePointerDown: React.PointerEventHandler<HTMLAnchorElement> = (event) => {
+    onPointerDown?.(event);
+    if (!touchContext) return;
+
+    const nextOpen = getTooltipOpenStateAfterPress(event.pointerType, touchContext.open);
+    if (nextOpen !== undefined) touchContext.setOpen(nextOpen);
+  };
+
+  return <HoverCardPrimitive.Trigger data-slot='hover-card-trigger' onPointerDown={handlePointerDown} {...props} />;
 }
 
 function HoverCardContent({

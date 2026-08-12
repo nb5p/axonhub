@@ -6,6 +6,7 @@ import { useQueryModels } from '@/gql/models';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DataTableFacetedFilter } from '@/components/data-table-faceted-filter';
 import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { useAllChannelTags } from '../data/channels';
@@ -149,9 +150,10 @@ export function DataTableToolbar<TData>({
           selectionCountLabel={(count) => t('channels.filters.selectedModels', { count })}
           selectionControl={
             selectedModelCount > 1 ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
               <span
                 className='hover:bg-accent hover:text-accent-foreground -my-1 rounded px-1.5 py-1 font-medium'
-                title={t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
                 onPointerDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -164,6 +166,11 @@ export function DataTableToolbar<TData>({
               >
                 {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
               </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
+                </TooltipContent>
+              </Tooltip>
             ) : undefined
           }
         />

@@ -70,7 +70,6 @@ export default function OidcManagement({ providers }: OidcManagementProps) {
               <div
                 key={providerId}
                 className={`flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md ${isInactive ? 'border-2 border-destructive' : ''}`}
-                title={isInactive ? t('common.status.inactiveRetry') : undefined}
               >
                 <div className='flex items-center gap-3'>
                   {p.icon_url && (

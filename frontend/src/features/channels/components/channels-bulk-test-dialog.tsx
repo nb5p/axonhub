@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TruncatedText } from '@/components/truncated-text';
 import { useChannels } from '../context/channels-context';
 import { useBulkRecoverChannels, useTestChannel } from '../data/channels';
 import { Channel } from '../data/schema';
@@ -305,17 +306,13 @@ export function ChannelsBulkTestDialog() {
                     return (
                       <TableRow key={channel.id}>
                         <TableCell className='align-top'>
-                          <div className='truncate font-medium' title={channel.name}>
-                            {channel.name}
-                          </div>
+                          <TruncatedText className='block font-medium'>{channel.name}</TruncatedText>
                         </TableCell>
                         <TableCell className='align-top'>
                           <div className='truncate'>{t(`channels.status.${channel.status}`)}</div>
                         </TableCell>
                         <TableCell className='align-top'>
-                          <div className='truncate' title={result?.modelID || '-'}>
-                            {result?.modelID || '-'}
-                          </div>
+                          <TruncatedText className='block'>{result?.modelID || '-'}</TruncatedText>
                         </TableCell>
                         <TableCell className='align-top'>
                           <div className='space-y-1'>

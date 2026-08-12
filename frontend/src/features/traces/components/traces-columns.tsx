@@ -11,6 +11,7 @@ import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
+import { TruncatedText } from '@/components/truncated-text';
 import { IconArchive, IconPin, IconRotate } from '@tabler/icons-react';
 import { Trace } from '../data/schema';
 import { useArchiveTrace, useUnarchiveTrace, useRetainTrace, useUnretainTrace } from '../data/traces';
@@ -119,11 +120,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
       enableSorting: false,
       cell: ({ row }) => {
         const query = row.getValue('firstUserQuery') as string | null | undefined;
-        return (
-          <div className='max-w-64 truncate text-xs' title={query || ''}>
-            {query || '-'}
-          </div>
-        );
+        return <TruncatedText className='block max-w-64 text-xs'>{query || '-'}</TruncatedText>;
       },
     },
     {
@@ -132,11 +129,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
       enableSorting: false,
       cell: ({ row }) => {
         const traceID = row.getValue('traceID') as string;
-        return (
-          <div className='max-w-64 truncate font-mono text-xs' title={traceID}>
-            {traceID}
-          </div>
-        );
+        return <TruncatedText className='block max-w-64 font-mono text-xs'>{traceID}</TruncatedText>;
       },
     },
     {

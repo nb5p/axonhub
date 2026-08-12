@@ -610,7 +610,9 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                                 {editingError && <p className='text-destructive text-sm'>{editingError}</p>}
                               </div>
                             ) : (
-                              <div className='flex items-center justify-between'>
+                             <div className='flex items-center justify-between'>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                 <div
                                   className='focus-within:outline-ring flex flex-1 cursor-pointer items-center gap-2 rounded p-1 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2'
                                   onDoubleClick={() => startEditing(index)}
@@ -625,14 +627,18 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                                   aria-label={t('channels.dialogs.settings.modelMapping.editHint', {
                                     defaultValue: 'Double-click to edit',
                                   })}
-                                  title={t('channels.dialogs.settings.modelMapping.editHint', {
-                                    defaultValue: 'Double-click to edit',
-                                  })}
                                 >
                                   <Badge variant='outline'>{mapping.from}</Badge>
                                   <span className='text-muted-foreground'>→</span>
                                   <Badge variant='outline'>{mapping.to}</Badge>
                                 </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {t('channels.dialogs.settings.modelMapping.editHint', {
+                                      defaultValue: 'Double-click to edit',
+                                    })}
+                                  </TooltipContent>
+                                </Tooltip>
                                 <Button
                                   type='button'
                                   variant='ghost'

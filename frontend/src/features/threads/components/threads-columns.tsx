@@ -11,6 +11,7 @@ import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
+import { TruncatedText } from '@/components/truncated-text';
 import type { Thread } from '../data/schema';
 import { useArchiveThread, useUnarchiveThread, useRetainThread, useUnretainThread } from '../data/threads';
 import { IconArchive, IconPin, IconRotate } from '@tabler/icons-react';
@@ -108,11 +109,7 @@ export function useThreadsColumns(): ColumnDef<Thread>[] {
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('threads.columns.threadId')} />,
       cell: ({ row }) => {
         const threadID = row.getValue('threadID') as string;
-        return (
-          <div className='max-w-64 truncate font-mono text-xs' title={threadID}>
-            {threadID}
-          </div>
-        );
+        return <TruncatedText className='block max-w-64 font-mono text-xs'>{threadID}</TruncatedText>;
       },
       enableSorting: false,
     },
@@ -121,11 +118,7 @@ export function useThreadsColumns(): ColumnDef<Thread>[] {
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('threads.columns.firstUserQuery')} />,
       cell: ({ row }) => {
         const query = row.getValue('firstUserQuery') as string | null | undefined;
-        return (
-          <div className='max-w-96 truncate text-xs' title={query || ''}>
-            {query || '-'}
-          </div>
-        );
+        return <TruncatedText className='block max-w-96 text-xs'>{query || '-'}</TruncatedText>;
       },
       enableSorting: false,
     },

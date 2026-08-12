@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TruncatedTextProps {
   children: string;
@@ -8,7 +9,7 @@ interface TruncatedTextProps {
 
 /**
  * 智能截断文本组件
- * 仅当文本被截断时才显示 title 悬浮提示
+ * 仅当文本被截断时才显示支持鼠标、键盘和触摸的悬浮提示
  * 使用 ResizeObserver 动态检测截断状态，确保在容器大小变化时也能正确响应
  */
 export function TruncatedText({ children, className }: TruncatedTextProps) {
@@ -35,8 +36,13 @@ export function TruncatedText({ children, className }: TruncatedTextProps) {
   }, [children]);
 
   return (
-    <span ref={textRef} className={cn('truncate', className)} title={isTruncated ? children : undefined}>
-      {children}
-    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span ref={textRef} className={cn('truncate', className)} tabIndex={isTruncated ? 0 : undefined}>
+          {children}
+        </span>
+      </TooltipTrigger>
+      {isTruncated && <TooltipContent className='max-w-80 break-words'>{children}</TooltipContent>}
+    </Tooltip>
   );
 }

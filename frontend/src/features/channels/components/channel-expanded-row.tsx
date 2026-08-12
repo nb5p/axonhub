@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
+import { TruncatedText } from '@/components/truncated-text';
 import { CHANNEL_CONFIGS } from '../data/config_channels';
 import { Channel } from '../data/schema';
 
@@ -57,9 +58,7 @@ export const ChannelExpandedRow = memo(({ channel, columnsLength, getApiFormatLa
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-muted-foreground'>{t('channels.expandedRow.remark')}:</span>
-                  <span className='max-w-[200px] truncate text-right' title={channel.remark || undefined}>
-                    {channel.remark || '-'}
-                  </span>
+                  <TruncatedText className='block max-w-[200px] text-right'>{channel.remark || '-'}</TruncatedText>
                 </div>
                 <div className='flex items-start justify-between'>
                   <span className='text-muted-foreground shrink-0'>{t('channels.expandedRow.tags')}:</span>

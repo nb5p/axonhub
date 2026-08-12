@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { PermissionGuard } from '@/components/permission-guard';
+import { TruncatedText } from '@/components/truncated-text';
 import { useModelSettings } from '@/features/system/data/system';
 import { useModels } from '../context/models-context';
 import { Model } from '../data/schema';
@@ -359,9 +360,7 @@ export function ModelsTable({
                                           {model.remark && (
                                             <div className='flex justify-between'>
                                               <span className='text-muted-foreground'>{t('models.columns.remark')}:</span>
-                                              <span className='max-w-[200px] truncate text-right' title={model.remark}>
-                                                {model.remark}
-                                              </span>
+                                              <TruncatedText className='block max-w-[200px] text-right'>{model.remark}</TruncatedText>
                                             </div>
                                           )}
                                         </div>
