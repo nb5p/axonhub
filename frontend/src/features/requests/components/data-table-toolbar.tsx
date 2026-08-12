@@ -83,8 +83,7 @@ function RequestFilterControls({
 
   const channelCheckboxId = isMobile ? 'show-archived-channels-mobile' : 'show-archived-channels';
   const apiKeyCheckboxId = isMobile ? 'show-archived-api-keys-mobile' : 'show-archived-api-keys';
-  const wrapperClass = isMobile ? 'flex flex-col gap-3' : 'hidden flex-wrap items-center gap-2 sm:flex';
-  const mobileTriggerClassName = isMobile ? 'min-h-12 w-full justify-start border-solid' : undefined;
+  const wrapperClass = isMobile ? 'block' : 'hidden flex-wrap items-center gap-2 sm:flex';
 
   // Footer for archived toggle in DataTableFacetedFilter
   const channelFooter = (
@@ -120,20 +119,10 @@ function RequestFilterControls({
   return (
     <div className={wrapperClass}>
       {table.getColumn('status') && (
-        <DataTableFacetedFilter
-          column={table.getColumn('status')}
-          title={t('requests.filters.status')}
-          options={requestStatuses}
-          triggerClassName={mobileTriggerClassName}
-        />
+        <DataTableFacetedFilter column={table.getColumn('status')} title={t('requests.filters.status')} options={requestStatuses} />
       )}
       {table.getColumn('source') && (
-        <DataTableFacetedFilter
-          column={table.getColumn('source')}
-          title={t('requests.filters.source')}
-          options={requestSources}
-          triggerClassName={mobileTriggerClassName}
-        />
+        <DataTableFacetedFilter column={table.getColumn('source')} title={t('requests.filters.source')} options={requestSources} />
       )}
       {canViewChannels && table.getColumn('channel') && (channelOptions.length > 0 || isFetchingChannels) && (
         <DataTableFacetedFilter
@@ -141,7 +130,6 @@ function RequestFilterControls({
           title={t('requests.filters.channel')}
           options={channelOptions}
           footer={channelFooter}
-          triggerClassName={mobileTriggerClassName}
         />
       )}
       {canViewApiKeys && table.getColumn('caller') && (apiKeyOptions.length > 0 || isFetchingApiKeys) && (
@@ -150,7 +138,6 @@ function RequestFilterControls({
           title={t('requests.filters.apiKey')}
           options={apiKeyOptions}
           footer={apiKeyFooter}
-          triggerClassName={mobileTriggerClassName}
         />
       )}
       <DateRangePicker
@@ -168,7 +155,7 @@ function RequestFilterControls({
             onDateRangeChange?.(undefined);
             onCloseAfterAction?.();
           }}
-          className={isMobile ? 'min-h-12 w-full px-3' : 'h-8 px-2'}
+          className='h-8 px-2'
           size='sm'
         >
           <X className='h-4 w-4' />
@@ -181,7 +168,7 @@ function RequestFilterControls({
             onResetFilters?.();
             onCloseAfterAction?.();
           }}
-          className={isMobile ? 'min-h-12 w-full px-3' : 'h-8 px-2 lg:px-3'}
+          className='h-8 px-2 lg:px-3'
         >
           {t('common.filters.reset')}
           <Cross2Icon className='ml-2 h-4 w-4' />
@@ -345,13 +332,13 @@ export function DataTableToolbar<TData>({
         placeholder={t('requests.filters.filterModelId')}
         value={(table.getColumn(MODEL_ID_COLUMN)?.getFilterValue() as string) ?? ''}
         onChange={(event) => table.getColumn(MODEL_ID_COLUMN)?.setFilterValue(event.target.value)}
-        className='h-12 min-w-0 basis-full sm:h-8 sm:w-[150px] sm:flex-1 sm:basis-auto lg:w-[250px]'
+        className='h-8 min-w-0 flex-1 sm:w-[150px] lg:w-[250px]'
       />
 
       {/* Mobile: Filters button opens bottom sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant='outline' size='sm' className='h-12 flex-1 gap-1 sm:hidden'>
+          <Button variant='outline' size='sm' className='h-8 gap-1 sm:hidden'>
             <Filter className='h-4 w-4' />
             {t('common.filters.title')}
             {activeFilterCount > 0 && (
@@ -365,7 +352,7 @@ export function DataTableToolbar<TData>({
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent side='bottom' className='h-auto max-h-[85dvh] overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]'>
+        <SheetContent side='bottom' className='h-auto max-h-[85vh] overflow-hidden'>
           <SheetHeader>
             <SheetTitle>{t('common.filters.title')}</SheetTitle>
           </SheetHeader>
@@ -418,9 +405,9 @@ export function DataTableToolbar<TData>({
         handleToggleShowArchivedApiKeys={handleToggleShowArchivedApiKeys}
       />
       <div className='hidden flex-1 sm:block' />
-      <div className='ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2'>
+      <div className='flex shrink-0 flex-wrap items-center gap-2'>
         {showRefresh && onAutoRefreshChange && (
-          <div className='flex min-h-12 shrink-0 items-center gap-2 sm:min-h-0'>
+          <div className='flex shrink-0 items-center gap-2'>
             <Switch
               checked={autoRefresh}
               onCheckedChange={onAutoRefreshChange}
@@ -433,7 +420,7 @@ export function DataTableToolbar<TData>({
           </div>
         )}
         {showRefresh && onRefresh && (
-          <Button variant='outline' size='sm' onClick={onRefresh} aria-label={t('common.refresh')} className='h-12 shrink-0 sm:h-8'>
+          <Button variant='outline' size='sm' onClick={onRefresh} aria-label={t('common.refresh')} className='shrink-0'>
             <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''} sm:mr-2`} />
             <span className='hidden sm:inline'>{t('common.refresh')}</span>
           </Button>

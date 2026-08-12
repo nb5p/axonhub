@@ -7,7 +7,7 @@ import { useQueryModels } from '@/gql/models';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
-import { cn, extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
+import { extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import {
   AlertDialog,
@@ -130,7 +130,6 @@ export function ApiKeyProfilesDialog({
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const [templateLoadPending, setTemplateLoadPending] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-  const [mobilePanel, setMobilePanel] = useState<'editor' | 'preview'>('editor');
   // 用于解决 Dialog 内 Popover 无法滚动的问题
   const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
   const locale = i18n.language === 'zh' ? zhCN : enUS;
@@ -236,7 +235,6 @@ export function ApiKeyProfilesDialog({
     if (!open) {
       lastInitialDataRef.current = null;
       setTemplateLoadPending(false);
-      setMobilePanel('editor');
       return;
     }
 
@@ -343,74 +341,42 @@ export function ApiKeyProfilesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        ref={setDialogContent}
-        className='flex h-[100dvh] max-h-[100dvh] max-w-none flex-col gap-0 rounded-none border-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-[96rem] sm:gap-4 sm:rounded-lg sm:border sm:p-6'
-      >
-        <DialogHeader className='shrink-0 px-4 pt-4 pr-14 text-left sm:p-0'>
+      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] flex-col sm:max-w-[96rem]'>
+        <DialogHeader className='shrink-0 text-left'>
           <DialogTitle className='flex items-center gap-2'>
-            <IconSettings className='h-5 w-5 shrink-0' />
+            <IconSettings className='h-5 w-5' />
             {t('apikeys.profiles.title')}
           </DialogTitle>
-          <DialogDescription className='leading-relaxed'>
+          <DialogDescription>
             {t('apikeys.profiles.description', {
               name: selectedApiKey?.name,
             })}
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className='grid shrink-0 grid-cols-2 gap-2 border-y px-4 py-3 lg:hidden'
-          role='tablist'
-          aria-label={t('apikeys.profiles.title')}
-        >
-          <Button
-            type='button'
-            variant={mobilePanel === 'editor' ? 'default' : 'ghost'}
-            className='min-h-12'
-            role='tab'
-            aria-selected={mobilePanel === 'editor'}
-            onClick={() => setMobilePanel('editor')}
-          >
-            {t('apikeys.profiles.profilesTitle')}
-          </Button>
-          <Button
-            type='button'
-            variant={mobilePanel === 'preview' ? 'default' : 'ghost'}
-            className='min-h-12'
-            role='tab'
-            aria-selected={mobilePanel === 'preview'}
-            onClick={() => setMobilePanel('preview')}
-          >
-            {t('apikeys.profiles.preview.title')}
-          </Button>
-        </div>
-
-        <div className='grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(32rem,40rem)] lg:gap-4'>
-          <div className={cn('min-h-0 flex-col', mobilePanel === 'editor' ? 'flex' : 'hidden', 'lg:flex')} role='tabpanel'>
+        <div className='grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(32rem,40rem)]'>
+          <div className='flex min-h-0 flex-col'>
             {/* Fixed Add Profile Section at Top */}
-            <div className='bg-background shrink-0 border-b p-4 pt-3 sm:pt-4'>
+            <div className='bg-background shrink-0 border-b p-4'>
               <Form {...form}>
                 <form id='apikey-profiles-form' onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6'>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+                  <div className='flex items-center justify-between'>
                     <h3 className='text-lg font-medium'>{t('apikeys.profiles.profilesTitle')}</h3>
-                    <div className='grid grid-cols-2 gap-2 sm:flex sm:items-center'>
-                      <div className='[&_button]:min-h-12 [&_button]:w-full sm:[&_button]:min-h-8 sm:[&_button]:w-auto'>
-                        <ApiKeyLoadTemplatePopover
-                          apiKeyID={apiKeyId}
-                          projectID={selectedProjectId}
-                          onLoadComplete={(loadedProfiles) => {
-                            const resetData = {
-                              activeProfile: loadedProfiles.activeProfile || loadedProfiles.profiles[0]?.name || '',
-                              profiles: loadedProfiles.profiles.map(normalizeApiKeyProfileRoutingPolicy),
-                            };
-                            setTemplateLoadPending(true);
-                            form.reset(resetData);
-                            lastInitialDataRef.current = JSON.stringify(resetData);
-                          }}
-                        />
-                      </div>
-                      <Button type='button' variant='outline' size='sm' onClick={addProfile} className='min-h-12 gap-2 sm:min-h-8'>
+                    <div className='flex items-center gap-2'>
+                      <ApiKeyLoadTemplatePopover
+                        apiKeyID={apiKeyId}
+                        projectID={selectedProjectId}
+                        onLoadComplete={(loadedProfiles) => {
+                          const resetData = {
+                            activeProfile: loadedProfiles.activeProfile || loadedProfiles.profiles[0]?.name || '',
+                            profiles: loadedProfiles.profiles.map(normalizeApiKeyProfileRoutingPolicy),
+                          };
+                          setTemplateLoadPending(true);
+                          form.reset(resetData);
+                          lastInitialDataRef.current = JSON.stringify(resetData);
+                        }}
+                      />
+                      <Button type='button' variant='outline' size='sm' onClick={addProfile} className='flex items-center gap-2'>
                         <IconPlus className='h-4 w-4' />
                         {t('apikeys.profiles.addProfile')}
                       </Button>
@@ -421,7 +387,7 @@ export function ApiKeyProfilesDialog({
                           size='sm'
                           onClick={() => setClearConfirmOpen(true)}
                           disabled={loading || templateLoadPending}
-                          className='col-span-2 min-h-12 gap-2 sm:min-h-8'
+                          className='flex items-center gap-2'
                         >
                           <IconTrash className='h-4 w-4' />
                           {t('apikeys.profiles.clear')}
@@ -435,7 +401,7 @@ export function ApiKeyProfilesDialog({
 
             {/* Scrollable Profiles Section */}
             {profileFields.length > 0 && (
-              <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain py-1'>
+              <div className='flex-1 overflow-y-auto py-1'>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-6 px-4'>
                     <div className='space-y-4'>
@@ -486,11 +452,11 @@ export function ApiKeyProfilesDialog({
                   control={form.control}
                   name='activeProfile'
                   render={({ field }) => (
-                    <FormItem className='grid grid-cols-[auto_minmax(0,1fr)] items-center space-y-0 gap-x-3'>
+                    <FormItem className='flex items-center space-y-0 gap-x-3'>
                       <FormLabel className='shrink-0 font-medium'>{t('apikeys.profiles.activeProfile')}</FormLabel>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className='h-12 w-full min-w-0 sm:h-9'>
+                          <SelectTrigger>
                             <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
                           </SelectTrigger>
                           <SelectContent>
@@ -512,7 +478,6 @@ export function ApiKeyProfilesDialog({
             </div>
           </div>
           <ApiKeyProfilePreviewPanel
-            className={cn('min-h-0 rounded-none border-0 lg:flex lg:rounded-lg lg:border', mobilePanel === 'preview' ? 'flex' : 'hidden')}
             profileName={activeProfileName}
             preview={profilePreviewQuery.data}
             loading={profilePreviewQuery.isFetching}
@@ -520,7 +485,7 @@ export function ApiKeyProfilesDialog({
           />
         </div>
 
-        <DialogFooter className='shrink-0 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:border-0 sm:p-0'>
+        <DialogFooter className='flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end'>
           {/* Display form-level validation errors */}
           {/* {(form.formState.errors.profiles ||
             Object.keys(form.formState.errors).some((key) => key.startsWith('profiles.'))) && (
@@ -528,14 +493,13 @@ export function ApiKeyProfilesDialog({
               {form.formState.errors.profiles?.message || t('apikeys.validation.duplicateProfileName')}
             </div>
           )} */}
-          <div className='grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto'>
-            <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={loading} className='min-h-12 sm:min-h-9'>
+          <div className='flex w-full gap-2 sm:w-auto'>
+            <Button type='button' variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
               {t('common.buttons.cancel')}
             </Button>
             <Button
               type='submit'
               form='apikey-profiles-form'
-              className='min-h-12 sm:min-h-9'
               disabled={loading || templateLoadPending || !form.formState.isValid || Object.keys(form.formState.errors).length > 0}
             >
               {loading || templateLoadPending ? t('common.buttons.saving') : t('common.buttons.save')}
@@ -694,8 +658,8 @@ function ProfileCard({
 
   return (
     <Card>
-      <CardHeader className='p-4 pb-3 sm:p-6 sm:pb-3'>
-        <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2'>
+      <CardHeader className='pb-3'>
+        <div className='flex items-center justify-between gap-2'>
           <CardTitle className='min-w-0 flex-1 text-base'>
             <FormField
               control={form.control}
@@ -720,35 +684,23 @@ function ProfileCard({
               )}
             />
           </CardTitle>
-          <div className='grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-1 sm:flex sm:shrink-0'>
+          <div className='flex shrink-0 items-center gap-1'>
             <Button
               type='button'
               variant='ghost'
               size='sm'
               onClick={() => setIsCollapsed((prev) => !prev)}
-              className='hover:bg-accent h-12 w-12 p-0 sm:h-8 sm:w-auto sm:px-3'
+              className='hover:bg-accent'
               aria-expanded={!isCollapsed}
               aria-label={isCollapsed ? t('apikeys.profiles.expand') : t('apikeys.profiles.collapse')}
             >
               {isCollapsed ? <IconChevronDown className='h-4 w-4' /> : <IconChevronUp className='h-4 w-4' />}
             </Button>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              onClick={() => onSaveTemplate(profileIndex)}
-              className='min-h-12 min-w-0 px-2 sm:min-h-8 sm:px-3'
-            >
+            <Button type='button' variant='ghost' size='sm' onClick={() => onSaveTemplate(profileIndex)}>
               {t('apikeys.templates.saveAsTemplateButton')}
             </Button>
             {canRemove && (
-              <Button
-                type='button'
-                variant='ghost'
-                size='sm'
-                onClick={onRemove}
-                className='text-destructive hover:text-destructive h-12 w-12 p-0 sm:h-8 sm:w-auto sm:px-3'
-              >
+              <Button type='button' variant='ghost' size='sm' onClick={onRemove} className='text-destructive hover:text-destructive'>
                 <IconTrash className='h-4 w-4' />
               </Button>
             )}
@@ -773,7 +725,7 @@ function ProfileCard({
         )}
       </CardHeader>
       {!isCollapsed && (
-        <CardContent className='space-y-6 p-4 pt-0 sm:p-6 sm:pt-0'>
+        <CardContent className='space-y-6'>
           {/* Quota Section */}
           <div className='space-y-4'>
             <div className='flex items-center justify-between gap-3'>

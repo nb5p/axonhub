@@ -58,7 +58,6 @@
   "pagination.selectedInfo": "{{selectedRows}} of {{dataLength}} row(s) selected",
   "pagination.selectedInfoWithTotal": "{{selectedRows}} of {{dataLength}} row(s) selected / Total {{totalCount}} row(s)",
   "pagination.rowsPerPage": "Rows per page",
-  "pagination.totalRows": "{{total}} total",
   "pagination.currentPage": "Page {{current}} of {{total}}",
   "pagination.firstPage": "First page",
   "pagination.lastPage": "Last page",
