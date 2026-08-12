@@ -18,6 +18,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `codex-alpha-search` | 外部方案适配 | `active` | sub2api PR `#4063` / `8ab2fd1e` | `none` | [`features/codex-alpha-search.md`](features/codex-alpha-search.md) |
 | `mobile-request-route-tooltip` | 本地原创、计划贡献上游 | `upstream-pending` | `e8e19993` | `none` | [`features/mobile-request-route-tooltip.md`](features/mobile-request-route-tooltip.md) |
 | `mobile-touch-hover-overlays` | 本地原创 | `active` | `1334dc0d` | `none` | [`features/mobile-touch-hover-overlays.md`](features/mobile-touch-hover-overlays.md) |
+| `mobile-core-workflow-redesign` | 本地原创 | `active` | `82d825f9` | `none` | [`features/mobile-core-workflow-redesign.md`](features/mobile-core-workflow-redesign.md) |
 | `mobile-ui-improvements` | 本地原创、已贡献上游 | `upstreamed` | 上游 `4971cbe4` / PR `#1896` | `none` | [`features/mobile-ui-improvements.md`](features/mobile-ui-improvements.md) |
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |

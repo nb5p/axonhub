@@ -43,6 +43,7 @@
 | `codex-alpha-search` | `none` | 是 | 无 | 仅涉及请求路由和 LLM 转换。 |
 | `mobile-request-route-tooltip` | `none` | 是 | 无 | 仅涉及前端交互。 |
 | `mobile-touch-hover-overlays` | `none` | 是 | 无 | 仅统一前端悬浮层的触摸、手写笔、鼠标和键盘交互。 |
+| `mobile-core-workflow-redesign` | `none` | 是 | 无 | 仅重构移动端配置管理、请求详情和请求日志的前端布局与触控交互。 |
 | `mobile-ui-improvements` | `none` | 是 | 无 | 仅涉及前端 UI，且已被上游吸收。 |
 | `responses-reasoning-item-ids` | `none` | 是 | 无 | 已通过历史重写移除代码，仅保留账本记录。 |
 | `channel-api-key-copy` | `none` | 是 | 无 | 仅涉及渠道编辑界面的复制交互。 |
