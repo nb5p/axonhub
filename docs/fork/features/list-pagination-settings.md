@@ -12,7 +12,8 @@ source:
     - 621c1de32ffdf9c08a1a85279976b897dd9fbd06
     - 739619f6d1abc9d015d00a9787ce0c1c5f1e427e
     - f6af276d886f3c8c9dafd3c89c25b191f85de5b6
-  last_checked_commit: f6af276d886f3c8c9dafd3c89c25b191f85de5b6
+    - 6ded56c8e55228c874303b16439eb9c73a96eda4
+  last_checked_commit: 6ded56c8e55228c874303b16439eb9c73a96eda4
   last_checked_at: 2026-08-12
   license: Apache-2.0
 local:
@@ -22,6 +23,7 @@ local:
     - 621c1de32ffdf9c08a1a85279976b897dd9fbd06
     - 739619f6d1abc9d015d00a9787ce0c1c5f1e427e
     - f6af276d886f3c8c9dafd3c89c25b191f85de5b6
+    - 6ded56c8e55228c874303b16439eb9c73a96eda4
   modules:
     - frontend/src/features/apikeys
     - frontend/src/features/channels
@@ -64,6 +66,7 @@ database:
 - 无限滚动与自动刷新互斥：进入无限滚动会关闭并禁用自动刷新，避免刷新多页数据时发生重排；手动刷新仍可用。
 - 前端等待分页配置读取完成后再选择列表查询模式，避免先按默认值请求、随后再按实际设置重复请求。
 - 前端检测尚未升级的旧后端：列表使用安全默认值，设置页明确提示后端版本不支持并禁用开关，不再允许点击后才统一报更新失败。
+- 前端能力检测使用的 `supported` 元数据只保留在查询结果中；表单状态和 mutation 边界显式提取三个后端字段，避免把前端元数据传入 GraphQL input。
 - 关闭功能不会建立新的后台任务。渠道原有 5 秒状态轮询仍然存在；绝大多数少于 1000 个渠道的部署仍为单次请求，超过 1000 个渠道时每轮会按页顺序请求。
 
 ## 与来源的差异
@@ -89,6 +92,8 @@ database:
 - Chrome DevTools 1440×900：渠道桌面标题与操作栏正常，页面无全局横向溢出。
 - Chrome DevTools 1440×900（模拟请求日志关闭分页）：初始只发送一条 `first: 20` 查询；滚到底部后发送携带 `after` 游标的第二条查询，表格由 20 条增长至 22 条并显示全部加载完成。
 - Chrome DevTools 1440×900（旧后端）：三个分页开关均显示后端未更新提示并处于禁用状态，不再触发失败 mutation；请求日志仍按默认分页正常显示。
+- `node --test src/features/system/data/list-pagination-settings.test.mjs`：通过，确认 mutation 输入会剔除前端专用能力字段。
+- Chrome DevTools 1440×900（本地 Air + 绿色数据库快照）：渠道、API 密钥和请求日志三个开关均能双向保存并恢复原值，mutation 返回 `updateListPaginationSettings: true`。
 
 ## 更新历史
 
@@ -97,3 +102,4 @@ database:
 | 2026-08-12 | 本地原创 | `621c1de32ffdf9c08a1a85279976b897dd9fbd06` | original：增加三处列表分页开关、全量游标读取和默认策略。 |
 | 2026-08-12 | 本地修复 | `739619f6d1abc9d015d00a9787ce0c1c5f1e427e` | fix：识别旧后端能力、禁用不可保存的开关，并等待配置读取后再选择列表查询模式。 |
 | 2026-08-12 | 本地增强 | `f6af276d886f3c8c9dafd3c89c25b191f85de5b6` | feature：请求日志关闭分页后采用游标无限滚动，并与自动刷新互斥。 |
+| 2026-08-12 | 本地修复 | `6ded56c8e55228c874303b16439eb9c73a96eda4` | fix：阻止前端 `supported` 元数据进入 GraphQL mutation，并增加边界回归测试。 |
