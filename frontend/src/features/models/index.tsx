@@ -86,7 +86,7 @@ function CreateButton() {
   const { setOpen } = useModels();
 
   return (
-    <Button onClick={() => setOpen('create')}>
+    <Button onClick={() => setOpen('create')} className='h-8 sm:h-9'>
       <IconPlus className='mr-2 h-4 w-4' />
       {t('models.actions.create')}
     </Button>
@@ -98,7 +98,7 @@ function BulkAddButton() {
   const { setOpen } = useModels();
 
   return (
-    <Button variant='outline' onClick={() => setOpen('batchCreate')}>
+    <Button variant='outline' onClick={() => setOpen('batchCreate')} className='h-8 sm:h-9'>
       <IconPlus className='mr-2 h-4 w-4' />
       {t('models.actions.bulkAdd')}
     </Button>
@@ -110,7 +110,7 @@ function SettingsButton() {
   const { setOpen } = useModels();
 
   return (
-    <Button variant='outline' onClick={() => setOpen('settings')} data-settings-button>
+    <Button variant='outline' onClick={() => setOpen('settings')} data-settings-button className='h-8 sm:h-9'>
       <IconSettings className='mr-2 h-4 w-4' />
       {t('models.actions.settings')}
     </Button>
@@ -122,7 +122,7 @@ function DetectUnassociatedButton() {
   const { setOpen } = useModels();
 
   return (
-    <Button variant='outline' onClick={() => setOpen('unassociated')}>
+    <Button variant='outline' onClick={() => setOpen('unassociated')} className='h-8 sm:h-9'>
       <IconAlertCircle className='mr-2 h-4 w-4' />
       {t('models.actions.detectUnassociated')}
     </Button>
@@ -132,7 +132,7 @@ function DetectUnassociatedButton() {
 function ActionButtons() {
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
   return (
-    <div ref={scrollRef} className='flex gap-2 overflow-x-auto md:overflow-x-visible'>
+    <div ref={scrollRef} className='flex min-w-0 gap-2 overflow-x-auto md:overflow-x-visible'>
       <PermissionGuard requiredScope='write_channels'>
         <>
           <DetectUnassociatedButton />
@@ -164,9 +164,9 @@ export default function ModelsManagement() {
 
   return (
     <ModelsProvider>
-      <Header fixed>
-        <div className='flex w-full flex-1 flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-0'>
-          <div className='min-w-0'>
+      <Header fixed className='h-10 py-1 sm:h-16 sm:p-4'>
+        <div className='flex min-w-0 w-full flex-1 items-center sm:justify-between'>
+          <div className='hidden min-w-0 sm:block'>
             <h2 className='text-xl font-bold tracking-tight'>{t('models.title')}</h2>
             <p className='text-muted-foreground hidden text-sm sm:block'>{t('models.description')}</p>
           </div>
@@ -174,7 +174,7 @@ export default function ModelsManagement() {
         </div>
       </Header>
 
-      <Main fixed>
+      <Main fixed className='mt-10! py-0 sm:mt-16! sm:py-6'>
         <ModelsContent />
       </Main>
       <ModelsDialogs />

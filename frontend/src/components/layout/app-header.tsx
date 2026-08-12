@@ -25,11 +25,13 @@ export function AppHeader() {
   const mobilePageTitle =
     pathname === '/channels'
       ? t('channels.title')
-      : pathname === '/project/api-keys'
-        ? t('apikeys.title')
-        : pathname === '/project/requests'
-          ? t('requests.title')
-          : null;
+      : pathname === '/models'
+        ? t('models.title')
+        : pathname === '/project/api-keys'
+          ? t('apikeys.title')
+          : pathname === '/project/requests'
+            ? t('requests.title')
+            : null;
 
   const refreshMutation = useMutation({
     mutationFn: async () => {

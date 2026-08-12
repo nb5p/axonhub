@@ -199,7 +199,7 @@ export function ModelsTable({
 
   return (
     <div className='flex flex-1 flex-col overflow-hidden'>
-      <div className='mb-4 flex items-center justify-between'>
+      <div className='flex items-center justify-between sm:mb-4'>
         <div className='flex flex-1 items-center space-x-2'>
           <Input
             placeholder={t('models.filters.filterByName')}
@@ -211,7 +211,7 @@ export function ModelsTable({
         <div className='flex items-center gap-2'>
           {!loading && data.length > 0 && (
             <>
-              <span className='text-muted-foreground text-sm'>
+              <span className='text-muted-foreground hidden text-sm sm:inline'>
                 {t('models.groupedView.summary', { groups: groupedRows.size, models: totalCount ?? data.length })}
               </span>
               <Button variant='outline' size='sm' className='h-8' onClick={toggleAllGroups}>
@@ -227,7 +227,7 @@ export function ModelsTable({
         </div>
       </div>
 
-      <div className='shadow-soft relative mt-4 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)]'>
+      <div className='shadow-soft relative mt-1 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
         <div className='min-w-max'>
         <Table data-testid='models-table' className='border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'>
           <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
