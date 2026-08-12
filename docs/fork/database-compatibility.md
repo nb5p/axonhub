@@ -61,6 +61,7 @@
 | `api-key-activity-heatmap` | `none` | 是 | 无 | 仅新增只读 GraphQL 聚合和仪表盘热力图，不修改 Ent Schema 或现有数据。 |
 | `playground-api-key-testing` | `none` | 是 | 无 | 复用现有 API Key 鉴权、配置和路由上下文，不修改持久化结构。 |
 | `table-column-visibility` | `none` | 是 | 无 | 仅调整前端列定义、翻译和浏览器本地偏好。 |
+| `list-pagination-settings` | `none` | 是 | 无 | 复用现有系统键值表保存独立 JSON 配置，不修改 Ent Schema；旧版本会忽略新增键。 |
 
 截至最后一次合入的上游基线 `9dfd6ac0c21bbc5abe55827fa634e22826287d67`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
 

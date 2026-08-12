@@ -10,7 +10,8 @@ source:
   baseline_commit: 614eaad733684779b97b553df8ab4e75d15c727e
   adopted_commits:
     - 5f4935b7023f552f8628d497b53aca9f6b5ff47e
-  last_checked_commit: 5f4935b7023f552f8628d497b53aca9f6b5ff47e
+    - 621c1de32ffdf9c08a1a85279976b897dd9fbd06
+  last_checked_commit: 621c1de32ffdf9c08a1a85279976b897dd9fbd06
   last_checked_at: 2026-08-12
   license: Apache-2.0
 local:
@@ -18,7 +19,9 @@ local:
   commit_marker: "🧩"
   commits:
     - 5f4935b7023f552f8628d497b53aca9f6b5ff47e
+    - 621c1de32ffdf9c08a1a85279976b897dd9fbd06
   modules:
+    - frontend/src/components/layout
     - frontend/src/features/apikeys
     - frontend/src/features/channels
     - frontend/src/features/data-storages
@@ -63,6 +66,8 @@ database:
 - API 密钥页移动端标题栏缩短到 48px，并压缩标题栏、类型选项卡、筛选栏和表格之间的间距。
 - API 密钥筛选轨道复用共享 `useHorizontalScroll`，支持触摸原生横滑和桌面鼠标滚轮横向滚动。
 - “列设置”保留在筛选轨道外侧，横向滚动筛选项时仍可直接访问。
+- 渠道、API 密钥和请求日志在移动端把页面标题放到全局顶栏的项目名称右侧；360px 宽度下可隐藏品牌文字但保留品牌图标、项目名称和当前页面名称。
+- 渠道页继续使用原生横向滚动的操作栏与筛选栏，只压缩顶部操作、筛选和表格之间的纵向留白；关闭分页后表格区域自动延展到底部。
 
 ## 与来源的差异
 
@@ -84,6 +89,8 @@ database:
 - Chrome DevTools 390×844：筛选轨道 `scrollWidth=460`、`clientWidth=248`，滚轮事件可将横向位置从 0 移动到 80。
 - Chrome DevTools 1440×900：页面说明恢复显示，筛选轨道无额外滚动宽度。
 - 渠道页 360×800：顶部操作区和筛选区继续保持原有横向滚动，未改为换行平铺。
+- 渠道页 390×844：顶部操作到筛选间距 6px、筛选到表格约 5px；两个横向轨道分别保持 `scrollWidth=670/clientWidth=358` 与 `scrollWidth=609/clientWidth=356`。
+- Chrome DevTools 390×844：渠道、API 密钥和请求日志标题均位于项目名称右侧，页面没有全局横向溢出。
 - `npx --yes pnpm@10 exec tsc --noEmit`：通过。
 
 ## 更新历史
@@ -91,3 +98,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-12 | 用户反馈与移动端实测 | `5f4935b7023f552f8628d497b53aca9f6b5ff47e` | original：隐藏小屏辅助说明，压缩 API 密钥页垂直间距，并将筛选栏改为单行横向交互。 |
+| 2026-08-12 | 用户反馈与移动端实测 | `621c1de32ffdf9c08a1a85279976b897dd9fbd06` | original：将三处列表页标题移入移动端全局顶栏，进一步压缩渠道页纵向间距并保留横向滚动。 |
