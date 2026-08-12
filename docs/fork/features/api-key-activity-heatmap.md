@@ -20,6 +20,7 @@ local:
     - 71c2bd7d41d0f675af0312623c3512f4cc3c71dc
     - 410985934a950d47434173fcc7e0fd08ecef2334
     - 55c0df9d5c91a9180f462f60dd679f84a1018ef3
+    - 1334dc0d744e67736f9c600354fae5ba138e1fa5
   modules:
     - internal/server/gql/dashboard.graphql
     - internal/server/gql/dashboard.resolvers.go
@@ -43,7 +44,7 @@ database:
 
 ## 目的
 
-在仪表盘用一张共享热力图展示最近 90 天的 API Key 请求活动，帮助个人用户快速判断所选密钥的整体活跃日期和用量分布。默认选择全部 API Key，用户可以从顶部的多选筛选中增减密钥；日期单元格悬停时展示汇总请求数、Token、费用和各密钥的请求贡献。
+在仪表盘用一张共享热力图展示最近 90 天的 API Key 请求活动，帮助个人用户快速判断所选密钥的整体活跃日期和用量分布。默认选择全部 API Key，用户可以从顶部的多选筛选中增减密钥；日期单元格通过鼠标悬停、键盘聚焦或触摸点按展示汇总请求数、Token、费用和各密钥的请求贡献。
 
 ## 来源与采用范围
 
@@ -62,6 +63,7 @@ database:
 - API Key 多选状态使用通用 `usePersistedFilter` 保存到浏览器本地；首次进入默认选择全部密钥。
 - 顶部从左到右显示汇总说明、API Key 多选器和“全选 / 反选 / 全不选”联合按钮，批量操作不会打开选择器。
 - 提示气泡除汇总值外，最多列出当天请求量最高的 5 个密钥，其余贡献者显示数量摘要。
+- 日期单元格与被截断的密钥名称使用共享 Tooltip，支持桌面 hover、键盘 focus 和移动端触摸点按。
 
 ## 与来源的差异
 
@@ -85,6 +87,7 @@ database:
 - `go test ./internal/server/gql -count=1`：通过。
 - 初始合并提交 `590670acec954ad880a87873cb5ce5c688a92b81` 的 Docker 生产镜像构建及绿色实例健康检查：通过。
 - 控件布局修正随本批需求执行 `pnpm build`：通过。
+- 触摸提示迁移随 `1334dc0d744e67736f9c600354fae5ba138e1fa5` 执行 `pnpm test:unit`（18/18）、生产构建与隔离 Chromium 触摸交互验证：通过。
 
 ## 更新历史
 
@@ -93,3 +96,4 @@ database:
 | 2026-08-11 | `062da210..71c2bd7d` | `71c2bd7d41d0f675af0312623c3512f4cc3c71dc` | merged：保留源提交，并适配当前 `ai-slop` 仪表盘与 GraphQL 生成代码。 |
 | 2026-08-11 | 用户反馈 | `410985934a950d47434173fcc7e0fd08ecef2334` | reworked：把每个 API Key 一张图改为多选密钥在同一张图中按日期叠加，并持久化选择。 |
 | 2026-08-11 | 用户反馈 | `55c0df9d5c91a9180f462f60dd679f84a1018ef3` | refined：重排汇总、密钥选择器与三项批量选择按钮。 |
+| 2026-08-12 | 移动端交互审计 | `1334dc0d744e67736f9c600354fae5ba138e1fa5` | reworked：将第三方 hover-only 日期提示与截断密钥名称迁到支持触摸的共享 Tooltip。 |

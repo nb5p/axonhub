@@ -18,6 +18,7 @@ local:
   commit_marker: "🧩"
   commits:
     - e8e19993720bff05d5a10cc2e153017c6e69220a
+    - 1334dc0d744e67736f9c600354fae5ba138e1fa5
   modules:
     - frontend/src/components/ui/tap-tooltip.tsx
     - frontend/src/components/ui/tap-tooltip-state.ts
@@ -64,6 +65,7 @@ database:
 - 鼠标继续使用原有 hover 行为，键盘继续使用 focus 行为；调用方提供 `onActivate` 时，鼠标点击和键盘激活仍执行上游原动作，触摸和手写笔则只切换 tooltip。
 - 请求表模型 ID 和渠道名称统一使用该交互。
 - 独立状态函数测试触摸、手写笔和鼠标输入的判定。
+- 共享状态辅助函数会把触摸点按后的开关更新排到当前 click 处理之后，避免 Radix 收尾逻辑覆盖打开状态；全局悬浮层触摸支持复用该逻辑。
 
 ## 与来源的差异
 
@@ -84,6 +86,7 @@ database:
 - `node --test frontend/src/components/tap-tooltip-state.test.mjs`：2/2 通过。
 - 2026-08-06 重建后重新运行同一目标测试：2/2 通过。
 - 后续上游 PR 验证时应在依赖完整环境补充组件级交互测试。
+- 2026-08-12 全局触摸修复后执行 `pnpm test:unit`：18/18 通过；隔离 Chromium 验证触摸打开、外部关闭、桌面 hover、键盘 focus 和按钮单次激活均通过。
 
 ## 更新历史
 
@@ -92,3 +95,4 @@ database:
 | 2026-08-05 | `7ed44005..7cd527ab` | `7cd527ab29f9640b888c45e7818fbfc8f8fc1c16` | 本地原创实现并完成目标测试。 |
 | 2026-08-05 | 集成到 `ai-slop` | `cb00b35c500411c702fd83ebb38e3c894d0599ec` | 保留独立贡献分支，同时进入私有主分支。 |
 | 2026-08-06 | 历史重建至上游 `d6ed9c62` | `e8e19993720bff05d5a10cc2e153017c6e69220a` | 按上游新版请求表重建有效差异，保留桌面激活动作，并补上 `🧩` 标记。 |
+| 2026-08-12 | 全局悬浮层触摸修复 | `1334dc0d744e67736f9c600354fae5ba138e1fa5` | refined：复用延迟触摸状态辅助函数，使共享 Radix Tooltip 的点按打开不会被 click 收尾覆盖。 |
