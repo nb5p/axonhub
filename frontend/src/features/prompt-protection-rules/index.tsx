@@ -155,7 +155,7 @@ export default function PromptProtectionRulesManagement() {
         <div className='flex flex-1 items-center justify-between'>
           <div>
             <h2 className='text-xl font-bold tracking-tight'>{t('promptProtectionRules.title')}</h2>
-            <p className='text-sm text-muted-foreground'>{t('promptProtectionRules.description')}</p>
+            <p className='text-muted-foreground hidden text-sm sm:block'>{t('promptProtectionRules.description')}</p>
           </div>
           <ActionButtons />
         </div>

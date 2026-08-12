@@ -218,7 +218,7 @@ function ApiKeysContent() {
           </TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className='mt-6 flex min-h-0 flex-1 flex-col overflow-hidden'>
+      <div className='mt-2 flex min-h-0 flex-1 flex-col overflow-hidden sm:mt-6'>
         <ApiKeysTable
           data={tableData}
           loading={isLoading}
@@ -253,17 +253,17 @@ export default function ApiKeysManagement() {
 
   return (
     <ApiKeysProvider>
-      <Header fixed>
+      <Header fixed className='h-12 py-2 sm:h-16 sm:p-4'>
         <div className='flex flex-1 items-center justify-between'>
           <div>
             <h2 className='text-xl font-bold tracking-tight'>{t('apikeys.title')}</h2>
-            <p className='text-sm text-muted-foreground'>{t('apikeys.description')}</p>
+            <p className='text-muted-foreground hidden text-sm sm:block'>{t('apikeys.description')}</p>
           </div>
           <ApiKeysPrimaryButtons />
         </div>
       </Header>
 
-      <Main fixed>
+      <Main fixed className='mt-12! py-2 sm:mt-16! sm:py-6'>
         <ApiKeysContent />
       </Main>
       <ApiKeysDialogs />

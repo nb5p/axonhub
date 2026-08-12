@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { DateRangePicker } from '@/components/date-range-picker';
 import type { DateTimeRangeValue } from '@/utils/date-range';
 import { DataTableFacetedFilter } from '@/components/data-table-faceted-filter';
+import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { useUsers } from '@/features/users/data/users';
 import { ApiKeyStatus } from '../data/schema';
 import { DataTableViewOptions } from './data-table-view-options';
@@ -27,6 +28,7 @@ export function DataTableToolbar<TData>({
   canViewCreators = false,
 }: DataTableToolbarProps<TData>) {
   const { t } = useTranslation();
+  const scrollRef = useHorizontalScroll<HTMLDivElement>();
   const hasDateRange = !!dateRange?.from || !!dateRange?.to;
   const isFiltered = table.getState().columnFilters.length > 0 || hasDateRange;
 
@@ -65,8 +67,11 @@ export function DataTableToolbar<TData>({
   ];
 
   return (
-    <div className='flex items-center justify-between'>
-      <div className='flex flex-1 flex-wrap items-center gap-2'>
+    <div className='flex w-full items-center gap-2'>
+      <div
+        ref={scrollRef}
+        className='flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:overflow-x-visible md:pb-0 [&::-webkit-scrollbar]:hidden [&>*]:shrink-0'
+      >
         <Input
           placeholder={t('apikeys.filters.filterName')}
           value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}

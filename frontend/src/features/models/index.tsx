@@ -168,7 +168,7 @@ export default function ModelsManagement() {
         <div className='flex w-full flex-1 flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-0'>
           <div className='min-w-0'>
             <h2 className='text-xl font-bold tracking-tight'>{t('models.title')}</h2>
-            <p className='text-muted-foreground text-sm'>{t('models.description')}</p>
+            <p className='text-muted-foreground hidden text-sm sm:block'>{t('models.description')}</p>
           </div>
           <ActionButtons />
         </div>

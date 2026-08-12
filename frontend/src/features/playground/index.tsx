@@ -411,7 +411,7 @@ export default function Playground() {
         <div className='bg-card shadow-soft border-border m-4 flex max-h-[60vh] w-auto flex-col rounded-2xl border border-r md:max-h-none md:w-[340px] md:max-w-[400px] md:min-w-[280px]'>
           <div className='border-b p-4'>
             <h1 className='text-xl font-bold tracking-tight'>{t('playground.title')}</h1>
-            <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>{t('playground.description')}</p>
+            <p className='text-muted-foreground mt-1 hidden text-xs leading-relaxed sm:block'>{t('playground.description')}</p>
           </div>
 
           <ScrollArea className='min-h-0 flex-1 p-4'>

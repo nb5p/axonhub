@@ -86,7 +86,7 @@ export default function UsageStatisticsPage() {
         <div className='flex flex-1 items-center justify-between'>
           <div>
             <h2 className='text-xl font-bold tracking-tight'>{t('sidebar.items.usageStats')}</h2>
-            <p className='text-sm text-muted-foreground'>{t('usageStats.description')}</p>
+            <p className='text-muted-foreground hidden text-sm sm:block'>{t('usageStats.description')}</p>
           </div>
         </div>
       </Header>
