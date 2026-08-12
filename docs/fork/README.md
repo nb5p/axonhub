@@ -19,7 +19,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `mobile-request-route-tooltip` | 本地原创、计划贡献上游 | `upstream-pending` | `e8e19993` | `none` | [`features/mobile-request-route-tooltip.md`](features/mobile-request-route-tooltip.md) |
 | `mobile-touch-hover-overlays` | 本地原创 | `active` | `1334dc0d` | `none` | [`features/mobile-touch-hover-overlays.md`](features/mobile-touch-hover-overlays.md) |
 | `mobile-ui-improvements` | 本地原创、已贡献上游 | `upstreamed` | 上游 `4971cbe4` / PR `#1896` | `none` | [`features/mobile-ui-improvements.md`](features/mobile-ui-improvements.md) |
-| `mobile-compact-management-layout` | 本地原创 | `active` | `5f4935b7`, `621c1de3` | `none` | [`features/mobile-compact-management-layout.md`](features/mobile-compact-management-layout.md) |
+| `mobile-compact-management-layout` | 本地原创 | `active` | `5f4935b7`, `621c1de3`, `b2ba30c7`, `f6dc4e81` | `none` | [`features/mobile-compact-management-layout.md`](features/mobile-compact-management-layout.md) |
 | `list-pagination-settings` | 本地原创 | `active` | `621c1de3` | `none` | [`features/list-pagination-settings.md`](features/list-pagination-settings.md) |
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
