@@ -61,6 +61,11 @@ interface RequestsTableProps {
   showRefresh: boolean;
   autoRefresh?: boolean;
   onAutoRefreshChange?: (enabled: boolean) => void;
+  autoRefreshDisabled?: boolean;
+  infiniteScroll?: boolean;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export interface RequestTableFilters {
@@ -105,6 +110,11 @@ export function RequestsTable({
   showRefresh,
   autoRefresh = false,
   onAutoRefreshChange,
+  autoRefreshDisabled = false,
+  infiniteScroll = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: RequestsTableProps) {
   const { t } = useTranslation();
 
@@ -116,6 +126,8 @@ export function RequestsTable({
   const userOverridesRef = useRef<VisibilityState>({});
   const columnVisibilityRef = useRef<VisibilityState>({});
   const [visibilityReady, setVisibilityReady] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Hydrate column visibility from localStorage once viewport is known
   useEffect(() => {
@@ -192,7 +204,30 @@ export function RequestsTable({
     });
   }, [isMobile, visibilityReady]);
 
-  const displayedData = useAnimatedList(data, autoRefresh, paginationEnabled ? pageSize : data.length || pageSize);
+  const displayedData = useAnimatedList(
+    data,
+    autoRefresh && !autoRefreshDisabled,
+    paginationEnabled ? pageSize : data.length || pageSize
+  );
+
+  useEffect(() => {
+    if (!infiniteScroll || !hasMore || loadingMore || !onLoadMore) return;
+
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadMore();
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '0px 0px 240px 0px',
+      }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, infiniteScroll, loadingMore, onLoadMore]);
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
     const filters: ColumnFiltersState = [];
@@ -277,8 +312,12 @@ export function RequestsTable({
         showRefresh={showRefresh}
         autoRefresh={autoRefresh}
         onAutoRefreshChange={onAutoRefreshChange}
+        autoRefreshDisabled={autoRefreshDisabled}
       />
-      <div className='shadow-soft relative mt-2 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
+      <div
+        ref={scrollContainerRef}
+        className='shadow-soft relative mt-2 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'
+      >
         <div className='min-w-max'>
           <Table
             data-testid='requests-table'
@@ -344,6 +383,15 @@ export function RequestsTable({
             </TableBody>
           </Table>
         </div>
+        {infiniteScroll && data.length > 0 && (
+          <div ref={loadMoreRef} className='text-muted-foreground flex h-12 items-center justify-center text-sm'>
+            {loadingMore
+              ? t('requests.infiniteScroll.loading')
+              : hasMore
+                ? t('requests.infiniteScroll.more')
+                : t('requests.infiniteScroll.end', { count: data.length })}
+          </div>
+        )}
       </div>
       {paginationEnabled && (
         <div className='mt-2 flex-shrink-0 sm:mt-4'>

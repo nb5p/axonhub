@@ -1,6 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
-import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
@@ -276,27 +275,32 @@ function buildRequestExecutionsQuery(permissions: { canViewChannels: boolean }) 
   `;
 }
 
+interface RequestListVariables {
+  first?: number;
+  after?: string;
+  last?: number;
+  before?: string;
+  orderBy?: { field: 'CREATED_AT'; direction: 'ASC' | 'DESC' };
+  where?: {
+    status?: string;
+    source?: string;
+    channelID?: string;
+    channelIDIn?: string[];
+    statusIn?: string[];
+    sourceIn?: string[];
+    projectID?: string;
+    [key: string]: any;
+  };
+}
+
+interface RequestListOptions {
+  projectId?: string | null;
+  scopeToSelectedProject?: boolean;
+  enabled?: boolean;
+}
+
 // Query hooks
-export function useRequests(
-  variables?: {
-    first?: number;
-    after?: string;
-    last?: number;
-    before?: string;
-    orderBy?: { field: 'CREATED_AT'; direction: 'ASC' | 'DESC' };
-    where?: {
-      status?: string;
-      source?: string;
-      channelID?: string;
-      channelIDIn?: string[];
-      statusIn?: string[];
-      sourceIn?: string[];
-      projectID?: string;
-      [key: string]: any;
-    };
-  },
-  options?: { projectId?: string | null; scopeToSelectedProject?: boolean; enabled?: boolean; fetchAll?: boolean }
-) {
+export function useRequests(variables?: RequestListVariables, options?: RequestListOptions) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const permissions = useRequestPermissions();
@@ -306,33 +310,70 @@ export function useRequests(
   const enabled = options?.enabled ?? true;
 
   return useQuery({
-    queryKey: ['requests', variables, permissions, projectId, scopeToSelectedProject, options?.fetchAll],
+    queryKey: ['requests', 'page', variables, permissions, projectId, scopeToSelectedProject],
     queryFn: async () => {
       try {
         const query = buildRequestsQuery(permissions);
         const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
 
         // Add project filter if project scoping is enabled
-        const fetchPage = async (after?: string) => {
-          const finalVariables = {
-            ...variables,
-            ...(options?.fetchAll ? { first: MAX_CONNECTION_PAGE_SIZE, after, last: undefined, before: undefined } : {}),
-            where: {
-              ...variables?.where,
-              ...(scopeToSelectedProject && projectId && { projectID: projectId }),
-            },
-          };
-
-          const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
-          return requestConnectionSchema.parse(data?.requests);
+        const finalVariables = {
+          ...variables,
+          where: {
+            ...variables?.where,
+            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
+          },
         };
 
-        return options?.fetchAll ? fetchAllConnectionPages(fetchPage) : fetchPage();
+        const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
+        return requestConnectionSchema.parse(data?.requests);
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
         throw error;
       }
     },
+    enabled,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useInfiniteRequests(variables?: RequestListVariables, options?: RequestListOptions) {
+  const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
+  const permissions = useRequestPermissions();
+  const selectedProjectId = useSelectedProjectId();
+  const scopeToSelectedProject = options?.scopeToSelectedProject ?? true;
+  const projectId = options?.projectId !== undefined ? options.projectId : selectedProjectId;
+  const enabled = options?.enabled ?? true;
+
+  return useInfiniteQuery({
+    queryKey: ['requests', 'infinite', variables, permissions, projectId, scopeToSelectedProject],
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      try {
+        const query = buildRequestsQuery(permissions);
+        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
+        const finalVariables = {
+          ...variables,
+          first: variables?.first ?? 20,
+          after: pageParam,
+          last: undefined,
+          before: undefined,
+          where: {
+            ...variables?.where,
+            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
+          },
+        };
+
+        const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
+        return requestConnectionSchema.parse(data?.requests);
+      } catch (error) {
+        handleError(error, t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.pageInfo.hasNextPage ? (lastPage.pageInfo.endCursor ?? undefined) : undefined,
     enabled,
     refetchOnWindowFocus: false,
   });

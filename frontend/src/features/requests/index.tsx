@@ -19,7 +19,7 @@ import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
 import { RequestsTable, type RequestTableFilters } from './components';
 import { RequestsProvider } from './context';
-import { useRequests } from './data';
+import { useInfiniteRequests, useRequests } from './data';
 
 const REQUEST_FILTER_SEARCH_KEYS = {
   status: 'status',
@@ -187,7 +187,7 @@ function RequestsContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'requests-table-page-size',
   });
-  const { data: listPaginationSettings } = useListPaginationSettings();
+  const { data: listPaginationSettings, isFetched: paginationSettingsReady } = useListPaginationSettings();
   const paginationEnabled = listPaginationSettings?.requests ?? DEFAULT_LIST_PAGINATION_SETTINGS.requests;
   const searchFilters = useMemo(() => parseRequestSearchFilters(currentSearch), [currentSearch]);
   const [persistedFilters, setPersistedFilters] = usePersistedFilter<RequestSearchFilters>('requests', 'all', searchFilters);
@@ -201,6 +201,7 @@ function RequestsContent() {
   useEffect(() => {
     if (!paginationEnabled) {
       resetCursor();
+      setAutoRefresh(false);
     }
   }, [paginationEnabled, resetCursor]);
 
@@ -233,39 +234,85 @@ function RequestsContent() {
     return Object.keys(where).length > 0 ? where : undefined;
   })();
 
-  const { data, isLoading, refetch } = useRequests(
+  const paginatedQuery = useRequests(
     {
-      ...(paginationEnabled ? paginationArgs : {}),
+      ...paginationArgs,
       where: whereClause,
       orderBy: {
         field: 'CREATED_AT',
         direction: 'DESC',
       },
     },
-    { fetchAll: !paginationEnabled }
+    { enabled: paginationSettingsReady && paginationEnabled }
+  );
+  const infiniteQuery = useInfiniteRequests(
+    {
+      first: pageSize,
+      where: whereClause,
+      orderBy: {
+        field: 'CREATED_AT',
+        direction: 'DESC',
+      },
+    },
+    { enabled: paginationSettingsReady && !paginationEnabled }
   );
 
-  const requests = data?.edges?.map((edge) => edge.node) || [];
-  const pageInfo = data?.pageInfo;
+  const requests = useMemo(() => {
+    const edges = paginationEnabled
+      ? paginatedQuery.data?.edges ?? []
+      : infiniteQuery.data?.pages.flatMap((page) => page.edges) ?? [];
+    const seen = new Set<string>();
+    return edges.flatMap((edge) => {
+      if (seen.has(edge.node.id)) return [];
+      seen.add(edge.node.id);
+      return [edge.node];
+    });
+  }, [infiniteQuery.data?.pages, paginatedQuery.data?.edges, paginationEnabled]);
+  const infiniteLastPage = infiniteQuery.data?.pages.at(-1);
+  const pageInfo = paginationEnabled ? paginatedQuery.data?.pageInfo : infiniteLastPage?.pageInfo;
+  const totalCount = paginationEnabled ? paginatedQuery.data?.totalCount : infiniteQuery.data?.pages[0]?.totalCount;
+  const isLoading =
+    !paginationSettingsReady || (paginationEnabled ? paginatedQuery.isLoading : infiniteQuery.isLoading);
+
+  const handleRefresh = useCallback(() => {
+    if (paginationEnabled) {
+      void paginatedQuery.refetch();
+    } else {
+      void infiniteQuery.refetch();
+    }
+  }, [infiniteQuery.refetch, paginatedQuery.refetch, paginationEnabled]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!infiniteQuery.hasNextPage || infiniteQuery.isFetchingNextPage) return;
+    void infiniteQuery.fetchNextPage();
+  }, [infiniteQuery.fetchNextPage, infiniteQuery.hasNextPage, infiniteQuery.isFetchingNextPage]);
 
   const isFirstPage = !paginationEnabled || (!paginationArgs.after && cursorHistory.length === 0);
 
   useInterval(
     () => {
-      refetch();
+      handleRefresh();
     },
     autoRefresh && isFirstPage ? 10000 : null
   );
 
   const handleNextPage = () => {
-    if (data?.pageInfo?.hasNextPage && data?.pageInfo?.endCursor) {
-      setCursors(data.pageInfo.startCursor ?? undefined, data.pageInfo.endCursor ?? undefined, 'after');
+    if (paginatedQuery.data?.pageInfo?.hasNextPage && paginatedQuery.data?.pageInfo?.endCursor) {
+      setCursors(
+        paginatedQuery.data.pageInfo.startCursor ?? undefined,
+        paginatedQuery.data.pageInfo.endCursor ?? undefined,
+        'after'
+      );
     }
   };
 
   const handlePreviousPage = () => {
-    if (data?.pageInfo?.hasPreviousPage) {
-      setCursors(data.pageInfo.startCursor ?? undefined, data.pageInfo.endCursor ?? undefined, 'before');
+    if (paginatedQuery.data?.pageInfo?.hasPreviousPage) {
+      setCursors(
+        paginatedQuery.data.pageInfo.startCursor ?? undefined,
+        paginatedQuery.data.pageInfo.endCursor ?? undefined,
+        'before'
+      );
     }
   };
 
@@ -375,7 +422,7 @@ function RequestsContent() {
         pageInfo={pageInfo}
         pageSize={pageSize}
         paginationEnabled={paginationEnabled}
-        totalCount={data?.totalCount}
+        totalCount={totalCount}
         statusFilter={statusFilter}
         sourceFilter={sourceFilter}
         channelFilter={channelFilter}
@@ -389,10 +436,15 @@ function RequestsContent() {
         onDateRangeChange={handleDateRangeChange}
         onResetFilters={handleResetFilters}
         onViewDetail={handleViewDetail}
-        onRefresh={refetch}
+        onRefresh={handleRefresh}
         showRefresh={isFirstPage}
         autoRefresh={autoRefresh}
         onAutoRefreshChange={setAutoRefresh}
+        autoRefreshDisabled={!paginationEnabled}
+        infiniteScroll={!paginationEnabled}
+        hasMore={infiniteQuery.hasNextPage}
+        loadingMore={infiniteQuery.isFetchingNextPage}
+        onLoadMore={handleLoadMore}
       />
     </div>
   );
