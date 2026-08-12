@@ -111,6 +111,7 @@
   "requests.conversation.statChars": "Chars",
   "requests.conversation.statRoles": "Roles",
   "requests.conversation.backToTop": "Back to top",
+  "requests.detail.collapseExpandedContent": "Collapse all expanded content",
   "requests.detail.noResponse": "No response data",
   "requests.detail.audioNotSupported": "Your browser does not support audio playback.",
   "requests.detail.audioNotStored": "Audio is not stored. Configure external storage to enable playback.",

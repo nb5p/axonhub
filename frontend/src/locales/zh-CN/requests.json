@@ -111,6 +111,7 @@
   "requests.conversation.statChars": "字符量",
   "requests.conversation.statRoles": "角色",
   "requests.conversation.backToTop": "回到页首",
+  "requests.detail.collapseExpandedContent": "收起所有展开的内容",
   "requests.detail.noResponse": "暂无响应数据",
   "requests.detail.audioNotSupported": "您的浏览器不支持音频播放。",
   "requests.detail.audioNotStored": "音频未被存储。配置外部存储后可在此试听。",

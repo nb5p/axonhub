@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, FileText, Layers, Search, Wrench } from 'lucide-react';
+import { ChevronDown, ChevronsDownUp, ChevronsUpDown, FileText, Layers, Search, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -397,45 +397,10 @@ export function RequestConversationViewer({ body, format, className }: RequestCo
   const [showSystem, setShowSystem] = useState(true);
   const [expandAllContent, setExpandAllContent] = useState(false);
   const [rawOpenIndex, setRawOpenIndex] = useState<number | null>(null);
-  const [showBackTop, setShowBackTop] = useState(false);
 
   const jumpTo = useCallback((target: string | number) => {
     const el = typeof target === 'number' ? document.getElementById(`conv-msg-${target}`) : document.getElementById(target);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
-
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    let scroller: HTMLElement | null = null;
-    let node: HTMLElement | null = rootRef.current;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll|overlay)/.test(style.overflowY)) {
-        scroller = node;
-        break;
-      }
-      node = node.parentElement;
-    }
-    const target = scroller ?? window;
-    const onScroll = () => {
-      const top = scroller ? scroller.scrollTop : window.scrollY;
-      setShowBackTop(top > 400);
-    };
-    target.addEventListener('scroll', onScroll, { passive: true });
-    return () => target.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const scrollToTop = useCallback(() => {
-    let node: HTMLElement | null = rootRef.current;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll|overlay)/.test(style.overflowY)) {
-        node.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-      node = node.parentElement;
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const toolCallByCallId = useMemo(() => {
@@ -504,7 +469,7 @@ export function RequestConversationViewer({ body, format, className }: RequestCo
   const toggleRaw = (index: number) => setRawOpenIndex((cur) => (cur === index ? null : index));
 
   return (
-    <div ref={rootRef} className={cn('space-y-4', className)}>
+    <div className={cn('space-y-4', className)}>
       {/* Toolbar */}
       <div className='border-border bg-muted/20 sticky top-0 z-10 rounded-lg border p-3 backdrop-blur'>
         <div className='flex flex-wrap items-center gap-2.5'>
@@ -664,18 +629,6 @@ export function RequestConversationViewer({ body, format, className }: RequestCo
         </div>
       </div>
 
-      {/* Back to top */}
-      {showBackTop && (
-        <Button
-          variant='outline'
-          size='icon'
-          className='fixed right-5 bottom-5 z-50 h-11 w-11 rounded-full shadow-lg'
-          onClick={scrollToTop}
-          title={t('requests.conversation.backToTop')}
-        >
-          <ArrowUp className='h-5 w-5' />
-        </Button>
-      )}
     </div>
   );
 }
