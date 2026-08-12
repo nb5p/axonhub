@@ -21,8 +21,10 @@ import { useAnimatedList } from '@/hooks/useAnimatedList';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { ServerSidePagination } from '@/components/server-side-pagination';
+import { useGeneralSettings } from '@/features/system/data/system';
 import { Request, RequestConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
+import { RequestMobileCard } from './request-mobile-card';
 import { DEFAULT_HIDDEN_COLUMN_IDS, DEFAULT_MOBILE_HIDDEN_COLUMN_IDS, useRequestsColumns } from './requests-columns';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'requests-table-column-visibility';
@@ -105,6 +107,7 @@ export function RequestsTable({
   onAutoRefreshChange,
 }: RequestsTableProps) {
   const { t } = useTranslation();
+  const { data: settings } = useGeneralSettings();
 
   const requestsColumns = useRequestsColumns({ onViewDetail });
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -263,6 +266,7 @@ export function RequestsTable({
     manualPagination: true,
     manualFiltering: true, // Enable manual filtering for server-side filtering
   });
+  const mobileVisibleColumnIds = new Set(table.getVisibleLeafColumns().map((column) => column.id));
 
   return (
     <div className='flex flex-1 flex-col overflow-hidden'>
@@ -276,7 +280,31 @@ export function RequestsTable({
         autoRefresh={autoRefresh}
         onAutoRefreshChange={onAutoRefreshChange}
       />
-      <div className='shadow-soft relative mt-2 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
+      <div data-testid='requests-mobile-list' className='mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pb-1 md:hidden'>
+        {loading ? (
+          Array.from({ length: Math.min(pageSize, 6) }).map((_, index) => (
+            <div key={index} className='bg-muted/30 h-36 animate-pulse rounded-xl border' />
+          ))
+        ) : table.getRowModel().rows?.length ? (
+          table
+            .getRowModel()
+            .rows.map((row) => (
+              <RequestMobileCard
+                key={row.id}
+                request={row.original}
+                visibleColumnIds={mobileVisibleColumnIds}
+                currencyCode={settings?.currencyCode ?? 'USD'}
+                onViewDetail={onViewDetail}
+              />
+            ))
+        ) : (
+          <div className='text-muted-foreground flex h-32 items-center justify-center rounded-xl border text-sm'>{t('common.noData')}</div>
+        )}
+      </div>
+      <div
+        data-testid='requests-desktop-table'
+        className='shadow-soft relative mt-4 hidden min-h-0 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] md:block'
+      >
         <div className='min-w-max'>
           <Table
             data-testid='requests-table'

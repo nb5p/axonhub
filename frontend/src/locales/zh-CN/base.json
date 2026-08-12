@@ -58,6 +58,7 @@
   "pagination.selectedInfo": "已选择 {{selectedRows}} / {{dataLength}} 行",
   "pagination.selectedInfoWithTotal": "已选择 {{selectedRows}} / {{dataLength}} 行 / 总计 {{totalCount}} 行",
   "pagination.rowsPerPage": "每页行数",
+  "pagination.totalRows": "共 {{total}} 条",
   "pagination.currentPage": "第 {{current}} 页，共 {{total}} 页",
   "pagination.firstPage": "首页",
   "pagination.lastPage": "末页",

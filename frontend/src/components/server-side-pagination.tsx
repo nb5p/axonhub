@@ -38,13 +38,13 @@ export function ServerSidePagination({
   });
 
   return (
-    <div className='flex items-center justify-between overflow-clip px-2' style={{ overflowClipMargin: 1 }}>
+    <div className='flex items-center justify-between overflow-clip sm:px-2' style={{ overflowClipMargin: 1 }}>
       <div className='text-muted-foreground hidden flex-1 text-sm sm:block'>
         {totalCount !== undefined
           ? t('pagination.selectedInfoWithTotal', { selectedRows, dataLength, totalCount })
           : t('pagination.selectedInfo', { selectedRows, dataLength })}
       </div>
-      <div className='flex flex-wrap items-center gap-0 sm:gap-6 lg:gap-8'>
+      <div className='grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:gap-6 lg:gap-8'>
         <div className='flex items-center space-x-2'>
           <p className='hidden text-sm font-medium sm:block'>{t('pagination.rowsPerPage')}</p>
           <Select
@@ -53,7 +53,7 @@ export function ServerSidePagination({
               onPageSizeChange(Number(value));
             }}
           >
-            <SelectTrigger className='h-8 w-[70px]'>
+            <SelectTrigger className='h-12 w-[68px] sm:h-8 sm:w-[70px]'>
               <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side='top'>
@@ -65,8 +65,11 @@ export function ServerSidePagination({
             </SelectContent>
           </Select>
         </div>
-        <div className='flex items-center justify-center text-sm font-medium'>
-          <div className='flex items-center space-x-1'>
+        <div className='flex min-w-0 items-center justify-center text-sm font-medium'>
+          <span className='text-muted-foreground truncate text-xs sm:hidden'>
+            {t('pagination.totalRows', { total: totalCount ?? dataLength })}
+          </span>
+          <div className='hidden items-center space-x-1 sm:flex'>
             <span className='text-muted-foreground'>
               {pageInfo?.hasPreviousPage ? t('pagination.hasPrevious') : t('pagination.firstPage')}
             </span>
@@ -84,11 +87,21 @@ export function ServerSidePagination({
             <span className='sr-only'>{t('pagination.firstPage')}</span>
             <DoubleArrowLeftIcon className='h-4 w-4' />
           </Button>
-          <Button variant='outline' className='h-8 w-8 p-0' onClick={onPreviousPage} disabled={!pageInfo?.hasPreviousPage}>
+          <Button
+            variant='outline'
+            className='min-h-12 min-w-12 p-0 sm:h-8 sm:min-h-8 sm:w-8 sm:min-w-8'
+            onClick={onPreviousPage}
+            disabled={!pageInfo?.hasPreviousPage}
+          >
             <span className='sr-only'>{t('pagination.previousPage')}</span>
             <ChevronLeftIcon className='h-4 w-4' />
           </Button>
-          <Button variant='outline' className='h-8 w-8 p-0' onClick={onNextPage} disabled={!pageInfo?.hasNextPage}>
+          <Button
+            variant='outline'
+            className='min-h-12 min-w-12 p-0 sm:h-8 sm:min-h-8 sm:w-8 sm:min-w-8'
+            onClick={onNextPage}
+            disabled={!pageInfo?.hasNextPage}
+          >
             <span className='sr-only'>{t('pagination.nextPage')}</span>
             <ChevronRightIcon className='h-4 w-4' />
           </Button>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { IconLoader2, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,13 +10,20 @@ import type { ApiKeyProfilePreview } from '../data/schema';
 import { selectConversationAPIFormats } from './api-key-profile-preview-formats';
 
 interface ApiKeyProfilePreviewPanelProps {
+  className?: string;
   profileName?: string;
   preview?: ApiKeyProfilePreview;
   loading?: boolean;
   error?: boolean;
 }
 
-export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = false, error = false }: ApiKeyProfilePreviewPanelProps) {
+export function ApiKeyProfilePreviewPanel({
+  className,
+  profileName,
+  preview,
+  loading = false,
+  error = false,
+}: ApiKeyProfilePreviewPanelProps) {
   const { t } = useTranslation();
   const [modelSearch, setModelSearch] = useState('');
   const [selectedApiFormat, setSelectedApiFormat] = useState('');
@@ -53,7 +61,7 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
   };
 
   return (
-    <aside className='bg-muted/20 flex min-h-0 flex-col rounded-lg border'>
+    <aside className={cn('bg-muted/20 flex min-h-0 flex-col rounded-lg border', className)}>
       <div className='shrink-0 space-y-2 border-b p-4'>
         <div className='flex items-center justify-between gap-2'>
           <h3 className='font-medium'>{t('apikeys.profiles.preview.title')}</h3>
@@ -81,12 +89,12 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
               </div>
               {conversationApiFormats.length > 0 ? (
                 <Tabs value={selectedApiFormat} onValueChange={setSelectedApiFormat} className='gap-0'>
-                  <TabsList className='grid h-auto w-full grid-cols-4 rounded-none border-b bg-transparent p-0'>
+                  <TabsList className='grid h-auto w-full grid-cols-2 rounded-none border-b bg-transparent p-0 sm:grid-cols-4'>
                     {conversationApiFormats.map((apiFormat) => (
                       <TabsTrigger
                         key={apiFormat}
                         value={apiFormat}
-                        className='text-muted-foreground data-[state=active]:text-foreground h-auto min-w-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-2 py-2 text-center text-xs leading-tight whitespace-normal shadow-none data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:text-foreground'
+                        className='text-muted-foreground data-[state=active]:text-foreground dark:data-[state=active]:text-foreground h-auto min-h-12 min-w-0 rounded-none border-0 border-b-2 border-transparent bg-transparent px-2 py-2 text-center text-xs leading-tight whitespace-normal shadow-none data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:shadow-none sm:min-h-0'
                       >
                         {apiFormatLabel(apiFormat)}
                       </TabsTrigger>
@@ -103,7 +111,7 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
                     value={modelSearch}
                     onChange={(event) => setModelSearch(event.target.value)}
                     placeholder={t('apikeys.profiles.preview.searchModels')}
-                    className='h-8 pl-8'
+                    className='h-12 pl-8 sm:h-8'
                   />
                 </div>
               )}
@@ -119,7 +127,7 @@ export function ApiKeyProfilePreviewPanel({ profileName, preview, loading = fals
                       <TooltipTrigger asChild>
                         <button
                           type='button'
-                          className='hover:bg-accent rounded-md border px-2 py-1 text-left font-mono text-xs transition-colors'
+                          className='hover:bg-accent min-h-12 max-w-full rounded-md border px-2 py-2 text-left font-mono text-xs break-all transition-colors sm:min-h-0 sm:py-1'
                         >
                           {model.id}
                         </button>

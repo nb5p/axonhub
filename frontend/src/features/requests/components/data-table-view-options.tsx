@@ -21,7 +21,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant='outline' size='sm' className='h-8'>
+        <Button variant='outline' size='sm' className='h-12 sm:h-8'>
           <MixerHorizontalIcon className='mr-2 h-4 w-4' />
           {t('common.view')}
         </Button>
@@ -38,8 +38,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
             return (isDataColumn || isDetailsColumn) && column.getCanHide();
           })
           .map((column) => {
-            const labelKey =
-              column.id === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${column.id}`;
+            const labelKey = column.id === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
