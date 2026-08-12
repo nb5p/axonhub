@@ -15,6 +15,7 @@ export function ListPaginationSettings() {
   const { data: settings } = useListPaginationSettings();
   const updateSettings = useUpdateListPaginationSettings();
   const [values, setValues] = useState<ListPaginationSettingsValue>(DEFAULT_LIST_PAGINATION_SETTINGS);
+  const supported = settings?.supported ?? false;
 
   useEffect(() => {
     if (settings) {
@@ -39,6 +40,7 @@ export function ListPaginationSettings() {
       <CardHeader>
         <CardTitle>{t('system.listPagination.title')}</CardTitle>
         <CardDescription>{t('system.listPagination.description')}</CardDescription>
+        {!supported && <p className='text-destructive text-sm'>{t('system.listPagination.backendUnavailable')}</p>}
       </CardHeader>
       <CardContent className='space-y-4'>
         {LIST_KEYS.map((key) => {
@@ -52,7 +54,7 @@ export function ListPaginationSettings() {
                 id={switchID}
                 checked={values[key]}
                 onCheckedChange={(checked) => handleChange(key, checked)}
-                disabled={updateSettings.isPending}
+                disabled={!supported || updateSettings.isPending}
               />
             </div>
           );

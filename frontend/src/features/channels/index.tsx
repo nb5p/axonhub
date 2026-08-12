@@ -24,7 +24,7 @@ function ChannelsContent() {
   useProvidersData();
   const { channelPermissions } = usePermissions();
   const { showTypeTabs } = useChannels();
-  const { data: listPaginationSettings } = useListPaginationSettings();
+  const { data: listPaginationSettings, isFetched: paginationSettingsReady } = useListPaginationSettings();
   const paginationEnabled = listPaginationSettings?.channels ?? DEFAULT_LIST_PAGINATION_SETTINGS.channels;
   const { pageSize, setCursors, setPageSize, resetCursor, paginationArgs } = usePaginationSearch({
     defaultPageSize: 20,
@@ -151,7 +151,7 @@ function ChannelsContent() {
 
   const {
     data,
-    isLoading,
+    isLoading: isChannelsLoading,
     error: _error,
   } = useQueryChannels(
     {
@@ -163,8 +163,9 @@ function ChannelsContent() {
       modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
       endpointFormats: endpointFilter.length > 0 ? endpointFilter : undefined,
     },
-    { fetchAll: !paginationEnabled }
+    { fetchAll: !paginationEnabled, disableAutoFetch: !paginationSettingsReady }
   );
+  const isLoading = !paginationSettingsReady || isChannelsLoading;
 
   const channelIDs = useMemo(() => {
     return data?.edges?.map((edge) => edge.node.id) || [];

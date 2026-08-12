@@ -54,7 +54,7 @@ function loadSorting(): SortingState {
 function ApiKeysContent() {
   const { t } = useTranslation();
   const { apiKeyPermissions, hasSystemScope } = usePermissions();
-  const { data: listPaginationSettings } = useListPaginationSettings();
+  const { data: listPaginationSettings, isFetched: paginationSettingsReady } = useListPaginationSettings();
   const paginationEnabled = listPaginationSettings?.apiKeys ?? DEFAULT_LIST_PAGINATION_SETTINGS.apiKeys;
   const { startCursor, endCursor, cursorHistory, pageSize, setCursors, setPageSize, resetCursor, paginationArgs } =
     usePaginationSearch({
@@ -153,14 +153,15 @@ function ApiKeysContent() {
     }
   }, [sorting]);
 
-  const { data, isLoading } = useApiKeys(
+  const { data, isLoading: isApiKeysLoading } = useApiKeys(
     {
       ...(paginationEnabled ? (sortingCursorResetPending ? { first: pageSize } : paginationArgs) : {}),
       where: whereClause,
       orderBy: currentOrderBy,
     },
-    { fetchAll: !paginationEnabled }
+    { fetchAll: !paginationEnabled, disableAutoFetch: !paginationSettingsReady }
   );
+  const isLoading = !paginationSettingsReady || isApiKeysLoading;
 
   const tableData = React.useMemo(() => data?.edges?.map((edge) => edge.node) ?? [], [data?.edges]);
 

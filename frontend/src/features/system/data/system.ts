@@ -253,6 +253,10 @@ export interface ListPaginationSettings {
   requests: boolean;
 }
 
+export interface ListPaginationSettingsResult extends ListPaginationSettings {
+  supported: boolean;
+}
+
 export type UpdateListPaginationSettingsInput = ListPaginationSettings;
 
 export const DEFAULT_LIST_PAGINATION_SETTINGS: ListPaginationSettings = {
@@ -1237,16 +1241,16 @@ export function useListPaginationSettings() {
     queryFn: async () => {
       try {
         const data = await graphqlRequest<{ listPaginationSettings: ListPaginationSettings }>(LIST_PAGINATION_SETTINGS_QUERY);
-        return data.listPaginationSettings;
+        return { ...data.listPaginationSettings, supported: true } satisfies ListPaginationSettingsResult;
       } catch (error) {
         if (error instanceof GraphQLRequestError && error.message.includes('listPaginationSettings')) {
-          return DEFAULT_LIST_PAGINATION_SETTINGS;
+          return { ...DEFAULT_LIST_PAGINATION_SETTINGS, supported: false } satisfies ListPaginationSettingsResult;
         }
         handleError(error, i18n.t('common.errors.internalServerError'));
         throw error;
       }
     },
-    placeholderData: DEFAULT_LIST_PAGINATION_SETTINGS,
+    placeholderData: { ...DEFAULT_LIST_PAGINATION_SETTINGS, supported: false } satisfies ListPaginationSettingsResult,
   });
 }
 
@@ -1261,12 +1265,17 @@ export function useUpdateListPaginationSettings() {
       return data.updateListPaginationSettings;
     },
     onSuccess: (_data, variables) => {
-      queryClient.setQueryData<ListPaginationSettings>(['listPaginationSettings'], variables);
+      queryClient.setQueryData<ListPaginationSettingsResult>(['listPaginationSettings'], { ...variables, supported: true });
       queryClient.invalidateQueries({ queryKey: ['listPaginationSettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },
-    onError: () => {
-      toast.error(i18n.t('common.errors.systemUpdateFailed'));
+    onError: (error) => {
+      const message =
+        error instanceof GraphQLRequestError &&
+        (error.message.includes('UpdateListPaginationSettingsInput') || error.message.includes('updateListPaginationSettings'))
+          ? i18n.t('system.listPagination.backendUnavailable')
+          : i18n.t('common.errors.systemUpdateFailed');
+      toast.error(message);
     },
   });
 }
