@@ -7,6 +7,7 @@ import { useErrorHandler } from '@/hooks/use-error-handler';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { ProxyConfig } from '@/features/channels/data/schema';
 import type { ModelAssociation } from '@/features/models/data/schema';
+import { buildListPaginationSettingsInput } from './list-pagination-settings';
 
 // GraphQL queries and mutations
 const SYSTEM_VERSION_QUERY = `
@@ -1259,13 +1260,15 @@ export function useUpdateListPaginationSettings() {
 
   return useMutation({
     mutationFn: async (input: UpdateListPaginationSettingsInput) => {
+      const mutationInput = buildListPaginationSettingsInput(input);
       const data = await graphqlRequest<{ updateListPaginationSettings: boolean }>(UPDATE_LIST_PAGINATION_SETTINGS_MUTATION, {
-        input,
+        input: mutationInput,
       });
       return data.updateListPaginationSettings;
     },
     onSuccess: (_data, variables) => {
-      queryClient.setQueryData<ListPaginationSettingsResult>(['listPaginationSettings'], { ...variables, supported: true });
+      const settings = buildListPaginationSettingsInput(variables);
+      queryClient.setQueryData<ListPaginationSettingsResult>(['listPaginationSettings'], { ...settings, supported: true });
       queryClient.invalidateQueries({ queryKey: ['listPaginationSettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },

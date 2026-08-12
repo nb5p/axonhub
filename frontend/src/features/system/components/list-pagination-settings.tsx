@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DEFAULT_LIST_PAGINATION_SETTINGS, useListPaginationSettings, useUpdateListPaginationSettings } from '../data/system';
 import type { ListPaginationSettings as ListPaginationSettingsValue } from '../data/system';
+import { buildListPaginationSettingsInput } from '../data/list-pagination-settings';
 
 type ListKey = keyof ListPaginationSettingsValue;
 
@@ -19,7 +20,7 @@ export function ListPaginationSettings() {
 
   useEffect(() => {
     if (settings) {
-      setValues(settings);
+      setValues(buildListPaginationSettingsInput(settings));
     }
   }, [settings]);
 
