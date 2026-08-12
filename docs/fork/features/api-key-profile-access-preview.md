@@ -21,7 +21,6 @@ local:
     - 701f33dec724a633f60488160f8d8823b0463764
     - dccc2740bdd1edcaa3eb271896ca0e482b05db6b
     - 7fecec658fa3faba2713468d2709ad4068f1ebef
-    - 82d825f9086f7477b2a0836af559dcdcd0de7385
   modules:
     - internal/server/biz/api_key_profile_preview.go
     - internal/server/biz/api_key_profile_preview_test.go
@@ -62,7 +61,6 @@ database:
 - 可用 API 格式仅展示对话接口，并改为下划线选项卡；固定依次显示 Chat Completions、Responses、Anthropic Messages、Gemini Contents，隐藏图片、视频等非对话格式。
 - 配置文件管理弹窗扩宽至 `96rem`，右侧预览区扩宽至 `32–40rem`；移除“可用 API”标题，将四列选项卡放在模型搜索框正上方并允许标签换行，确保四个选项始终可见。
 - 支持渠道先按该 API 格式的系统透传优先级分层，再按渠道权重降序、名称和 ID 稳定排序，并显示调用序号、透传标记和权重。
-- 移动端使用全高弹窗和“配置文件 / 当前状态”面板切换，API 格式选项卡按两列换行，避免编辑区和预览区同时压缩。
 
 ## 与来源的差异
 
@@ -83,7 +81,6 @@ database:
 - `./node_modules/.bin/tsc --noEmit`：通过。
 - 排序元数据与 API 格式优先级已纳入 `TestModelService_PreviewAPIKeyProfile`。
 - 无限制预览与真实 `ListEnabledModels` 的模型 ID 集合一致性已纳入后端回归测试。
-- 2026-08-12 在 390×844 触摸视口验证编辑和预览均无横向溢出，可见操作目标不小于 48px；TypeScript 和前端单元测试通过。
 
 ## 更新历史
 
@@ -94,4 +91,3 @@ database:
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `701f33dec724a633f60488160f8d8823b0463764` | 修复无配置密钥未发起无限制预览及切换密钥时沿用旧预览结果。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `dccc2740bdd1edcaa3eb271896ca0e482b05db6b` | 可用 API 格式只保留四种对话接口，并使用选项卡交互。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `7fecec658fa3faba2713468d2709ad4068f1ebef` | 扩宽管理弹窗和预览区，并将四列 API 选项卡移到模型搜索框上方。 |
-| 2026-08-12 | 用户移动端反馈 | `82d825f9086f7477b2a0836af559dcdcd0de7385` | 配置编辑和实时预览在移动端改为全高分屏交互。 |
