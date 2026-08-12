@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { IconSettings } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,15 @@ export function AppHeader() {
   const queryClient = useQueryClient();
   const { isMobile } = useSidebar();
   const displayName = brandSettings?.brandName || 'AxonHub';
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const mobilePageTitle =
+    pathname === '/channels'
+      ? t('channels.title')
+      : pathname === '/project/api-keys'
+        ? t('apikeys.title')
+        : pathname === '/project/requests'
+          ? t('requests.title')
+          : null;
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
@@ -46,7 +55,7 @@ export function AppHeader() {
     <header className='bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed top-0 z-50 w-full backdrop-blur'>
       <div className='flex h-14 items-center justify-between'>
         {/* Logo + Project Switcher - 左侧对齐 */}
-        <div className='flex items-center gap-2 pl-6'>
+        <div className='flex min-w-0 items-center gap-2 pl-6'>
           {/* Sidebar Toggle - 与侧边栏图标垂直对齐 */}
           <SidebarTrigger className='-ml-4 size-8' />
 
@@ -68,14 +77,16 @@ export function AppHeader() {
                 <img src='/logo.jpg' alt='Default Logo' width={24} height={24} className='size-8 object-cover' />
               )}
             </div>
-            <span className='text-sm leading-none font-semibold'>{displayName}</span>
+            <span className='text-sm leading-none font-semibold max-[374px]:hidden'>{displayName}</span>
           </div>
 
           {/* Separator */}
-          <div className='bg-border mx-0.5 h-3.5 w-px' />
+          <div className='bg-border mx-0.5 h-3.5 w-px max-[374px]:hidden' />
 
           {/* Project Switcher */}
           <ProjectSwitcher />
+
+          {mobilePageTitle && <span className='min-w-0 truncate text-xs font-semibold sm:hidden'>{mobilePageTitle}</span>}
         </div>
 
         {/* 右侧控件 */}

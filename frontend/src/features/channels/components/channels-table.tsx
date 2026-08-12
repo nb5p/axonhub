@@ -44,6 +44,7 @@ interface DataTableProps {
   pageInfo?: ChannelConnection['pageInfo'];
   pageSize: number;
   totalCount?: number;
+  paginationEnabled?: boolean;
   nameFilter: string;
   typeFilter: string[];
   statusFilter: string[];
@@ -83,6 +84,7 @@ export function ChannelsTable({
   pageInfo,
   pageSize,
   totalCount,
+  paginationEnabled = true,
   nameFilter,
   typeFilter,
   statusFilter,
@@ -269,7 +271,7 @@ export function ChannelsTable({
     },
     [t]
   );
-  
+
   const selectedCount = useMemo(() => filteredSelectedRows.length, [filteredSelectedRows]);
   const isFiltered = useMemo(() => columnFilters.length > 0, [columnFilters.length]);
 
@@ -316,7 +318,7 @@ export function ChannelsTable({
         modelMatchMode={modelMatchMode}
         onModelMatchModeChange={onModelMatchModeChange}
       />
-      <div className='shadow-soft relative mt-4 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)]'>
+      <div className='shadow-soft relative mt-1 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
         <div className='min-w-max'>
         <Table data-testid='channels-table' className='border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'>
           <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
@@ -392,19 +394,21 @@ export function ChannelsTable({
         </Table>
         </div>
       </div>
-      <div className='mt-4 flex-shrink-0'>
-        <ServerSidePagination
-          pageInfo={pageInfo}
-          pageSize={pageSize}
-          dataLength={data.length}
-          totalCount={totalCount}
-          selectedRows={selectedCount}
-          onNextPage={onNextPage}
-          onPreviousPage={onPreviousPage}
-          onPageSizeChange={onPageSizeChange}
-          onResetCursor={onResetCursor}
-        />
-      </div>
+      {paginationEnabled && (
+        <div className='mt-4 flex-shrink-0'>
+          <ServerSidePagination
+            pageInfo={pageInfo}
+            pageSize={pageSize}
+            dataLength={data.length}
+            totalCount={totalCount}
+            selectedRows={selectedCount}
+            onNextPage={onNextPage}
+            onPreviousPage={onPreviousPage}
+            onPageSizeChange={onPageSizeChange}
+            onResetCursor={onResetCursor}
+          />
+        </div>
+      )}
       {/* Floating Bulk Actions Bar */}
       {selectedCount > 0 && canWrite && (
         <div className='fixed bottom-6 left-1/2 z-50 -translate-x-1/2'>

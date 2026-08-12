@@ -39,6 +39,7 @@ interface DataTableProps {
   pageInfo?: ApiKeyConnection['pageInfo'];
   pageSize: number;
   totalCount?: number;
+  paginationEnabled?: boolean;
   searchFilter: string;
   statusFilter: string[];
   userFilter: string[];
@@ -64,6 +65,7 @@ export function ApiKeysTable({
   pageInfo,
   pageSize,
   totalCount,
+  paginationEnabled = true,
   searchFilter,
   statusFilter,
   userFilter,
@@ -256,18 +258,20 @@ export function ApiKeysTable({
           </TableBody>
         </Table>
       </div>
-      <div className='mt-4 flex-shrink-0'>
-        <ServerSidePagination
-          pageInfo={pageInfo}
-          pageSize={pageSize}
-          dataLength={data.length}
-          totalCount={totalCount}
-          selectedRows={Object.keys(rowSelection).length}
-          onNextPage={onNextPage}
-          onPreviousPage={onPreviousPage}
-          onPageSizeChange={onPageSizeChange}
-        />
-      </div>
+      {paginationEnabled && (
+        <div className='mt-4 flex-shrink-0'>
+          <ServerSidePagination
+            pageInfo={pageInfo}
+            pageSize={pageSize}
+            dataLength={data.length}
+            totalCount={totalCount}
+            selectedRows={Object.keys(rowSelection).length}
+            onNextPage={onNextPage}
+            onPreviousPage={onPreviousPage}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </div>
+      )}
       {/* Floating Bulk Actions Bar */}
       {selectedCount > 0 && canWrite && (
         <div className='fixed bottom-6 left-1/2 z-50 -translate-x-1/2'>

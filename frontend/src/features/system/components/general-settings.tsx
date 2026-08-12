@@ -20,6 +20,7 @@ import {
 } from '../data/system';
 import { GMTTimeZoneOptions } from '../data/timezones';
 import { SidebarNavigationSettings } from './sidebar-navigation-settings';
+import { ListPaginationSettings } from './list-pagination-settings';
 
 export function GeneralSettings() {
   const { t } = useTranslation();
@@ -169,6 +170,8 @@ export function GeneralSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <ListPaginationSettings />
 
       <SidebarNavigationSettings />
 

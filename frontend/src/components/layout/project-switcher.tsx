@@ -70,7 +70,7 @@ export function ProjectSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className='hover:bg-accent/50 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm leading-none transition-colors'>
-          <span className='text-sm leading-none font-medium'>{displayName}</span>
+          <span className='max-w-16 truncate text-sm leading-none font-medium sm:max-w-none'>{displayName}</span>
           <ChevronsUpDown className='text-muted-foreground size-3' />
         </button>
       </DropdownMenuTrigger>

@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
+import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useSelectedProjectId } from '@/stores/projectStore';
@@ -461,6 +462,7 @@ export function useApiKeys(
   },
   options?: {
     disableAutoFetch?: boolean;
+    fetchAll?: boolean;
   }
 ) {
   const { t } = useTranslation();
@@ -469,20 +471,25 @@ export function useApiKeys(
   const selectedProjectId = useSelectedProjectId();
 
   return useQuery({
-    queryKey: ['apiKeys', variables, permissions, selectedProjectId],
+    queryKey: ['apiKeys', variables, permissions, selectedProjectId, options?.fetchAll],
     queryFn: async () => {
       try {
         const query = buildApiKeysQuery(permissions);
         const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-        const mergedVariables = {
-          ...variables,
-          where: {
-            ...variables?.where,
-            typeNotIn: [NOAUTH_API_KEY_TYPE],
-          },
+        const fetchPage = async (after?: string) => {
+          const mergedVariables = {
+            ...variables,
+            ...(options?.fetchAll ? { first: MAX_CONNECTION_PAGE_SIZE, after, last: undefined, before: undefined } : {}),
+            where: {
+              ...variables?.where,
+              typeNotIn: [NOAUTH_API_KEY_TYPE],
+            },
+          };
+          const data = await graphqlRequest<{ apiKeys: ApiKeyConnection }>(query, mergedVariables, headers);
+          return apiKeyConnectionSchema.parse(data?.apiKeys);
         };
-        const data = await graphqlRequest<{ apiKeys: ApiKeyConnection }>(query, mergedVariables, headers);
-        return apiKeyConnectionSchema.parse(data?.apiKeys);
+
+        return options?.fetchAll ? fetchAllConnectionPages(fetchPage) : fetchPage();
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
         throw error;

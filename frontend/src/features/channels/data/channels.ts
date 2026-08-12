@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
+import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
 import { pageInfoSchema } from '@/gql/pagination';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -1039,6 +1040,7 @@ export function useQueryChannels(
   },
   options?: {
     disableAutoFetch?: boolean;
+    fetchAll?: boolean;
   }
 ) {
   const { handleError } = useErrorHandler();
@@ -1060,11 +1062,19 @@ export function useQueryChannels(
       variables?.last,
       variables?.after,
       variables?.before,
+      options?.fetchAll,
     ],
     queryFn: async () => {
       try {
-        const data = await graphqlRequest<{ queryChannels: ChannelConnection }>(QUERY_CHANNELS_QUERY, { input: variables });
-        return channelConnectionSchema.parse(data?.queryChannels);
+        const fetchPage = async (after?: string) => {
+          const input = options?.fetchAll
+            ? { ...variables, first: MAX_CONNECTION_PAGE_SIZE, after, last: undefined, before: undefined }
+            : variables;
+          const data = await graphqlRequest<{ queryChannels: ChannelConnection }>(QUERY_CHANNELS_QUERY, { input });
+          return channelConnectionSchema.parse(data?.queryChannels);
+        };
+
+        return options?.fetchAll ? fetchAllConnectionPages(fetchPage) : fetchPage();
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
         throw error;

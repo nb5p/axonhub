@@ -170,6 +170,15 @@ func (r *mutationResolver) UpdateSidebarNavigationSettings(ctx context.Context, 
 	return true, nil
 }
 
+// UpdateListPaginationSettings is the resolver for the updateListPaginationSettings field.
+func (r *mutationResolver) UpdateListPaginationSettings(ctx context.Context, input biz.ListPaginationSettings) (bool, error) {
+	if err := r.systemService.SetListPaginationSettings(ctx, input); err != nil {
+		return false, fmt.Errorf("failed to update list pagination settings: %w", err)
+	}
+
+	return true, nil
+}
+
 // UpdateVideoStorageSettings is the resolver for the updateVideoStorageSettings field.
 func (r *mutationResolver) UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error) {
 	err := r.systemService.SetVideoStorageSettings(ctx, input)
@@ -563,6 +572,11 @@ func (r *queryResolver) SystemGeneralSettings(ctx context.Context) (*biz.SystemG
 // SidebarNavigationSettings is the resolver for the sidebarNavigationSettings field.
 func (r *queryResolver) SidebarNavigationSettings(ctx context.Context) (*biz.SidebarNavigationSettings, error) {
 	return r.systemService.SidebarNavigationSettings(ctx)
+}
+
+// ListPaginationSettings is the resolver for the listPaginationSettings field.
+func (r *queryResolver) ListPaginationSettings(ctx context.Context) (*biz.ListPaginationSettings, error) {
+	return r.systemService.ListPaginationSettings(ctx)
 }
 
 // VideoStorageSettings is the resolver for the videoStorageSettings field.

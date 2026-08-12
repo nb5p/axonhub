@@ -13,7 +13,7 @@ export function ChannelsPrimaryButtons() {
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
 
   return (
-    <div ref={scrollRef} className='flex gap-2 overflow-x-auto md:overflow-x-visible'>
+    <div ref={scrollRef} className='flex min-w-0 gap-2 overflow-x-auto md:overflow-x-visible'>
       <PermissionGuard requiredSystemScope='read_settings'>
         {/* Load Balancing Strategy - navigate to system retry configuration */}
         <Button

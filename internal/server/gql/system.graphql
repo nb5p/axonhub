@@ -349,6 +349,18 @@ input UpdateSidebarNavigationSettingsInput {
   hiddenItems: [String!]!
 }
 
+type ListPaginationSettings {
+  channels: Boolean!
+  apiKeys: Boolean!
+  requests: Boolean!
+}
+
+input UpdateListPaginationSettingsInput {
+  channels: Boolean!
+  apiKeys: Boolean!
+  requests: Boolean!
+}
+
 type VideoStorageSettings {
   enabled: Boolean!
   dataStorageID: Int!
@@ -420,6 +432,7 @@ extend type Mutation {
   updateSystemChannelSettings(input: UpdateSystemChannelSettingsInput!): Boolean!
   updateSystemGeneralSettings(input: UpdateSystemGeneralSettingsInput!): Boolean!
   updateSidebarNavigationSettings(input: UpdateSidebarNavigationSettingsInput!): Boolean!
+  updateListPaginationSettings(input: UpdateListPaginationSettingsInput!): Boolean!
   updateVideoStorageSettings(input: UpdateVideoStorageSettingsInput!): Boolean!
   updateQuotaEnforcementSettings(input: UpdateQuotaEnforcementSettingsInput!): Boolean!
   updateProviderQuotaCollectionSettings(input: UpdateProviderQuotaCollectionSettingsInput!): Boolean!
@@ -491,6 +504,7 @@ extend type Query {
   systemChannelSettings: SystemChannelSettings!
   systemGeneralSettings: SystemGeneralSettings!
   sidebarNavigationSettings: SidebarNavigationSettings!
+  listPaginationSettings: ListPaginationSettings!
   videoStorageSettings: VideoStorageSettings!
   quotaEnforcementSettings: QuotaEnforcementSettings!
   providerQuotaCollectionSettings: ProviderQuotaCollectionSettings!

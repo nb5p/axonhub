@@ -63,6 +63,12 @@ var defaultGeneralSettings = SystemGeneralSettings{
 	Timezone:     "UTC",
 }
 
+var defaultListPaginationSettings = ListPaginationSettings{
+	Channels: false,
+	APIKeys:  false,
+	Requests: true,
+}
+
 var defaultAutoBackupSettings = AutoBackupSettings{
 	Enabled:              false,
 	Frequency:            BackupFrequencyDaily,

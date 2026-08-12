@@ -198,6 +198,33 @@ func TestSystemService_SidebarNavigationSettings(t *testing.T) {
 	require.Equal(t, []string{"admin.users", "project.threads"}, settings.HiddenItems)
 }
 
+func TestSystemService_ListPaginationSettings(t *testing.T) {
+	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
+	service, client := setupTestSystemService(t, cacheConfig)
+	defer client.Close()
+
+	baseCtx := ent.NewContext(context.Background(), client)
+	settings, err := service.ListPaginationSettings(baseCtx)
+	require.NoError(t, err)
+	require.False(t, settings.Channels)
+	require.False(t, settings.APIKeys)
+	require.True(t, settings.Requests)
+
+	writeCtx := authz.WithTestBypass(baseCtx)
+	err = service.SetListPaginationSettings(writeCtx, ListPaginationSettings{
+		Channels: true,
+		APIKeys:  true,
+		Requests: false,
+	})
+	require.NoError(t, err)
+
+	settings, err = service.ListPaginationSettings(baseCtx)
+	require.NoError(t, err)
+	require.True(t, settings.Channels)
+	require.True(t, settings.APIKeys)
+	require.False(t, settings.Requests)
+}
+
 func TestSystemService_QuotaEnforcementDisplaySettings(t *testing.T) {
 	t.Run("defaults", func(t *testing.T) {
 		service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})

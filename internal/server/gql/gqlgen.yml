@@ -676,6 +676,12 @@ models:
   UpdateSidebarNavigationSettingsInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.SidebarNavigationSettings
+  ListPaginationSettings:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.ListPaginationSettings
+  UpdateListPaginationSettingsInput:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.ListPaginationSettings
   VideoStorageSettings:
     model:
       - github.com/looplj/axonhub/internal/server/biz.VideoStorageSettings

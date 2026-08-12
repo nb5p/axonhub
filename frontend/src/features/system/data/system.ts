@@ -247,6 +247,20 @@ export interface UpdateSidebarNavigationSettingsInput {
   hiddenItems: string[];
 }
 
+export interface ListPaginationSettings {
+  channels: boolean;
+  apiKeys: boolean;
+  requests: boolean;
+}
+
+export type UpdateListPaginationSettingsInput = ListPaginationSettings;
+
+export const DEFAULT_LIST_PAGINATION_SETTINGS: ListPaginationSettings = {
+  channels: false,
+  apiKeys: false,
+  requests: true,
+};
+
 export interface VideoStorageSettings {
   enabled: boolean;
   dataStorageID: number;
@@ -949,6 +963,22 @@ const UPDATE_SIDEBAR_NAVIGATION_SETTINGS_MUTATION = `
   }
 `;
 
+const LIST_PAGINATION_SETTINGS_QUERY = `
+  query ListPaginationSettings {
+    listPaginationSettings {
+      channels
+      apiKeys
+      requests
+    }
+  }
+`;
+
+const UPDATE_LIST_PAGINATION_SETTINGS_MUTATION = `
+  mutation UpdateListPaginationSettings($input: UpdateListPaginationSettingsInput!) {
+    updateListPaginationSettings(input: $input)
+  }
+`;
+
 const VIDEO_STORAGE_SETTINGS_QUERY = `
   query VideoStorageSettings {
     videoStorageSettings {
@@ -1191,6 +1221,48 @@ export function useUpdateSidebarNavigationSettings() {
         hiddenItems: variables.hiddenItems,
       });
       queryClient.invalidateQueries({ queryKey: ['sidebarNavigationSettings'] });
+      toast.success(i18n.t('common.success.systemUpdated'));
+    },
+    onError: () => {
+      toast.error(i18n.t('common.errors.systemUpdateFailed'));
+    },
+  });
+}
+
+export function useListPaginationSettings() {
+  const { handleError } = useErrorHandler();
+
+  return useQuery({
+    queryKey: ['listPaginationSettings'],
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ listPaginationSettings: ListPaginationSettings }>(LIST_PAGINATION_SETTINGS_QUERY);
+        return data.listPaginationSettings;
+      } catch (error) {
+        if (error instanceof GraphQLRequestError && error.message.includes('listPaginationSettings')) {
+          return DEFAULT_LIST_PAGINATION_SETTINGS;
+        }
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+    placeholderData: DEFAULT_LIST_PAGINATION_SETTINGS,
+  });
+}
+
+export function useUpdateListPaginationSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateListPaginationSettingsInput) => {
+      const data = await graphqlRequest<{ updateListPaginationSettings: boolean }>(UPDATE_LIST_PAGINATION_SETTINGS_MUTATION, {
+        input,
+      });
+      return data.updateListPaginationSettings;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.setQueryData<ListPaginationSettings>(['listPaginationSettings'], variables);
+      queryClient.invalidateQueries({ queryKey: ['listPaginationSettings'] });
       toast.success(i18n.t('common.success.systemUpdated'));
     },
     onError: () => {

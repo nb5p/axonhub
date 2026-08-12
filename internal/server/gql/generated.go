@@ -827,6 +827,12 @@ type ComplexityRoot struct {
 		User    func(childComplexity int) int
 	}
 
+	ListPaginationSettings struct {
+		APIKeys  func(childComplexity int) int
+		Channels func(childComplexity int) int
+		Requests func(childComplexity int) int
+	}
+
 	Model struct {
 		AssociatedChannelCount func(childComplexity int) int
 		CreatedAt              func(childComplexity int) int
@@ -1062,6 +1068,7 @@ type ComplexityRoot struct {
 		UpdateChannelStatus                   func(childComplexity int, id objects.GUID, status channel.Status) int
 		UpdateDataStorage                     func(childComplexity int, id objects.GUID, input ent.UpdateDataStorageInput) int
 		UpdateDefaultDataStorage              func(childComplexity int, input UpdateDefaultDataStorageInput) int
+		UpdateListPaginationSettings          func(childComplexity int, input biz.ListPaginationSettings) int
 		UpdateMe                              func(childComplexity int, input UpdateMeInput) int
 		UpdateModel                           func(childComplexity int, id objects.GUID, input ent.UpdateModelInput) int
 		UpdateModelStatus                     func(childComplexity int, id objects.GUID, status model.Status) int
@@ -1403,6 +1410,7 @@ type ComplexityRoot struct {
 		FastestModels                   func(childComplexity int, input FastestChannelsInput) int
 		FetchModels                     func(childComplexity int, input biz.FetchModelsInput) int
 		GetCacheDiagnostics             func(childComplexity int, input *GetCacheDiagnosticsInput) int
+		ListPaginationSettings          func(childComplexity int) int
 		Me                              func(childComplexity int) int
 		ModelPerformanceStats           func(childComplexity int) int
 		Models                          func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.ModelOrder, where *ent.ModelWhereInput) int
@@ -2301,6 +2309,7 @@ type MutationResolver interface {
 	UpdateSystemChannelSettings(ctx context.Context, input biz.UpdateSystemChannelSettings) (bool, error)
 	UpdateSystemGeneralSettings(ctx context.Context, input biz.SystemGeneralSettings) (bool, error)
 	UpdateSidebarNavigationSettings(ctx context.Context, input biz.SidebarNavigationSettings) (bool, error)
+	UpdateListPaginationSettings(ctx context.Context, input biz.ListPaginationSettings) (bool, error)
 	UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error)
 	UpdateQuotaEnforcementSettings(ctx context.Context, input UpdateQuotaEnforcementSettingsInput) (bool, error)
 	UpdateProviderQuotaCollectionSettings(ctx context.Context, input UpdateProviderQuotaCollectionSettingsInput) (bool, error)
@@ -2434,6 +2443,7 @@ type QueryResolver interface {
 	SystemChannelSettings(ctx context.Context) (*biz.SystemChannelSettings, error)
 	SystemGeneralSettings(ctx context.Context) (*biz.SystemGeneralSettings, error)
 	SidebarNavigationSettings(ctx context.Context) (*biz.SidebarNavigationSettings, error)
+	ListPaginationSettings(ctx context.Context) (*biz.ListPaginationSettings, error)
 	VideoStorageSettings(ctx context.Context) (*biz.VideoStorageSettings, error)
 	QuotaEnforcementSettings(ctx context.Context) (*biz.QuotaEnforcementSettings, error)
 	ProviderQuotaCollectionSettings(ctx context.Context) (*biz.ProviderQuotaCollectionSettings, error)
@@ -5275,6 +5285,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.InitializeSystemPayload.User(childComplexity), true
 
+	case "ListPaginationSettings.apiKeys":
+		if e.complexity.ListPaginationSettings.APIKeys == nil {
+			break
+		}
+
+		return e.complexity.ListPaginationSettings.APIKeys(childComplexity), true
+	case "ListPaginationSettings.channels":
+		if e.complexity.ListPaginationSettings.Channels == nil {
+			break
+		}
+
+		return e.complexity.ListPaginationSettings.Channels(childComplexity), true
+	case "ListPaginationSettings.requests":
+		if e.complexity.ListPaginationSettings.Requests == nil {
+			break
+		}
+
+		return e.complexity.ListPaginationSettings.Requests(childComplexity), true
+
 	case "Model.associatedChannelCount":
 		if e.complexity.Model.AssociatedChannelCount == nil {
 			break
@@ -6799,6 +6828,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateDefaultDataStorage(childComplexity, args["input"].(UpdateDefaultDataStorageInput)), true
+	case "Mutation.updateListPaginationSettings":
+		if e.complexity.Mutation.UpdateListPaginationSettings == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateListPaginationSettings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateListPaginationSettings(childComplexity, args["input"].(biz.ListPaginationSettings)), true
 	case "Mutation.updateMe":
 		if e.complexity.Mutation.UpdateMe == nil {
 			break
@@ -8470,6 +8510,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetCacheDiagnostics(childComplexity, args["input"].(*GetCacheDiagnosticsInput)), true
+	case "Query.listPaginationSettings":
+		if e.complexity.Query.ListPaginationSettings == nil {
+			break
+		}
+
+		return e.complexity.Query.ListPaginationSettings(childComplexity), true
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -11836,6 +11882,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateChannelProbeSettingInput,
 		ec.unmarshalInputUpdateDataStorageInput,
 		ec.unmarshalInputUpdateDefaultDataStorageInput,
+		ec.unmarshalInputUpdateListPaginationSettingsInput,
 		ec.unmarshalInputUpdateMeInput,
 		ec.unmarshalInputUpdateModelInput,
 		ec.unmarshalInputUpdateMyPasswordInput,
@@ -13333,6 +13380,17 @@ func (ec *executionContext) field_Mutation_updateDefaultDataStorage_args(ctx con
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateDefaultDataStorageInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐUpdateDefaultDataStorageInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateListPaginationSettings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateListPaginationSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐListPaginationSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -29591,6 +29649,93 @@ func (ec *executionContext) fieldContext_InitializeSystemPayload_token(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _ListPaginationSettings_channels(ctx context.Context, field graphql.CollectedField, obj *biz.ListPaginationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListPaginationSettings_channels,
+		func(ctx context.Context) (any, error) {
+			return obj.Channels, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListPaginationSettings_channels(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPaginationSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPaginationSettings_apiKeys(ctx context.Context, field graphql.CollectedField, obj *biz.ListPaginationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListPaginationSettings_apiKeys,
+		func(ctx context.Context) (any, error) {
+			return obj.APIKeys, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListPaginationSettings_apiKeys(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPaginationSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListPaginationSettings_requests(ctx context.Context, field graphql.CollectedField, obj *biz.ListPaginationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListPaginationSettings_requests,
+		func(ctx context.Context) (any, error) {
+			return obj.Requests, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListPaginationSettings_requests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListPaginationSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Model_id(ctx context.Context, field graphql.CollectedField, obj *ent.Model) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -36714,6 +36859,47 @@ func (ec *executionContext) fieldContext_Mutation_updateSidebarNavigationSetting
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateSidebarNavigationSettings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateListPaginationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateListPaginationSettings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateListPaginationSettings(ctx, fc.Args["input"].(biz.ListPaginationSettings))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateListPaginationSettings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateListPaginationSettings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -46967,6 +47153,43 @@ func (ec *executionContext) fieldContext_Query_sidebarNavigationSettings(_ conte
 				return ec.fieldContext_SidebarNavigationSettings_hiddenItems(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type SidebarNavigationSettings", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_listPaginationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_listPaginationSettings,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ListPaginationSettings(ctx)
+		},
+		nil,
+		ec.marshalNListPaginationSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐListPaginationSettings,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_listPaginationSettings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "channels":
+				return ec.fieldContext_ListPaginationSettings_channels(ctx, field)
+			case "apiKeys":
+				return ec.fieldContext_ListPaginationSettings_apiKeys(ctx, field)
+			case "requests":
+				return ec.fieldContext_ListPaginationSettings_requests(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListPaginationSettings", field.Name)
 		},
 	}
 	return fc, nil
@@ -85080,6 +85303,47 @@ func (ec *executionContext) unmarshalInputUpdateDefaultDataStorageInput(ctx cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateListPaginationSettingsInput(ctx context.Context, obj any) (biz.ListPaginationSettings, error) {
+	var it biz.ListPaginationSettings
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"channels", "apiKeys", "requests"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "channels":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("channels"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Channels = data
+		case "apiKeys":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("apiKeys"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.APIKeys = data
+		case "requests":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requests"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Requests = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateMeInput(ctx context.Context, obj any) (UpdateMeInput, error) {
 	var it UpdateMeInput
 	asMap := map[string]any{}
@@ -96982,6 +97246,55 @@ func (ec *executionContext) _InitializeSystemPayload(ctx context.Context, sel as
 	return out
 }
 
+var listPaginationSettingsImplementors = []string{"ListPaginationSettings"}
+
+func (ec *executionContext) _ListPaginationSettings(ctx context.Context, sel ast.SelectionSet, obj *biz.ListPaginationSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listPaginationSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListPaginationSettings")
+		case "channels":
+			out.Values[i] = ec._ListPaginationSettings_channels(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "apiKeys":
+			out.Values[i] = ec._ListPaginationSettings_apiKeys(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requests":
+			out.Values[i] = ec._ListPaginationSettings_requests(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var modelImplementors = []string{"Model", "Node"}
 
 func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, obj *ent.Model) graphql.Marshaler {
@@ -98646,6 +98959,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateSidebarNavigationSettings":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateSidebarNavigationSettings(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateListPaginationSettings":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateListPaginationSettings(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -103002,6 +103322,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_sidebarNavigationSettings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "listPaginationSettings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listPaginationSettings(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -113821,6 +114163,20 @@ func (ec *executionContext) marshalNJSONRawMessageInput2githubᚗcomᚋloopljᚋ
 	return v
 }
 
+func (ec *executionContext) marshalNListPaginationSettings2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐListPaginationSettings(ctx context.Context, sel ast.SelectionSet, v biz.ListPaginationSettings) graphql.Marshaler {
+	return ec._ListPaginationSettings(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListPaginationSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐListPaginationSettings(ctx context.Context, sel ast.SelectionSet, v *biz.ListPaginationSettings) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListPaginationSettings(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNLoadApiKeyProfileTemplateInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐLoadAPIKeyProfileTemplateInput(ctx context.Context, v any) (LoadAPIKeyProfileTemplateInput, error) {
 	res, err := ec.unmarshalInputLoadApiKeyProfileTemplateInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -116842,6 +117198,11 @@ func (ec *executionContext) unmarshalNUpdateDataStorageInput2githubᚗcomᚋloop
 
 func (ec *executionContext) unmarshalNUpdateDefaultDataStorageInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐUpdateDefaultDataStorageInput(ctx context.Context, v any) (UpdateDefaultDataStorageInput, error) {
 	res, err := ec.unmarshalInputUpdateDefaultDataStorageInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateListPaginationSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐListPaginationSettings(ctx context.Context, v any) (biz.ListPaginationSettings, error) {
+	res, err := ec.unmarshalInputUpdateListPaginationSettingsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

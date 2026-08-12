@@ -12,6 +12,7 @@ import {
 } from '@/utils/date-range';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
+import { DEFAULT_LIST_PAGINATION_SETTINGS, useListPaginationSettings } from '@/features/system/data/system';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import useInterval from '@/hooks/useInterval';
 import { Header } from '@/components/layout/header';
@@ -186,12 +187,22 @@ function RequestsContent() {
     defaultPageSize: 20,
     pageSizeStorageKey: 'requests-table-page-size',
   });
+  const { data: listPaginationSettings } = useListPaginationSettings();
+  const paginationEnabled = listPaginationSettings?.requests ?? DEFAULT_LIST_PAGINATION_SETTINGS.requests;
   const searchFilters = useMemo(() => parseRequestSearchFilters(currentSearch), [currentSearch]);
   const [persistedFilters, setPersistedFilters] = usePersistedFilter<RequestSearchFilters>('requests', 'all', searchFilters);
   const hasURLFilters = hasRequestFilterSearch(currentSearch);
-  const { statusFilter, sourceFilter, channelFilter, apiKeyFilter, modelIDFilter, dateRange } = hasURLFilters ? searchFilters : persistedFilters;
+  const { statusFilter, sourceFilter, channelFilter, apiKeyFilter, modelIDFilter, dateRange } = hasURLFilters
+    ? searchFilters
+    : persistedFilters;
   const debouncedModelIDFilter = useDebounce(modelIDFilter, 300);
   const [autoRefresh, setAutoRefresh] = useState(false);
+
+  useEffect(() => {
+    if (!paginationEnabled) {
+      resetCursor();
+    }
+  }, [paginationEnabled, resetCursor]);
 
   useEffect(() => {
     if (hasURLFilters) {
@@ -222,19 +233,22 @@ function RequestsContent() {
     return Object.keys(where).length > 0 ? where : undefined;
   })();
 
-  const { data, isLoading, refetch } = useRequests({
-    ...paginationArgs,
-    where: whereClause,
-    orderBy: {
-      field: 'CREATED_AT',
-      direction: 'DESC',
+  const { data, isLoading, refetch } = useRequests(
+    {
+      ...(paginationEnabled ? paginationArgs : {}),
+      where: whereClause,
+      orderBy: {
+        field: 'CREATED_AT',
+        direction: 'DESC',
+      },
     },
-  });
+    { fetchAll: !paginationEnabled }
+  );
 
   const requests = data?.edges?.map((edge) => edge.node) || [];
   const pageInfo = data?.pageInfo;
 
-  const isFirstPage = !paginationArgs.after && cursorHistory.length === 0;
+  const isFirstPage = !paginationEnabled || (!paginationArgs.after && cursorHistory.length === 0);
 
   useInterval(
     () => {
@@ -360,6 +374,7 @@ function RequestsContent() {
         loading={isLoading}
         pageInfo={pageInfo}
         pageSize={pageSize}
+        paginationEnabled={paginationEnabled}
         totalCount={data?.totalCount}
         statusFilter={statusFilter}
         sourceFilter={sourceFilter}
@@ -388,7 +403,7 @@ export default function RequestsManagement() {
 
   return (
     <RequestsProvider>
-      <Header fixed>
+      <Header fixed className='hidden sm:flex'>
         <div className='flex flex-1 items-center justify-between'>
           <div>
             <h2 className='text-xl font-bold tracking-tight'>{t('requests.title')}</h2>
@@ -397,7 +412,7 @@ export default function RequestsManagement() {
         </div>
       </Header>
 
-      <Main fixed className='py-2 sm:py-6'>
+      <Main fixed className='mt-0! py-2 sm:mt-16! sm:py-6'>
         <RequestsContent />
       </Main>
     </RequestsProvider>

@@ -16,6 +16,7 @@ import { ApiKeysTable } from './components/apikeys-table';
 import ApiKeysProvider from './context/apikeys-context';
 import { useApiKeys } from './data/apikeys';
 import { ApiKeyType } from './data/schema';
+import { DEFAULT_LIST_PAGINATION_SETTINGS, useListPaginationSettings } from '@/features/system/data/system';
 
 type ApiKeyTabKey = ApiKeyType | 'all';
 
@@ -53,6 +54,8 @@ function loadSorting(): SortingState {
 function ApiKeysContent() {
   const { t } = useTranslation();
   const { apiKeyPermissions, hasSystemScope } = usePermissions();
+  const { data: listPaginationSettings } = useListPaginationSettings();
+  const paginationEnabled = listPaginationSettings?.apiKeys ?? DEFAULT_LIST_PAGINATION_SETTINGS.apiKeys;
   const { startCursor, endCursor, cursorHistory, pageSize, setCursors, setPageSize, resetCursor, paginationArgs } =
     usePaginationSearch({
       defaultPageSize: 20,
@@ -79,6 +82,12 @@ function ApiKeysContent() {
     }
   }, [sorting]);
 
+  React.useEffect(() => {
+    if (!paginationEnabled) {
+      resetCursor();
+    }
+  }, [paginationEnabled, resetCursor]);
+
   const hasPaginationCursor = Boolean(startCursor || endCursor || cursorHistory.length > 0);
 
   React.useEffect(() => {
@@ -90,7 +99,7 @@ function ApiKeysContent() {
   // Build where clause for API filtering
   const whereClause = (() => {
     const where: Record<string, unknown> = {};
-    
+
     // Use OR condition for searching both name and key
     if (debouncedSearchFilter) {
       where.or = [
@@ -98,7 +107,7 @@ function ApiKeysContent() {
         { keyContainsFold: debouncedSearchFilter },
       ];
     }
-    
+
     if (activeTab !== 'all') {
       where.typeIn = [activeTab];
     }
@@ -111,7 +120,7 @@ function ApiKeysContent() {
     if (userFilter.length > 0 && userFilter[0]) {
       where.userID = userFilter[0]; // API expects single userID
     }
-    
+
     // Add AND condition to combine OR search with other filters
     if (where.or && (where.typeIn || where.statusIn || where.userID)) {
       const orCondition = where.or;
@@ -123,7 +132,7 @@ function ApiKeysContent() {
         ],
       };
     }
-    
+
     return Object.keys(where).length > 0 ? where : undefined;
   })();
 
@@ -144,16 +153,16 @@ function ApiKeysContent() {
     }
   }, [sorting]);
 
-  const { data, isLoading } = useApiKeys({
-    ...(sortingCursorResetPending ? { first: pageSize } : paginationArgs),
-    where: whereClause,
-    orderBy: currentOrderBy,
-  });
-
-  const tableData = React.useMemo(
-    () => (data?.edges?.map((edge) => edge.node) ?? []),
-    [data?.edges]
+  const { data, isLoading } = useApiKeys(
+    {
+      ...(paginationEnabled ? (sortingCursorResetPending ? { first: pageSize } : paginationArgs) : {}),
+      where: whereClause,
+      orderBy: currentOrderBy,
+    },
+    { fetchAll: !paginationEnabled }
   );
+
+  const tableData = React.useMemo(() => data?.edges?.map((edge) => edge.node) ?? [], [data?.edges]);
 
   // Reset cursor when filters change
   React.useEffect(() => {
@@ -226,6 +235,7 @@ function ApiKeysContent() {
           pageInfo={data?.pageInfo}
           pageSize={pageSize}
           totalCount={data?.totalCount}
+          paginationEnabled={paginationEnabled}
           searchFilter={searchFilter}
           statusFilter={statusFilter}
           userFilter={userFilter}
@@ -255,7 +265,7 @@ export default function ApiKeysManagement() {
     <ApiKeysProvider>
       <Header fixed className='h-12 py-2 sm:h-16 sm:p-4'>
         <div className='flex flex-1 items-center justify-between'>
-          <div>
+          <div className='hidden sm:block'>
             <h2 className='text-xl font-bold tracking-tight'>{t('apikeys.title')}</h2>
             <p className='text-muted-foreground hidden text-sm sm:block'>{t('apikeys.description')}</p>
           </div>

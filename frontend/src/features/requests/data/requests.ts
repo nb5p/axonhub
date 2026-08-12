@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
+import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
@@ -276,23 +277,26 @@ function buildRequestExecutionsQuery(permissions: { canViewChannels: boolean }) 
 }
 
 // Query hooks
-export function useRequests(variables?: {
-  first?: number;
-  after?: string;
-  last?: number;
-  before?: string;
-  orderBy?: { field: 'CREATED_AT'; direction: 'ASC' | 'DESC' };
-  where?: {
-    status?: string;
-    source?: string;
-    channelID?: string;
-    channelIDIn?: string[];
-    statusIn?: string[];
-    sourceIn?: string[];
-    projectID?: string;
-    [key: string]: any;
-  };
-}, options?: { projectId?: string | null; scopeToSelectedProject?: boolean; enabled?: boolean }) {
+export function useRequests(
+  variables?: {
+    first?: number;
+    after?: string;
+    last?: number;
+    before?: string;
+    orderBy?: { field: 'CREATED_AT'; direction: 'ASC' | 'DESC' };
+    where?: {
+      status?: string;
+      source?: string;
+      channelID?: string;
+      channelIDIn?: string[];
+      statusIn?: string[];
+      sourceIn?: string[];
+      projectID?: string;
+      [key: string]: any;
+    };
+  },
+  options?: { projectId?: string | null; scopeToSelectedProject?: boolean; enabled?: boolean; fetchAll?: boolean }
+) {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const permissions = useRequestPermissions();
@@ -302,23 +306,28 @@ export function useRequests(variables?: {
   const enabled = options?.enabled ?? true;
 
   return useQuery({
-    queryKey: ['requests', variables, permissions, projectId, scopeToSelectedProject],
+    queryKey: ['requests', variables, permissions, projectId, scopeToSelectedProject, options?.fetchAll],
     queryFn: async () => {
       try {
         const query = buildRequestsQuery(permissions);
         const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
 
         // Add project filter if project scoping is enabled
-        const finalVariables = {
-          ...variables,
-          where: {
-            ...variables?.where,
-            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
-          },
+        const fetchPage = async (after?: string) => {
+          const finalVariables = {
+            ...variables,
+            ...(options?.fetchAll ? { first: MAX_CONNECTION_PAGE_SIZE, after, last: undefined, before: undefined } : {}),
+            where: {
+              ...variables?.where,
+              ...(scopeToSelectedProject && projectId && { projectID: projectId }),
+            },
+          };
+
+          const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
+          return requestConnectionSchema.parse(data?.requests);
         };
 
-        const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
-        return requestConnectionSchema.parse(data?.requests);
+        return options?.fetchAll ? fetchAllConnectionPages(fetchPage) : fetchPage();
       } catch (error) {
         handleError(error, t('common.errors.internalServerError'));
         throw error;

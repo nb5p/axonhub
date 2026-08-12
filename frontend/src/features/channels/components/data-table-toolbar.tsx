@@ -116,7 +116,7 @@ export function DataTableToolbar<TData>({
   );
 
   return (
-    <div ref={scrollRef} className='flex items-center gap-4 overflow-x-auto pb-2 md:overflow-x-visible md:pb-0'>
+    <div ref={scrollRef} className='flex items-center gap-2 overflow-x-auto sm:gap-4 sm:pb-2 md:overflow-x-visible md:pb-0'>
       <div className='relative w-[150px] shrink-0 lg:flex-1 lg:w-auto'>
         <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
         <Input
@@ -127,11 +127,7 @@ export function DataTableToolbar<TData>({
         />
       </div>
       <Button variant='outline' size='sm' className='h-8' onClick={() => setShowTypeTabs(!showTypeTabs)}>
-        {showTypeTabs ? (
-          <IconChevronsDown className='mr-1 h-4 w-4' />
-        ) : (
-          <IconChevronsUp className='mr-1 h-4 w-4' />
-        )}
+        {showTypeTabs ? <IconChevronsDown className='mr-1 h-4 w-4' /> : <IconChevronsUp className='mr-1 h-4 w-4' />}
         {t('channels.filters.providerToggle')}
       </Button>
       {table.getColumn('status') && (
@@ -152,20 +148,20 @@ export function DataTableToolbar<TData>({
             selectedModelCount > 1 ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-              <span
-                className='hover:bg-accent hover:text-accent-foreground -my-1 rounded px-1.5 py-1 font-medium'
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onModelMatchModeChange(modelMatchMode === 'any' ? 'all' : 'any');
-                }}
-              >
-                {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
-              </span>
+                  <span
+                    className='hover:bg-accent hover:text-accent-foreground -my-1 rounded px-1.5 py-1 font-medium'
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onModelMatchModeChange(modelMatchMode === 'any' ? 'all' : 'any');
+                    }}
+                  >
+                    {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAny' : 'channels.filters.modelMatchAll')}
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent>
                   {t(modelMatchMode === 'any' ? 'channels.filters.modelMatchAnyDescription' : 'channels.filters.modelMatchAllDescription')}
@@ -187,11 +183,7 @@ export function DataTableToolbar<TData>({
         />
       )}
       {isFiltered && (
-        <Button
-          variant='ghost'
-          onClick={() => table.resetColumnFilters()}
-          className='h-8 px-2 lg:px-3'
-        >
+        <Button variant='ghost' onClick={() => table.resetColumnFilters()} className='h-8 px-2 lg:px-3'>
           {t('common.filters.reset')}
           <Cross2Icon className='ml-2 h-4 w-4' />
         </Button>

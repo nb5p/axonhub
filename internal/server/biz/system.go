@@ -97,6 +97,10 @@ const (
 	// The value is JSON-encoded SidebarNavigationSettings.
 	SystemKeySidebarNavigationSettings = "system_sidebar_navigation_settings"
 
+	// SystemKeyListPaginationSettings stores whether large management lists use pagination.
+	// The value is JSON-encoded ListPaginationSettings.
+	SystemKeyListPaginationSettings = "system_list_pagination_settings"
+
 	// SystemKeyAutoBackupSettings is the key used to store auto backup configuration.
 	// The value is JSON-encoded AutoBackupSettings struct.
 	SystemKeyAutoBackupSettings = "system_auto_backup_settings"
@@ -143,6 +147,14 @@ type SystemGeneralSettings struct {
 // Hiding an entry does not change route permissions or disable direct navigation.
 type SidebarNavigationSettings struct {
 	HiddenItems []string `json:"hidden_items"`
+}
+
+// ListPaginationSettings controls pagination independently for the main channel,
+// API key, and request management lists.
+type ListPaginationSettings struct {
+	Channels bool `json:"channels"`
+	APIKeys  bool `json:"api_keys"`
+	Requests bool `json:"requests"`
 }
 
 // VideoStorageSettings represents system settings for persisting generated videos.
@@ -1688,6 +1700,44 @@ func (s *SystemService) SetSidebarNavigationSettings(ctx context.Context, settin
 
 	if err := s.setSystemValue(ctx, SystemKeySidebarNavigationSettings, string(jsonBytes)); err != nil {
 		return fmt.Errorf("failed to set sidebar navigation settings: %w", err)
+	}
+
+	return nil
+}
+
+// ListPaginationSettings retrieves the global pagination preferences used by
+// management pages. Reading is available to every authenticated user because
+// the setting only affects presentation and query windowing.
+func (s *SystemService) ListPaginationSettings(ctx context.Context) (*ListPaginationSettings, error) {
+	return authz.RunWithSystemBypass(ctx, "list-pagination-settings", func(bypassCtx context.Context) (*ListPaginationSettings, error) {
+		value, err := s.getSystemValue(bypassCtx, SystemKeyListPaginationSettings)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return lo.ToPtr(defaultListPaginationSettings), nil
+			}
+
+			return nil, fmt.Errorf("failed to get list pagination settings: %w", err)
+		}
+
+		settings := defaultListPaginationSettings
+		if err := json.Unmarshal([]byte(value), &settings); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal list pagination settings: %w", err)
+		}
+
+		return &settings, nil
+	})
+}
+
+// SetListPaginationSettings updates the global pagination preferences used by
+// management pages.
+func (s *SystemService) SetListPaginationSettings(ctx context.Context, settings ListPaginationSettings) error {
+	jsonBytes, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal list pagination settings: %w", err)
+	}
+
+	if err := s.setSystemValue(ctx, SystemKeyListPaginationSettings, string(jsonBytes)); err != nil {
+		return fmt.Errorf("failed to set list pagination settings: %w", err)
 	}
 
 	return nil

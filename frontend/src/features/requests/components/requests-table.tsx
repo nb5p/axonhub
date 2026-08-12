@@ -42,6 +42,7 @@ interface RequestsTableProps {
   loading?: boolean;
   pageInfo?: RequestConnection['pageInfo'];
   pageSize: number;
+  paginationEnabled?: boolean;
   totalCount?: number;
   statusFilter: string[];
   sourceFilter: string[];
@@ -86,6 +87,7 @@ export function RequestsTable({
   pageInfo,
   totalCount,
   pageSize,
+  paginationEnabled = true,
   statusFilter,
   sourceFilter,
   channelFilter,
@@ -190,7 +192,7 @@ export function RequestsTable({
     });
   }, [isMobile, visibilityReady]);
 
-  const displayedData = useAnimatedList(data, autoRefresh, pageSize);
+  const displayedData = useAnimatedList(data, autoRefresh, paginationEnabled ? pageSize : data.length || pageSize);
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
     const filters: ColumnFiltersState = [];
@@ -343,18 +345,20 @@ export function RequestsTable({
           </Table>
         </div>
       </div>
-      <div className='mt-2 flex-shrink-0 sm:mt-4'>
-        <ServerSidePagination
-          pageInfo={pageInfo}
-          pageSize={pageSize}
-          dataLength={data.length}
-          totalCount={totalCount}
-          selectedRows={table.getFilteredSelectedRowModel().rows.length}
-          onNextPage={onNextPage}
-          onPreviousPage={onPreviousPage}
-          onPageSizeChange={onPageSizeChange}
-        />
-      </div>
+      {paginationEnabled && (
+        <div className='mt-2 flex-shrink-0 sm:mt-4'>
+          <ServerSidePagination
+            pageInfo={pageInfo}
+            pageSize={pageSize}
+            dataLength={data.length}
+            totalCount={totalCount}
+            selectedRows={table.getFilteredSelectedRowModel().rows.length}
+            onNextPage={onNextPage}
+            onPreviousPage={onPreviousPage}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

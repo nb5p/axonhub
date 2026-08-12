@@ -15,6 +15,7 @@ import { ChannelsTypeTabs } from './components/channels-type-tabs';
 import ChannelsProvider, { useChannels } from './context/channels-context';
 import { useQueryChannels, useChannelTypes, useErrorChannelsCount, useChannelProbeData, ChannelModelsMatchMode } from './data/channels';
 import { useProvidersData } from '@/features/models/data/providers';
+import { DEFAULT_LIST_PAGINATION_SETTINGS, useListPaginationSettings } from '@/features/system/data/system';
 
 const ChannelsDialogs = lazy(() => import('./components/channels-dialogs').then((m) => ({ default: m.ChannelsDialogs })));
 
@@ -23,6 +24,8 @@ function ChannelsContent() {
   useProvidersData();
   const { channelPermissions } = usePermissions();
   const { showTypeTabs } = useChannels();
+  const { data: listPaginationSettings } = useListPaginationSettings();
+  const paginationEnabled = listPaginationSettings?.channels ?? DEFAULT_LIST_PAGINATION_SETTINGS.channels;
   const { pageSize, setCursors, setPageSize, resetCursor, paginationArgs } = usePaginationSearch({
     defaultPageSize: 20,
     pageSizeStorageKey: 'channels-table-page-size',
@@ -63,6 +66,12 @@ function ChannelsContent() {
   useEffect(() => {
     localStorage.setItem('channels-table-sorting', JSON.stringify(sorting));
   }, [sorting]);
+
+  useEffect(() => {
+    if (!paginationEnabled) {
+      resetCursor();
+    }
+  }, [paginationEnabled, resetCursor]);
 
   useEffect(() => {
     if (!showTypeTabs && selectedTypeTab !== 'all') {
@@ -144,15 +153,18 @@ function ChannelsContent() {
     data,
     isLoading,
     error: _error,
-  } = useQueryChannels({
-    ...paginationArgs,
-    where: whereClause,
-    orderBy: currentOrderBy,
-    hasTag: tagFilter || undefined,
-    models: modelFilter.length > 0 ? modelFilter : undefined,
-    modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
-    endpointFormats: endpointFilter.length > 0 ? endpointFilter : undefined,
-  });
+  } = useQueryChannels(
+    {
+      ...(paginationEnabled ? paginationArgs : {}),
+      where: whereClause,
+      orderBy: currentOrderBy,
+      hasTag: tagFilter || undefined,
+      models: modelFilter.length > 0 ? modelFilter : undefined,
+      modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
+      endpointFormats: endpointFilter.length > 0 ? endpointFilter : undefined,
+    },
+    { fetchAll: !paginationEnabled }
+  );
 
   const channelIDs = useMemo(() => {
     return data?.edges?.map((edge) => edge.node.id) || [];
@@ -162,9 +174,9 @@ function ChannelsContent() {
 
   const channelsWithProbeData = useMemo(() => {
     if (!data?.edges) return [];
-    
+
     const probeMap = new Map(probeData?.map((probe) => [probe.channelID, probe.points]) || []);
-    
+
     return data.edges.map((edge) => ({
       ...edge.node,
       probePoints: probeMap.get(edge.node.id) || [],
@@ -284,6 +296,7 @@ function ChannelsContent() {
         pageInfo={data?.pageInfo}
         pageSize={pageSize}
         totalCount={data?.totalCount}
+        paginationEnabled={paginationEnabled}
         nameFilter={nameFilter}
         typeFilter={typeFilter}
         statusFilter={statusFilter}
@@ -319,9 +332,9 @@ export default function ChannelsManagement() {
 
   return (
     <ChannelsProvider>
-      <Header fixed>
-        <div className='flex w-full flex-1 flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-0'>
-          <div className='min-w-0'>
+      <Header fixed className='h-12 py-1.5 sm:h-16 sm:p-4'>
+        <div className='flex min-w-0 w-full flex-1 items-center justify-end sm:justify-between'>
+          <div className='hidden min-w-0 sm:block'>
             <h2 className='text-xl font-bold tracking-tight'>{t('channels.title')}</h2>
             <p className='text-muted-foreground hidden text-sm sm:block'>{t('channels.description')}</p>
           </div>
@@ -329,7 +342,7 @@ export default function ChannelsManagement() {
         </div>
       </Header>
 
-      <Main fixed>
+      <Main fixed className='mt-12! py-0 sm:mt-16! sm:py-6'>
         <ChannelsContent />
       </Main>
       <Suspense fallback={null}>
