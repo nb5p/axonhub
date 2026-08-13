@@ -78644,7 +78644,11 @@ func (ec *executionContext) unmarshalInputQueryChannelInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"after", "first", "before", "last", "orderBy", "where", "hasTag", "model", "models", "modelsMatchMode", "endpointFormats"}
+	if _, present := asMap["enabledFirst"]; !present {
+		asMap["enabledFirst"] = false
+	}
+
+	fieldsInOrder := [...]string{"after", "first", "before", "last", "orderBy", "where", "hasTag", "model", "models", "modelsMatchMode", "endpointFormats", "enabledFirst"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -78728,6 +78732,13 @@ func (ec *executionContext) unmarshalInputQueryChannelInput(ctx context.Context,
 				return it, err
 			}
 			it.EndpointFormats = data
+		case "enabledFirst":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabledFirst"))
+			data, err := ec.unmarshalOBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EnabledFirst = data
 		}
 	}
 

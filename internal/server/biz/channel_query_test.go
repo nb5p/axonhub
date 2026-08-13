@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"entgo.io/contrib/entgql"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -13,6 +14,67 @@ import (
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/objects"
 )
+
+func TestChannelService_QueryChannels_EnabledFirst(t *testing.T) {
+	svc, client := setupTestChannelService(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+
+	disabledHighest := createOrderedTestChannel(t, client, ctx, "Disabled 100", channel.StatusDisabled, 100)
+	enabledHigh := createOrderedTestChannel(t, client, ctx, "Enabled 50", channel.StatusEnabled, 50)
+	disabledLow := createOrderedTestChannel(t, client, ctx, "Disabled 20", channel.StatusDisabled, 20)
+	enabledLow := createOrderedTestChannel(t, client, ctx, "Enabled 10", channel.StatusEnabled, 10)
+
+	weightDescending := &ent.ChannelOrder{
+		Direction: entgql.OrderDirectionDesc,
+		Field:     ent.ChannelOrderFieldOrderingWeight,
+	}
+
+	conn, err := svc.QueryChannels(ctx, QueryChannelsInput{
+		First:        lo.ToPtr(2),
+		OrderBy:      weightDescending,
+		EnabledFirst: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int{enabledHigh.ID, enabledLow.ID}, channelConnectionIDs(conn))
+	require.True(t, conn.PageInfo.HasNextPage)
+	require.False(t, conn.PageInfo.HasPreviousPage)
+	require.Equal(t, 4, conn.TotalCount)
+
+	conn, err = svc.QueryChannels(ctx, QueryChannelsInput{
+		After:        conn.PageInfo.EndCursor,
+		First:        lo.ToPtr(2),
+		OrderBy:      weightDescending,
+		EnabledFirst: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int{disabledHighest.ID, disabledLow.ID}, channelConnectionIDs(conn))
+	require.False(t, conn.PageInfo.HasNextPage)
+	require.True(t, conn.PageInfo.HasPreviousPage)
+
+	conn, err = svc.QueryChannels(ctx, QueryChannelsInput{
+		OrderBy: weightDescending,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int{disabledHighest.ID, enabledHigh.ID, disabledLow.ID, enabledLow.ID}, channelConnectionIDs(conn))
+
+	conn, err = svc.QueryChannels(ctx, QueryChannelsInput{
+		Model:        lo.ToPtr("gpt-4"),
+		OrderBy:      weightDescending,
+		EnabledFirst: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int{enabledHigh.ID, enabledLow.ID, disabledHighest.ID, disabledLow.ID}, channelConnectionIDs(conn))
+}
+
+func channelConnectionIDs(conn *ent.ChannelConnection) []int {
+	ids := make([]int, len(conn.Edges))
+	for i, edge := range conn.Edges {
+		ids[i] = edge.Node.ID
+	}
+	return ids
+}
 
 func TestChannelService_QueryChannels_WithModelFilter(t *testing.T) {
 	svc, client := setupTestChannelService(t)
@@ -525,6 +587,31 @@ func createTestChannelWithCapabilities(
 		SetDefaultTestModel(models[0]).
 		SetStatus(channel.StatusEnabled).
 		SetEndpoints(endpoints).
+		Save(ctx)
+	require.NoError(t, err)
+
+	return ch
+}
+
+func createOrderedTestChannel(
+	t *testing.T,
+	client *ent.Client,
+	ctx context.Context,
+	name string,
+	status channel.Status,
+	weight int,
+) *ent.Channel {
+	t.Helper()
+
+	ch, err := client.Channel.Create().
+		SetType(channel.TypeOpenai).
+		SetName(name).
+		SetBaseURL("https://api.openai.com/v1").
+		SetCredentials(objects.ChannelCredentials{APIKey: "test-key"}).
+		SetSupportedModels([]string{"gpt-4"}).
+		SetDefaultTestModel("gpt-4").
+		SetStatus(status).
+		SetOrderingWeight(weight).
 		Save(ctx)
 	require.NoError(t, err)
 

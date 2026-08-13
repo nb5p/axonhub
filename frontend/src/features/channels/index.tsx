@@ -39,16 +39,17 @@ function ChannelsContent() {
   const [modelMatchMode, setModelMatchMode] = usePersistedFilter<ChannelModelsMatchMode>('channels', 'model-match-mode', 'any');
   const [selectedTypeTab, setSelectedTypeTab] = usePersistedFilter<string>('channels', 'provider-tab', 'all');
   const [showErrorOnly, setShowErrorOnly] = usePersistedFilter<boolean>('channels', 'errors-only', false);
+  const [enabledFirst, setEnabledFirst] = usePersistedFilter<boolean>('channels', 'enabled-first', true);
   const [sorting, setSorting] = useState<SortingState>(() => {
     const stored = localStorage.getItem('channels-table-sorting');
     if (stored) {
       try {
         return JSON.parse(stored);
       } catch {
-        return [{ id: 'createdAt', desc: true }];
+        return [{ id: 'orderingWeight', desc: true }];
       }
     }
-    return [{ id: 'createdAt', desc: true }];
+    return [{ id: 'orderingWeight', desc: true }];
   });
   const [isHealthColumnVisible, setIsHealthColumnVisible] = useState<boolean>(() => {
     const stored = localStorage.getItem('channels-table-column-visibility');
@@ -127,7 +128,7 @@ function ChannelsContent() {
 
   const currentOrderBy = useMemo(() => {
     if (sorting.length === 0) {
-      return { field: 'CREATED_AT', direction: 'DESC' } as const;
+      return { field: 'ORDERING_WEIGHT', direction: 'DESC' } as const;
     }
     const [primary] = sorting;
     switch (primary.id) {
@@ -145,7 +146,7 @@ function ChannelsContent() {
       case 'updatedAt':
         return { field: 'UPDATED_AT', direction: primary.desc ? 'DESC' : 'ASC' } as const;
       default:
-        return { field: 'CREATED_AT', direction: 'DESC' } as const;
+        return { field: 'ORDERING_WEIGHT', direction: 'DESC' } as const;
     }
   }, [sorting]);
 
@@ -158,6 +159,7 @@ function ChannelsContent() {
       ...(paginationEnabled ? paginationArgs : {}),
       where: whereClause,
       orderBy: currentOrderBy,
+      enabledFirst,
       hasTag: tagFilter || undefined,
       models: modelFilter.length > 0 ? modelFilter : undefined,
       modelsMatchMode: modelFilter.length > 1 ? modelMatchMode : undefined,
@@ -279,7 +281,22 @@ function ChannelsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const columns = useMemo(() => createColumns(t, channelPermissions.canWrite), [t, channelPermissions.canWrite]);
+  const handleEnabledFirstChange = useCallback(
+    (enabled: boolean) => {
+      setEnabledFirst(enabled);
+      resetCursor();
+    },
+    [resetCursor]
+  );
+
+  const columns = useMemo(
+    () =>
+      createColumns(t, channelPermissions.canWrite, {
+        enabledFirst,
+        onEnabledFirstChange: handleEnabledFirstChange,
+      }),
+    [t, channelPermissions.canWrite, enabledFirst, handleEnabledFirstChange]
+  );
 
   return (
     <div className='flex flex-1 flex-col overflow-hidden'>

@@ -11,7 +11,6 @@ import {
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
-  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -249,11 +248,11 @@ export function ChannelsTable({
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     // Enable server-side pagination and filtering
     manualPagination: true,
     manualFiltering: true, // Enable manual filtering for server-side filtering
+    manualSorting: true,
   });
 
   const filteredSelectedRows = useMemo(

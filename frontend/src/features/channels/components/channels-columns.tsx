@@ -646,7 +646,16 @@ const CreatedAtCell = memo(({ row }: { row: Row<Channel> }) => {
 
 CreatedAtCell.displayName = 'CreatedAtCell';
 
-export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrite: boolean = true): ColumnDef<Channel>[] => {
+interface ChannelSortingOptions {
+  enabledFirst: boolean;
+  onEnabledFirstChange: (enabled: boolean) => void;
+}
+
+export const createColumns = (
+  t: ReturnType<typeof useTranslation>['t'],
+  canWrite: boolean = true,
+  sortingOptions?: ChannelSortingOptions
+): ColumnDef<Channel>[] => {
   return [
     {
       id: 'expand',
@@ -726,7 +735,20 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
     },
     {
       accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.status')} className='justify-center' />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('common.columns.status')} className='justify-center'>
+          {sortingOptions && (
+            <DropdownMenuItem
+              className='gap-2'
+              onSelect={(event) => event.preventDefault()}
+              onClick={() => sortingOptions.onEnabledFirstChange(!sortingOptions.enabledFirst)}
+            >
+              <span className='flex-1'>{t('channels.sort.enabledFirst')}</span>
+              <Switch checked={sortingOptions.enabledFirst} className='pointer-events-none scale-75' aria-hidden='true' />
+            </DropdownMenuItem>
+          )}
+        </DataTableColumnHeader>
+      ),
       cell: StatusSwitchCell,
       meta: {
         className: 'text-center',

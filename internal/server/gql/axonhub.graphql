@@ -1038,6 +1038,11 @@ input QueryChannelInput {
   Filter channels that support any of the specified effective endpoint formats.
   """
   endpointFormats: [String!]
+
+  """
+  Keep enabled channels before other statuses while preserving orderBy within each group.
+  """
+  enabledFirst: Boolean = false
 }
 
 enum ChannelModelsMatchMode {

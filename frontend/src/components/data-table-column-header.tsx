@@ -16,7 +16,7 @@ interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes
   title: string;
 }
 
-export function DataTableColumnHeader<TData, TValue>({ column, title, className }: DataTableColumnHeaderProps<TData, TValue>) {
+export function DataTableColumnHeader<TData, TValue>({ column, title, className, children }: DataTableColumnHeaderProps<TData, TValue>) {
   const { t } = useTranslation();
 
   if (!column.getCanSort()) {
@@ -47,6 +47,12 @@ export function DataTableColumnHeader<TData, TValue>({ column, title, className 
             <ArrowDownIcon className='text-muted-foreground/70 mr-2 h-3.5 w-3.5' />
             {t('common.sort.descending')}
           </DropdownMenuItem>
+          {children && (
+            <>
+              <DropdownMenuSeparator />
+              {children}
+            </>
+          )}
           {column.getCanHide() && (
             <>
               <DropdownMenuSeparator />
