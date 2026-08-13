@@ -23,6 +23,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `list-pagination-settings` | 本地原创 | `active` | `621c1de3`, `739619f6`, `f6af276d`, `6ded56c8` | `none` | [`features/list-pagination-settings.md`](features/list-pagination-settings.md) |
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
 | `responses-prestream-keepalive` | 上游方案适配 | `active` | 上游 PR `#2157` 早期 `4c35e6ca` / `7ba87aa0` | `none` | [`features/responses-prestream-keepalive.md`](features/responses-prestream-keepalive.md) |
+| `channel-enabled-first-sorting` | 本地原创、计划贡献上游 | `upstream-pending` | `823d8c19` / 独立分支 `a96798a8` | `none` | [`features/channel-enabled-first-sorting.md`](features/channel-enabled-first-sorting.md) |
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
 | `request-log-layout` | 本地原创 | `active` | `d476d57b`, `81c62c6e`, `1afef2be`, `8d9a437c` | `none` | [`features/request-log-layout.md`](features/request-log-layout.md) |
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
