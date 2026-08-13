@@ -28,6 +28,8 @@ const (
 // StreamWriter is a function type for writing stream events to the response.
 type StreamWriter func(c *gin.Context, stream streams.Stream[*httpclient.StreamEvent])
 
+type chatCompletionProcessor func(context.Context, *httpclient.Request) (orchestrator.ChatCompletionResult, error)
+
 // SSEKeepAliveConfig controls downstream heartbeats for SSE-compatible APIs.
 type SSEKeepAliveConfig struct {
 	Enabled  bool
@@ -48,6 +50,7 @@ type ChatCompletionHandlers struct {
 	ForwardResponseHeaders     bool
 	sseKeepAlive               SSEKeepAliveConfig
 	sseHeartbeatFormat         sseHeartbeatFormat
+	process                    chatCompletionProcessor
 }
 
 func NewChatCompletionHandlers(orchestrator *orchestrator.ChatCompletionOrchestrator) *ChatCompletionHandlers {
@@ -63,6 +66,9 @@ func (handlers *ChatCompletionHandlers) WithStreamWriter(writer StreamWriter) *C
 		ChatCompletionOrchestrator: handlers.ChatCompletionOrchestrator,
 		StreamWriter:               writer,
 		ForwardResponseHeaders:     handlers.ForwardResponseHeaders,
+		sseKeepAlive:               handlers.sseKeepAlive,
+		sseHeartbeatFormat:         handlers.sseHeartbeatFormat,
+		process:                    handlers.process,
 	}
 }
 
@@ -91,17 +97,64 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 
 	// log.Debug(ctx, "Chat completion request", log.Any("request", genericReq))
 
-	result, err := handlers.ChatCompletionOrchestrator.Process(ctx, genericReq)
+	processCtx := ctx
+	var (
+		cancelProcess    context.CancelFunc
+		heartbeatStop    chan struct{}
+		heartbeatStopped chan error
+	)
+	if handlers.shouldStartSSEHeartbeat(genericReq) {
+		processCtx, cancelProcess = context.WithCancel(ctx)
+		defer cancelProcess()
+
+		heartbeatStop = make(chan struct{})
+		heartbeatStopped = make(chan error, 1)
+		go runSSEHeartbeatLoop(
+			processCtx,
+			c.Writer,
+			handlers.sseKeepAlive.Interval,
+			handlers.sseHeartbeatFormat,
+			cancelProcess,
+			heartbeatStop,
+			heartbeatStopped,
+		)
+	}
+
+	result, err := handlers.processRequest(processCtx, genericReq)
+	if heartbeatStop != nil {
+		close(heartbeatStop)
+		if heartbeatErr := <-heartbeatStopped; heartbeatErr != nil {
+			log.Warn(ctx, "Failed to write SSE heartbeat while waiting for upstream", log.Cause(heartbeatErr))
+			if result.ChatCompletionStream != nil {
+				if closeErr := result.ChatCompletionStream.Close(); closeErr != nil {
+					log.Warn(ctx, "Failed to close stream after SSE heartbeat error", log.Cause(closeErr))
+				}
+			}
+
+			return
+		}
+	}
+
 	if err != nil {
 		log.Error(ctx, "Error processing chat completion", log.Cause(err))
 
 		httpErr := transformOrchestratorError(ctx, err, handlers.ChatCompletionOrchestrator)
-		c.JSON(httpErr.StatusCode, json.RawMessage(httpErr.Body))
+		if c.Writer.Written() {
+			c.SSEvent("error", json.RawMessage(httpErr.Body))
+			c.Writer.Flush()
+		} else {
+			c.JSON(httpErr.StatusCode, json.RawMessage(httpErr.Body))
+		}
 
 		return
 	}
 
 	if result.ChatCompletion != nil {
+		if c.Writer.Written() {
+			writeNonStreamingResultAsSSE(c, genericReq, result.ChatCompletion)
+			return
+		}
+
 		writeNonStreamingResponse(c, result.ChatCompletion, handlers.ForwardResponseHeaders)
 
 		return
@@ -127,6 +180,54 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 
 		writeSSEStream(c, stream, FormatStreamError, handlers.sseKeepAlive, handlers.sseHeartbeatFormat)
 	}
+}
+
+func (handlers *ChatCompletionHandlers) shouldStartSSEHeartbeat(request *httpclient.Request) bool {
+	return handlers.StreamWriter == nil &&
+		handlers.sseKeepAlive.Enabled &&
+		handlers.sseKeepAlive.Interval > 0 &&
+		handlers.sseHeartbeatFormat != sseHeartbeatNone &&
+		isSSEStreamRequest(request)
+}
+
+func isSSEStreamRequest(request *httpclient.Request) bool {
+	if request == nil {
+		return false
+	}
+
+	body := request.Body
+	if len(request.JSONBody) > 0 {
+		body = request.JSONBody
+	}
+
+	return gjson.GetBytes(body, "stream").Bool() ||
+		strings.EqualFold(gjson.GetBytes(body, "stream_format").String(), "sse")
+}
+
+func (handlers *ChatCompletionHandlers) processRequest(
+	ctx context.Context,
+	request *httpclient.Request,
+) (orchestrator.ChatCompletionResult, error) {
+	if handlers.process != nil {
+		return handlers.process(ctx, request)
+	}
+
+	return handlers.ChatCompletionOrchestrator.Process(ctx, request)
+}
+
+func writeNonStreamingResultAsSSE(c *gin.Context, request *httpclient.Request, response *httpclient.Response) {
+	if request != nil && (request.APIFormat == llm.APIFormatOpenAIResponse.String() ||
+		request.APIFormat == llm.APIFormatOpenAIResponseCompact.String()) {
+		c.SSEvent("response.completed", gin.H{
+			"type":     "response.completed",
+			"response": json.RawMessage(response.Body),
+		})
+	} else {
+		c.SSEvent("", json.RawMessage(response.Body))
+		c.SSEvent("", llm.DoneStreamEvent.Data)
+	}
+
+	c.Writer.Flush()
 }
 
 var blockedForwardResponseHeaders = map[string]struct{}{
@@ -418,6 +519,63 @@ func setSSEResponseHeaders(header http.Header) {
 	header.Set("Connection", "keep-alive")
 }
 
+func runSSEHeartbeatLoop(
+	ctx context.Context,
+	writer http.ResponseWriter,
+	interval time.Duration,
+	format sseHeartbeatFormat,
+	cancelProcess context.CancelFunc,
+	stop <-chan struct{},
+	stopped chan<- error,
+) {
+	var result error
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Error(ctx, "Panic while writing SSE heartbeats", log.Any("panic", recovered))
+			result = errors.New("SSE heartbeat writer stopped unexpectedly")
+		}
+
+		if result != nil && cancelProcess != nil {
+			cancelProcess()
+		}
+
+		stopped <- result
+	}()
+
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	setSSEResponseHeaders(writer.Header())
+
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
+	heartbeatCount := 0
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+			if err := writeSSEHeartbeat(writer, format); err != nil {
+				result = err
+				return
+			}
+
+			if flusher, ok := writer.(http.Flusher); ok {
+				flusher.Flush()
+			}
+
+			heartbeatCount++
+			log.Info(ctx, "SSE heartbeat sent while waiting for upstream",
+				log.Int("heartbeat_count", heartbeatCount),
+				log.String("heartbeat_format", sseHeartbeatFormatName(format)),
+				log.Duration("interval", interval),
+			)
+			timer.Reset(interval)
+		}
+	}
+}
+
 func writeSSEHeartbeat(writer io.Writer, format sseHeartbeatFormat) error {
 	switch format {
 	case sseHeartbeatOpenAI:
@@ -428,6 +586,17 @@ func writeSSEHeartbeat(writer io.Writer, format sseHeartbeatFormat) error {
 		return err
 	default:
 		return errors.New("unsupported SSE heartbeat format")
+	}
+}
+
+func sseHeartbeatFormatName(format sseHeartbeatFormat) string {
+	switch format {
+	case sseHeartbeatOpenAI:
+		return "openai"
+	case sseHeartbeatAnthropic:
+		return "anthropic"
+	default:
+		return "unknown"
 	}
 }
 

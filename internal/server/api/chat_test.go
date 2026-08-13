@@ -222,6 +222,166 @@ func TestWriteSSEStream_Success(t *testing.T) {
 	assert.Contains(t, body, `[DONE]`)
 }
 
+func TestChatCompletionWithRequest_SendsHeartbeatWhileWaitingForUpstream(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+
+	handlers := &ChatCompletionHandlers{
+		ChatCompletionOrchestrator: &orchestrator.ChatCompletionOrchestrator{},
+		sseKeepAlive: SSEKeepAliveConfig{
+			Enabled:  true,
+			Interval: 5 * time.Millisecond,
+		},
+		sseHeartbeatFormat: sseHeartbeatOpenAI,
+		process: func(context.Context, *httpclient.Request) (orchestrator.ChatCompletionResult, error) {
+			time.Sleep(25 * time.Millisecond)
+
+			return orchestrator.ChatCompletionResult{
+				ChatCompletionStream: streams.SliceStream([]*httpclient.StreamEvent{{
+					Type: "response.completed",
+					Data: []byte(`{"type":"response.completed","response":{"id":"resp_test","status":"completed"}}`),
+				}}),
+			}, nil
+		},
+	}
+
+	handlers.ChatCompletionWithRequest(c, &httpclient.Request{
+		Body: []byte(`{"model":"gpt-test","stream":true,"input":"hello"}`),
+	})
+
+	body := w.Body.String()
+	require.Contains(t, body, ": keep-alive\n\n")
+	require.Contains(t, body, "event:response.completed")
+	require.Less(t, strings.Index(body, ": keep-alive"), strings.Index(body, "response.completed"))
+}
+
+func TestChatCompletionWithRequest_ReportsProcessErrorAfterHeartbeatAsSSE(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+
+	handlers := &ChatCompletionHandlers{
+		sseKeepAlive: SSEKeepAliveConfig{
+			Enabled:  true,
+			Interval: 5 * time.Millisecond,
+		},
+		sseHeartbeatFormat: sseHeartbeatOpenAI,
+		process: func(context.Context, *httpclient.Request) (orchestrator.ChatCompletionResult, error) {
+			time.Sleep(25 * time.Millisecond)
+			return orchestrator.ChatCompletionResult{}, errors.New("upstream failed")
+		},
+	}
+
+	handlers.ChatCompletionWithRequest(c, &httpclient.Request{
+		Body: []byte(`{"model":"gpt-test","stream":true,"input":"hello"}`),
+	})
+
+	body := w.Body.String()
+	require.Contains(t, body, ": keep-alive\n\n")
+	require.Contains(t, body, "event:error")
+	require.Contains(t, body, "internal server error")
+}
+
+func TestChatCompletionWithRequest_EncodesUnexpectedNonStreamingResultAfterHeartbeat(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+
+	handlers := &ChatCompletionHandlers{
+		sseKeepAlive: SSEKeepAliveConfig{
+			Enabled:  true,
+			Interval: 5 * time.Millisecond,
+		},
+		sseHeartbeatFormat: sseHeartbeatOpenAI,
+		process: func(context.Context, *httpclient.Request) (orchestrator.ChatCompletionResult, error) {
+			time.Sleep(25 * time.Millisecond)
+			return orchestrator.ChatCompletionResult{
+				ChatCompletion: &httpclient.Response{
+					StatusCode: http.StatusOK,
+					Headers:    http.Header{"Content-Type": []string{"application/json"}},
+					Body:       []byte(`{"id":"resp_test","object":"response","status":"completed"}`),
+				},
+			}, nil
+		},
+	}
+
+	handlers.ChatCompletionWithRequest(c, &httpclient.Request{
+		APIFormat: llm.APIFormatOpenAIResponse.String(),
+		Body:      []byte(`{"model":"gpt-test","stream":true,"input":"hello"}`),
+	})
+
+	body := w.Body.String()
+	require.Contains(t, body, ": keep-alive\n\n")
+	require.Contains(t, body, "event:response.completed")
+	require.Contains(t, body, `"type":"response.completed"`)
+	require.Contains(t, body, `"response":{"id":"resp_test"`)
+}
+
+func TestChatCompletionWithRequest_HeartbeatWriteFailureCancelsProcess(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	baseContext, _ := gin.CreateTestContext(recorder)
+	baseContext.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+	failingWriter := &heartbeatFailingResponseWriter{
+		ResponseWriter: baseContext.Writer,
+		err:            errors.New("write failed"),
+		failed:         make(chan struct{}, 1),
+	}
+	baseContext.Writer = failingWriter
+
+	processCanceled := false
+	handlers := &ChatCompletionHandlers{
+		sseKeepAlive: SSEKeepAliveConfig{
+			Enabled:  true,
+			Interval: time.Millisecond,
+		},
+		sseHeartbeatFormat: sseHeartbeatOpenAI,
+		process: func(ctx context.Context, _ *httpclient.Request) (orchestrator.ChatCompletionResult, error) {
+			<-ctx.Done()
+			processCanceled = true
+			return orchestrator.ChatCompletionResult{}, ctx.Err()
+		},
+	}
+
+	handlers.ChatCompletionWithRequest(baseContext, &httpclient.Request{
+		Body: []byte(`{"model":"gpt-test","stream":true,"input":"hello"}`),
+	})
+
+	require.True(t, processCanceled)
+	select {
+	case <-failingWriter.failed:
+	default:
+		t.Fatal("expected the pre-stream heartbeat write to fail")
+	}
+}
+
+func TestIsSSEStreamRequest(t *testing.T) {
+	tests := []struct {
+		name    string
+		request *httpclient.Request
+		want    bool
+	}{
+		{name: "nil request", want: false},
+		{name: "stream true", request: &httpclient.Request{Body: []byte(`{"stream":true}`)}, want: true},
+		{name: "stream false", request: &httpclient.Request{Body: []byte(`{"stream":false}`)}, want: false},
+		{name: "SSE stream format", request: &httpclient.Request{Body: []byte(`{"stream_format":"SSE"}`)}, want: true},
+		{
+			name: "JSON body takes precedence",
+			request: &httpclient.Request{
+				Body:     []byte(`{"stream":false}`),
+				JSONBody: []byte(`{"stream":true}`),
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, isSSEStreamRequest(tt.request))
+		})
+	}
+}
+
 func TestWriteSSEStream_OpenAIHeartbeat(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
