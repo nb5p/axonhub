@@ -78,6 +78,7 @@
   "common.clearFilters": "Clear filters",
   "common.view": "View",
   "common.toggleColumns": "Toggle columns",
+  "common.resetColumnWidths": "Reset column widths",
   "common.noData": "No data available",
   "common.noResults": "No results.",
   "common.all": "All",

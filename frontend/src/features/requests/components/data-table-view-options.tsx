@@ -10,6 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { DataTableColumnSizingReset } from '@/components/data-table-column-sizing';
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
@@ -26,7 +27,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           {t('common.view')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-[150px]'>
+      <DropdownMenuContent align='end' className='w-[180px]'>
         <DropdownMenuLabel>{t('common.toggleColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
@@ -38,8 +39,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
             return (isDataColumn || isDetailsColumn) && column.getCanHide();
           })
           .map((column) => {
-            const labelKey =
-              column.id === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${column.id}`;
+            const labelKey = column.id === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${column.id}`;
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
@@ -53,6 +53,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
               </DropdownMenuCheckboxItem>
             );
           })}
+        <DataTableColumnSizingReset table={table} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

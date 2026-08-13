@@ -1,4 +1,4 @@
-import { useCallback, useState, memo, useRef, useEffect } from 'react';
+import { useCallback, useState, memo, useRef, useEffect, useLayoutEffect } from 'react';
 import { format } from 'date-fns';
 import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import { ColumnDef, Row, Table } from '@tanstack/react-table';
@@ -32,7 +32,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
@@ -421,6 +421,45 @@ ProviderCell.displayName = 'ProviderCell';
 
 const TagsCell = memo(({ row }: { row: Row<Channel> }) => {
   const tags = (row.getValue('tags') as string[]) || [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tagMeasureRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const overflowMeasureRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const [visibleCount, setVisibleCount] = useState(Math.min(tags.length, 2));
+
+  const updateVisibleCount = useCallback(() => {
+    const availableWidth = containerRef.current?.clientWidth ?? 0;
+    if (availableWidth <= 0) return;
+
+    const gap = 4;
+    let occupiedWidth = 0;
+    let nextVisibleCount = 0;
+
+    for (let index = 0; index < tags.length; index += 1) {
+      const tagWidth = tagMeasureRefs.current[index]?.offsetWidth ?? 0;
+      const nextOccupiedWidth = occupiedWidth + (index > 0 ? gap : 0) + tagWidth;
+      const remainingCount = tags.length - index - 1;
+      const overflowWidth = remainingCount > 0 ? (overflowMeasureRefs.current[remainingCount]?.offsetWidth ?? 0) + gap : 0;
+
+      if (nextOccupiedWidth + overflowWidth > availableWidth) break;
+
+      occupiedWidth = nextOccupiedWidth;
+      nextVisibleCount = index + 1;
+    }
+
+    setVisibleCount((current) => (current === nextVisibleCount ? current : nextVisibleCount));
+  }, [tags]);
+
+  useLayoutEffect(() => {
+    updateVisibleCount();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(updateVisibleCount);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [updateVisibleCount]);
+
   if (tags.length === 0) {
     return (
       <div className='flex justify-center'>
@@ -428,18 +467,63 @@ const TagsCell = memo(({ row }: { row: Row<Channel> }) => {
       </div>
     );
   }
+
+  const hiddenCount = tags.length - visibleCount;
+
   return (
-    <div className='flex max-w-48 flex-wrap justify-center gap-1'>
-      {tags.slice(0, 2).map((tag) => (
-        <Badge key={tag} variant='outline' className='text-xs'>
+    <div ref={containerRef} className='relative flex w-full min-w-0 justify-center gap-1 overflow-hidden'>
+      {tags.slice(0, visibleCount).map((tag) => (
+        <Badge key={tag} variant='outline' className='max-w-full truncate text-xs'>
           {tag}
         </Badge>
       ))}
-      {tags.length > 2 && (
-        <Badge variant='outline' className='text-xs'>
-          +{tags.length - 2}
-        </Badge>
+      {hiddenCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant='outline' className='cursor-default text-xs'>
+              +{hiddenCount}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent className='max-w-72'>
+            <div className='flex flex-wrap gap-1'>
+              {tags.slice(visibleCount).map((tag) => (
+                <Badge key={tag} variant='outline' className='text-xs'>
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
       )}
+      <div aria-hidden='true' className='pointer-events-none invisible absolute top-0 left-0 flex w-max gap-1'>
+        {tags.map((tag, index) => (
+          <Badge
+            key={`measure-${tag}`}
+            ref={(element) => {
+              tagMeasureRefs.current[index] = element;
+            }}
+            variant='outline'
+            className='text-xs'
+          >
+            {tag}
+          </Badge>
+        ))}
+        {tags.map((_, index) => {
+          const count = index + 1;
+          return (
+            <Badge
+              key={`measure-overflow-${count}`}
+              ref={(element) => {
+                overflowMeasureRefs.current[count] = element;
+              }}
+              variant='outline'
+              className='text-xs'
+            >
+              +{count}
+            </Badge>
+          );
+        })}
+      </div>
     </div>
   );
 });
@@ -609,11 +693,9 @@ const OrderingWeightCell = memo(({ row }: { row: Row<Channel> }) => {
   }
 
   return (
-    <div className='flex items-center justify-center gap-2 group cursor-pointer' onDoubleClick={handleDoubleClick}>
-      <span className={cn('font-mono text-sm', initialWeight == null && 'text-muted-foreground')}>
-        {initialWeight ?? '-'}
-      </span>
-      {updateChannel.isPending && <IconLoader2 className='h-3 w-3 animate-spin text-muted-foreground' />}
+    <div className='group flex cursor-pointer items-center justify-center gap-2' onDoubleClick={handleDoubleClick}>
+      <span className={cn('font-mono text-sm', initialWeight == null && 'text-muted-foreground')}>{initialWeight ?? '-'}</span>
+      {updateChannel.isPending && <IconLoader2 className='text-muted-foreground h-3 w-3 animate-spin' />}
     </div>
   );
 });
@@ -661,8 +743,11 @@ export const createColumns = (
       id: 'expand',
       header: () => null,
       meta: {
-        className: 'w-8 min-w-8 text-center',
+        className: 'text-center',
       },
+      size: 40,
+      minSize: 36,
+      maxSize: 56,
       cell: ExpandCell,
       enableSorting: false,
       enableHiding: false,
@@ -694,6 +779,9 @@ export const createColumns = (
             meta: {
               className: 'text-center',
             },
+            size: 44,
+            minSize: 40,
+            maxSize: 64,
             enableSorting: false,
             enableHiding: true,
           },
@@ -704,8 +792,11 @@ export const createColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.id')} className='justify-center' />,
       cell: ({ row }) => <div className='text-center font-mono text-xs'>#{extractNumberID(row.getValue('id'))}</div>,
       meta: {
-        className: 'w-20 min-w-20 text-center',
+        className: 'text-center',
       },
+      size: 84,
+      minSize: 72,
+      maxSize: 128,
       enableSorting: false,
       enableHiding: true,
     },
@@ -714,8 +805,11 @@ export const createColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.name')} className='justify-center' />,
       cell: NameCell,
       meta: {
-        className: 'md:table-cell min-w-48 text-center',
+        className: 'md:table-cell text-center',
       },
+      size: 210,
+      minSize: 144,
+      maxSize: 480,
       enableHiding: false,
       enableSorting: true,
     },
@@ -727,6 +821,9 @@ export const createColumns = (
       meta: {
         className: 'text-center',
       },
+      size: 148,
+      minSize: 112,
+      maxSize: 240,
       filterFn: (row, _id, value) => {
         return value.includes(row.original.type);
       },
@@ -753,6 +850,9 @@ export const createColumns = (
       meta: {
         className: 'text-center',
       },
+      size: 96,
+      minSize: 84,
+      maxSize: 144,
       enableSorting: true,
       enableHiding: false,
     },
@@ -764,6 +864,9 @@ export const createColumns = (
       meta: {
         className: 'text-center',
       },
+      size: 192,
+      minSize: 104,
+      maxSize: 560,
       filterFn: (row, id, value) => {
         const tags = (row.getValue(id) as string[]) || [];
         // Single select: value is a string, not an array
@@ -782,6 +885,7 @@ export const createColumns = (
       enableHiding: true,
       enableColumnFilter: false,
       enableGlobalFilter: false,
+      enableResizing: false,
     },
     {
       accessorKey: 'supportedModels',
@@ -790,8 +894,11 @@ export const createColumns = (
       ),
       cell: SupportedModelsCell,
       meta: {
-        className: 'max-w-64 text-center',
+        className: 'text-center',
       },
+      size: 210,
+      minSize: 144,
+      maxSize: 480,
       enableSorting: false,
     },
     {
@@ -802,8 +909,11 @@ export const createColumns = (
       ),
       cell: ({ row }) => <ChannelEndpointsCell channel={row.original} />,
       meta: {
-        className: 'w-36 min-w-36 text-center',
+        className: 'text-center',
       },
+      size: 144,
+      minSize: 120,
+      maxSize: 192,
       enableSorting: false,
       enableHiding: true,
     },
@@ -813,8 +923,11 @@ export const createColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('channels.columns.proxy')} className='justify-center' />,
       cell: ProxyCell,
       meta: {
-        className: 'w-32 min-w-32 text-center',
+        className: 'text-center',
       },
+      size: 128,
+      minSize: 104,
+      maxSize: 280,
       enableSorting: false,
       enableHiding: true,
     },
@@ -835,6 +948,9 @@ export const createColumns = (
       meta: {
         className: 'text-center',
       },
+      size: 144,
+      minSize: 112,
+      maxSize: 240,
       enableSorting: false,
       enableHiding: true,
     },
@@ -845,8 +961,11 @@ export const createColumns = (
       ),
       cell: OrderingWeightCell,
       meta: {
-        className: 'w-20 min-w-20 text-center',
+        className: 'text-center',
       },
+      size: 92,
+      minSize: 76,
+      maxSize: 132,
       sortingFn: 'alphanumeric',
       enableSorting: true,
       enableHiding: true,
@@ -858,6 +977,9 @@ export const createColumns = (
       meta: {
         className: 'text-center',
       },
+      size: 168,
+      minSize: 132,
+      maxSize: 240,
       enableSorting: true,
       enableHiding: true,
     },
@@ -872,6 +994,9 @@ export const createColumns = (
             meta: {
               className: 'text-center',
             },
+            size: 144,
+            minSize: 128,
+            maxSize: 200,
             enableSorting: false,
             enableHiding: false,
           },

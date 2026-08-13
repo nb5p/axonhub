@@ -12,11 +12,20 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
+import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+  DataTableColGroup,
+  DataTableColumnResizer,
+  getDataTableLayoutClass,
+  getDataTableSizingStyle,
+} from '@/components/data-table-column-sizing';
 import { ServerSidePagination } from '@/components/server-side-pagination';
 import { User, UserConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
+
+const COLUMN_SIZING_STORAGE_KEY = 'users-table-column-sizing';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -63,6 +72,7 @@ export function UsersTable({
   const { t } = useTranslation();
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -110,9 +120,14 @@ export function UsersTable({
   const table = useReactTable({
     data,
     columns,
+    defaultColumn: {
+      minSize: 56,
+      maxSize: 720,
+    },
     state: {
       sorting,
       columnVisibility,
+      columnSizing,
       rowSelection,
       columnFilters,
     },
@@ -121,6 +136,8 @@ export function UsersTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     manualFiltering: true,
     manualPagination: true,
@@ -131,8 +148,13 @@ export function UsersTable({
   return (
     <div className='flex flex-1 flex-col overflow-hidden' data-testid='users-table'>
       <DataTableToolbar table={table} />
-      <div className='shadow-soft relative mt-4 flex-1 overflow-auto overflow-x-hidden rounded-2xl border border-[var(--table-border)]'>
-        <Table data-testid='users-table' className='border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'>
+      <div className='shadow-soft relative mt-4 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)]'>
+        <Table
+          data-testid='users-table'
+          className={`${getDataTableLayoutClass(table)} border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]`}
+          style={getDataTableSizingStyle(table)}
+        >
+          <DataTableColGroup table={table} />
           <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className='group/row border-0'>
@@ -141,9 +163,11 @@ export function UsersTable({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground border-0 text-xs font-semibold tracking-wider uppercase`}
+                      data-column-id={header.column.id}
+                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground relative border-0 text-xs font-semibold tracking-wider uppercase`}
                     >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {!header.isPlaceholder && <DataTableColumnResizer header={header} />}
                     </TableHead>
                   );
                 })}

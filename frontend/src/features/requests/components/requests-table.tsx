@@ -17,9 +17,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { DateTimeRangeValue } from '@/utils/date-range';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
+import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+  DataTableColGroup,
+  DataTableColumnResizer,
+  getDataTableLayoutClass,
+  getDataTableSizingStyle,
+} from '@/components/data-table-column-sizing';
 import { ServerSidePagination } from '@/components/server-side-pagination';
 import { Request, RequestConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
@@ -27,6 +34,7 @@ import { DEFAULT_HIDDEN_COLUMN_IDS, DEFAULT_MOBILE_HIDDEN_COLUMN_IDS, useRequest
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'requests-table-column-visibility';
 const COLUMN_VISIBILITY_STORAGE_VERSION = 3;
+const COLUMN_SIZING_STORAGE_KEY = 'requests-table-column-sizing';
 
 const MotionTableRow = motion.create(TableRow);
 
@@ -120,6 +128,7 @@ export function RequestsTable({
 
   const requestsColumns = useRequestsColumns({ onViewDetail });
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
   const isMobile = useIsMobile();
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -204,11 +213,7 @@ export function RequestsTable({
     });
   }, [isMobile, visibilityReady]);
 
-  const displayedData = useAnimatedList(
-    data,
-    autoRefresh && !autoRefreshDisabled,
-    paginationEnabled ? pageSize : data.length || pageSize
-  );
+  const displayedData = useAnimatedList(data, autoRefresh && !autoRefreshDisabled, paginationEnabled ? pageSize : data.length || pageSize);
 
   useEffect(() => {
     if (!infiniteScroll || !hasMore || loadingMore || !onLoadMore) return;
@@ -280,9 +285,14 @@ export function RequestsTable({
     data: displayedData,
     getRowId: (row) => row.id,
     columns: requestsColumns,
+    defaultColumn: {
+      minSize: 56,
+      maxSize: 720,
+    },
     state: {
       sorting,
       columnVisibility,
+      columnSizing,
       rowSelection,
       columnFilters,
     },
@@ -291,6 +301,8 @@ export function RequestsTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -318,71 +330,73 @@ export function RequestsTable({
         ref={scrollContainerRef}
         className='shadow-soft relative mt-2 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'
       >
-        <div className='min-w-max'>
-          <Table
-            data-testid='requests-table'
-            className='!w-max min-w-full table-auto border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'
-          >
-            <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className='group/row border-0'>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground border-0 text-xs font-semibold tracking-wider uppercase`}
-                      >
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody className='space-y-1 !bg-[var(--table-background)] p-2'>
-              {loading ? (
-                <TableSkeleton rows={pageSize} columns={table.getVisibleLeafColumns().length} />
-              ) : table.getRowModel().rows?.length ? (
-                <AnimatePresence initial={false} mode='popLayout'>
-                  {table.getRowModel().rows.map((row) => (
-                    <MotionTableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                      initial={{ opacity: 0, y: -20, height: 0 }}
-                      animate={{ opacity: 1, y: 0, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 500,
-                        damping: 30,
-                        mass: 1,
-                        opacity: { duration: 0.2 },
-                      }}
-                      layout
-                      className='group/row hover:bg-muted/50 data-[state=selected]:bg-muted'
+        <Table
+          data-testid='requests-table'
+          className={`${getDataTableLayoutClass(table)} border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]`}
+          style={getDataTableSizingStyle(table)}
+        >
+          <DataTableColGroup table={table} />
+          <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className='group/row border-0'>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      data-column-id={header.column.id}
+                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground relative border-0 text-xs font-semibold tracking-wider uppercase`}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={`${cell.column.columnDef.meta?.className ?? ''} border-b border-[var(--table-border)] py-3 group-last/row:border-0`}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </MotionTableRow>
-                  ))}
-                </AnimatePresence>
-              ) : (
-                <TableRow className='!bg-[var(--table-background)]'>
-                  <TableCell colSpan={requestsColumns.length} className='h-24 !bg-[var(--table-background)] text-center'>
-                    {t('common.noData')}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {!header.isPlaceholder && <DataTableColumnResizer header={header} />}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody className='space-y-1 !bg-[var(--table-background)] p-2'>
+            {loading ? (
+              <TableSkeleton rows={pageSize} columns={table.getVisibleLeafColumns().length} />
+            ) : table.getRowModel().rows?.length ? (
+              <AnimatePresence initial={false} mode='popLayout'>
+                {table.getRowModel().rows.map((row) => (
+                  <MotionTableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    initial={{ opacity: 0, y: -20, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 30,
+                      mass: 1,
+                      opacity: { duration: 0.2 },
+                    }}
+                    layout
+                    className='group/row hover:bg-muted/50 data-[state=selected]:bg-muted'
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={`${cell.column.columnDef.meta?.className ?? ''} border-b border-[var(--table-border)] py-3 group-last/row:border-0`}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </MotionTableRow>
+                ))}
+              </AnimatePresence>
+            ) : (
+              <TableRow className='!bg-[var(--table-background)]'>
+                <TableCell colSpan={requestsColumns.length} className='h-24 !bg-[var(--table-background)] text-center'>
+                  {t('common.noData')}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
         {infiniteScroll && data.length > 0 && (
           <div ref={loadMoreRef} className='text-muted-foreground flex h-12 items-center justify-center text-sm'>
             {loadingMore

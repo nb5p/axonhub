@@ -13,18 +13,25 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { motion, AnimatePresence } from 'framer-motion';
 import { IconArchive, IconBan, IconCheck, IconFlask, IconTrash, IconTemplate, IconX, IconEraser } from '@tabler/icons-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+  DataTableColGroup,
+  DataTableColumnResizer,
+  getDataTableLayoutClass,
+  getDataTableSizingStyle,
+} from '@/components/data-table-column-sizing';
 import { ServerSidePagination } from '@/components/server-side-pagination';
-import { ChannelExpandedRow } from './channel-expanded-row';
 import { useChannels } from '../context/channels-context';
-import { Channel, ChannelConnection } from '../data/schema';
-import { DataTableToolbar } from './data-table-toolbar';
 import { ChannelModelsMatchMode } from '../data/channels';
+import { Channel, ChannelConnection } from '../data/schema';
+import { ChannelExpandedRow } from './channel-expanded-row';
+import { DataTableToolbar } from './data-table-toolbar';
 
 const MotionTableRow = motion.create(TableRow);
 const MotionExpandedRow = motion.create(TableRow);
@@ -73,8 +80,11 @@ interface DataTableProps {
 
 const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
   tags: false,
+  model: false,
   proxy: false,
 };
+
+const COLUMN_SIZING_STORAGE_KEY = 'channels-table-column-sizing';
 
 export function ChannelsTable({
   columns,
@@ -115,6 +125,7 @@ export function ChannelsTable({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
 
   // Load column visibility from localStorage with useMemo to avoid re-parsing
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
@@ -158,7 +169,7 @@ export function ChannelsTable({
   // Save column visibility to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('channels-table-column-visibility', JSON.stringify(columnVisibility));
-    
+
     // Notify parent about health column visibility changes
     if (onHealthColumnVisibilityChange) {
       const isHealthVisible = columnVisibility.health !== false;
@@ -232,9 +243,14 @@ export function ChannelsTable({
   const table = useReactTable({
     data,
     columns,
+    defaultColumn: {
+      minSize: 56,
+      maxSize: 720,
+    },
     state: {
       sorting,
       columnVisibility,
+      columnSizing,
       rowSelection,
       columnFilters,
       expanded,
@@ -246,6 +262,9 @@ export function ChannelsTable({
     onSortingChange,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
@@ -318,8 +337,12 @@ export function ChannelsTable({
         onModelMatchModeChange={onModelMatchModeChange}
       />
       <div className='shadow-soft relative mt-1 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
-        <div className='min-w-max'>
-        <Table data-testid='channels-table' className='border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'>
+        <Table
+          data-testid='channels-table'
+          className={`${getDataTableLayoutClass(table)} border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]`}
+          style={getDataTableSizingStyle(table)}
+        >
+          <DataTableColGroup table={table} />
           <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className='group/row border-0'>
@@ -328,9 +351,11 @@ export function ChannelsTable({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground border-0 text-xs font-semibold tracking-wider uppercase`}
+                      data-column-id={header.column.id}
+                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground relative border-0 text-xs font-semibold tracking-wider uppercase`}
                     >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {!header.isPlaceholder && <DataTableColumnResizer header={header} />}
                     </TableHead>
                   );
                 })}
@@ -351,7 +376,10 @@ export function ChannelsTable({
                       className='group/row table-row-hover rounded-xl border-0 !bg-[var(--table-background)]'
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className={`${cell.column.columnDef.meta?.className ?? ''} border-0 bg-inherit px-4 py-3 transition-colors duration-200`}>
+                        <TableCell
+                          key={cell.id}
+                          className={`${cell.column.columnDef.meta?.className ?? ''} border-0 bg-inherit px-4 py-3 transition-colors duration-200`}
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -365,7 +393,7 @@ export function ChannelsTable({
                           exit={{ opacity: 0 }}
                           className='border-0'
                         >
-                          <TableCell colSpan={columns.length} className='p-0 border-0'>
+                          <TableCell colSpan={columns.length} className='border-0 p-0'>
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
@@ -391,7 +419,6 @@ export function ChannelsTable({
             )}
           </TableBody>
         </Table>
-        </div>
       </div>
       {paginationEnabled && (
         <div className='mt-4 flex-shrink-0'>

@@ -14,16 +14,24 @@ import {
 } from '@tanstack/react-table';
 import { IconX, IconUserOff, IconArchive, IconCheck } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import type { DateTimeRangeValue } from '@/utils/date-range';
+import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+  DataTableColGroup,
+  DataTableColumnResizer,
+  getDataTableLayoutClass,
+  getDataTableSizingStyle,
+} from '@/components/data-table-column-sizing';
 import { ServerSidePagination } from '@/components/server-side-pagination';
-import type { DateTimeRangeValue } from '@/utils/date-range';
 import { useApiKeysContext } from '../context/apikeys-context';
 import { ApiKey, ApiKeyConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'apikeys-table-column-visibility';
+const COLUMN_SIZING_STORAGE_KEY = 'apikeys-table-column-sizing';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -86,6 +94,7 @@ export function ApiKeysTable({
   const { t } = useTranslation();
   const { setResetRowSelection, setSelectedApiKeys, openDialog } = useApiKeysContext();
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     try {
       const stored = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
@@ -154,9 +163,14 @@ export function ApiKeysTable({
   const table = useReactTable({
     data,
     columns,
+    defaultColumn: {
+      minSize: 56,
+      maxSize: 720,
+    },
     state: {
       sorting,
       columnVisibility,
+      columnSizing,
       rowSelection,
       columnFilters,
     },
@@ -165,6 +179,8 @@ export function ApiKeysTable({
     onSortingChange,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualFiltering: true,
@@ -213,7 +229,11 @@ export function ApiKeysTable({
         canViewCreators={canViewCreators}
       />
       <div className='shadow-soft relative mt-2 min-h-0 flex-1 overflow-auto rounded-2xl border border-[var(--table-border)] sm:mt-4'>
-        <Table className='border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]'>
+        <Table
+          className={`${getDataTableLayoutClass(table)} border-separate border-spacing-0 rounded-2xl bg-[var(--table-background)]`}
+          style={getDataTableSizingStyle(table)}
+        >
+          <DataTableColGroup table={table} />
           <TableHeader className='sticky top-0 z-20 bg-[var(--table-header)] shadow-sm'>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className='group/row border-0'>
@@ -222,9 +242,11 @@ export function ApiKeysTable({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground border-0 text-xs font-semibold tracking-wider uppercase`}
+                      data-column-id={header.column.id}
+                      className={`${header.column.columnDef.meta?.className ?? ''} text-muted-foreground relative border-0 text-xs font-semibold tracking-wider uppercase`}
                     >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {!header.isPlaceholder && <DataTableColumnResizer header={header} />}
                     </TableHead>
                   );
                 })}

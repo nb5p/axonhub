@@ -145,6 +145,7 @@
   "common.loading": "加载中...",
   "common.view": "列设置",
   "common.toggleColumns": "切换列",
+  "common.resetColumnWidths": "重置列宽",
   "common.noData": "暂无数据",
   "common.noResults": "无结果。",
   "common.loadError": "加载失败:",
