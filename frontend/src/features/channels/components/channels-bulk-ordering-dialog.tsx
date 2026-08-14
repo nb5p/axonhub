@@ -1,17 +1,27 @@
-import { useState, useEffect, memo, useCallback } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { useState, useEffect, memo, useCallback, Fragment, useMemo } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+import { GripVertical, ArrowUpToLine, ArrowDownToLine, ArrowDownWideNarrow, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { useAllChannelSummarys, useBulkUpdateChannelOrdering } from '../data/channels';
-import { ChannelSummary } from '../data/schema';
+import { Switch } from '@/components/ui/switch';
+import { useAllChannelSummarys, useBulkDisableChannels, useBulkEnableChannels, useBulkUpdateChannelOrdering } from '../data/channels';
+import { ChannelSummary, type ChannelStatus, type ChannelSummaryConnection } from '../data/schema';
 
 const WEIGHT_PRECISION = 0;
 const MIN_WEIGHT = 0;
@@ -37,24 +47,81 @@ const calculateRelativeWeight = (prev?: number, next?: number) => {
   return clampWeight(Math.floor((prev + next) / 2));
 };
 
+type OrderedChannel = {
+  channel: ChannelSummary;
+  orderingWeight: number;
+};
+
+const STATUS_DIVIDER_ID = 'channel-status-divider';
+
+const isEnabledStatus = (status: ChannelStatus) => status === 'enabled';
+
+const sortOrderedChannels = (items: OrderedChannel[], enabledFirst: boolean) =>
+  items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      if (enabledFirst) {
+        const statusDifference = Number(isEnabledStatus(b.item.channel.status)) - Number(isEnabledStatus(a.item.channel.status));
+        if (statusDifference !== 0) return statusDifference;
+      }
+
+      return b.item.orderingWeight - a.item.orderingWeight || a.index - b.index;
+    })
+    .map(({ item }) => item);
+
+const createOrderedChannels = (channelsData?: ChannelSummaryConnection): OrderedChannel[] => {
+  if (!channelsData?.edges) return [];
+
+  return sortOrderedChannels(
+    channelsData.edges.map((edge, index) => ({
+      channel: edge.node,
+      orderingWeight: clampWeight(edge.node.orderingWeight ?? channelsData.edges.length - index),
+    })),
+    false
+  );
+};
+
+function ChannelStatusDivider({ enabledCount, disabledCount }: { enabledCount: number; disabledCount: number }) {
+  const { t } = useTranslation();
+  const { isOver, setNodeRef } = useDroppable({ id: STATUS_DIVIDER_ID });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex items-center gap-3 rounded-md py-2 transition-colors ${isOver ? 'bg-primary/10 px-2' : ''}`}
+      data-testid='channel-status-divider'
+    >
+      <Badge className='border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'>
+        {t('channels.dialogs.bulkOrdering.enabledSection', { count: enabledCount })}
+      </Badge>
+      <Separator className='flex-1' />
+      <Badge variant='secondary'>{t('channels.dialogs.bulkOrdering.disabledSection', { count: disabledCount })}</Badge>
+    </div>
+  );
+}
+
 interface ChannelOrderingItemProps {
   channel: ChannelSummary;
   orderingWeight: number;
   index: number;
-  total: number;
   onMoveToTop: (index: number) => void;
   onMoveToBottom: (index: number) => void;
   onWeightChange: (id: string, weight: number) => void;
+  onStatusChange: (id: string, enabled: boolean) => void;
+  canMoveToTop: boolean;
+  canMoveToBottom: boolean;
 }
 
 const ChannelOrderingItemComponent = memo(function ChannelOrderingItemComponent({
   channel,
   orderingWeight,
   index,
-  total,
   onMoveToTop,
   onMoveToBottom,
   onWeightChange,
+  onStatusChange,
+  canMoveToTop,
+  canMoveToBottom,
 }: ChannelOrderingItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: channel.id });
   const { t } = useTranslation();
@@ -153,6 +220,17 @@ const ChannelOrderingItemComponent = memo(function ChannelOrderingItemComponent(
 
       {/* Controls */}
       <div className='flex items-center gap-1 pr-1'>
+        <div className='flex items-center gap-1.5' onPointerDown={(event) => event.stopPropagation()}>
+          <Switch
+            checked={channel.status === 'enabled'}
+            onCheckedChange={(checked) => onStatusChange(channel.id, checked)}
+            aria-label={t(
+              channel.status === 'enabled' ? 'channels.dialogs.bulkOrdering.disableChannel' : 'channels.dialogs.bulkOrdering.enableChannel'
+            )}
+            className='scale-90'
+          />
+          <span className='text-muted-foreground hidden w-8 text-[10px] lg:inline'>{t(`channels.status.${channel.status}`)}</span>
+        </div>
         <div className='bg-muted/30 hidden items-center gap-1.5 rounded px-1.5 py-0.5 sm:flex'>
           <span className='text-muted-foreground text-[10px]'>{t('channels.dialogs.bulkOrdering.orderingWeight')}</span>
           <Input
@@ -181,7 +259,7 @@ const ChannelOrderingItemComponent = memo(function ChannelOrderingItemComponent(
             size='icon'
             className='text-muted-foreground hover:text-foreground h-6 w-6'
             onClick={() => onMoveToTop(index)}
-            disabled={index === 0}
+            disabled={!canMoveToTop}
             title={t('common.moveToTop', 'Move to top')}
           >
             <ArrowUpToLine className='h-3.5 w-3.5' />
@@ -191,7 +269,7 @@ const ChannelOrderingItemComponent = memo(function ChannelOrderingItemComponent(
             size='icon'
             className='text-muted-foreground hover:text-foreground h-6 w-6'
             onClick={() => onMoveToBottom(index)}
-            disabled={index === total - 1}
+            disabled={!canMoveToBottom}
             title={t('common.moveToBottom', 'Move to bottom')}
           >
             <ArrowDownToLine className='h-3.5 w-3.5' />
@@ -214,24 +292,26 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
   const { data: channelsData, isLoading } = useAllChannelSummarys(undefined, { enabled: open });
 
   const bulkUpdateMutation = useBulkUpdateChannelOrdering();
+  const bulkEnableMutation = useBulkEnableChannels();
+  const bulkDisableMutation = useBulkDisableChannels();
 
   // Local state for ordering
-  const [orderedChannels, setOrderedChannels] = useState<Array<{ channel: ChannelSummary; orderingWeight: number }>>([]);
+  const [orderedChannels, setOrderedChannels] = useState<OrderedChannel[]>([]);
+  const [enabledFirst, setEnabledFirst] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   // Initialize ordered channels when data loads
   useEffect(() => {
-    if (channelsData?.edges) {
-      const channels = channelsData.edges.map((edge, index) => ({
-        channel: edge.node,
-        orderingWeight: clampWeight(edge.node.orderingWeight ?? channelsData.edges.length - index),
-      }));
-      // Sort by orderingWeight DESC (higher weight first)
-      channels.sort((a, b) => b.orderingWeight - a.orderingWeight);
-      setOrderedChannels(channels);
+    if (channelsData) {
+      setOrderedChannels(createOrderedChannels(channelsData));
+      setEnabledFirst(false);
       setHasChanges(false);
     }
   }, [channelsData]);
+
+  const enabledCount = useMemo(() => orderedChannels.filter((item) => isEnabledStatus(item.channel.status)).length, [orderedChannels]);
+
+  const disabledCount = orderedChannels.length - enabledCount;
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -240,88 +320,183 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
     })
   );
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
 
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    setOrderedChannels((items) => {
-      const oldIndex = items.findIndex((item) => item.channel.id === active.id);
-      const newIndex = items.findIndex((item) => item.channel.id === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) {
-        return items;
+      if (!over || active.id === over.id) {
+        return;
       }
 
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      const prevWeight = newItems[newIndex - 1]?.orderingWeight;
-      const nextWeight = newItems[newIndex + 1]?.orderingWeight;
+      setOrderedChannels((items) => {
+        const oldIndex = items.findIndex((item) => item.channel.id === active.id);
+        if (oldIndex === -1) {
+          return items;
+        }
 
-      newItems[newIndex] = {
-        ...newItems[newIndex],
-        orderingWeight: calculateRelativeWeight(prevWeight, nextWeight),
-      };
+        const activeItem = items[oldIndex];
+        const droppedOnDivider = over.id === STATUS_DIVIDER_ID;
+        const newIndex = droppedOnDivider
+          ? isEnabledStatus(activeItem.channel.status)
+            ? Math.max(0, enabledCount - 1)
+            : enabledCount
+          : items.findIndex((item) => item.channel.id === over.id);
 
-      setHasChanges(true);
-      return newItems;
-    });
+        if (newIndex === -1) {
+          return items;
+        }
+
+        const destinationStatus =
+          enabledFirst && droppedOnDivider
+            ? isEnabledStatus(activeItem.channel.status)
+              ? 'disabled'
+              : 'enabled'
+            : enabledFirst
+              ? items[newIndex].channel.status
+              : activeItem.channel.status;
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        if (enabledFirst && newItems[newIndex].channel.status !== destinationStatus) {
+          newItems[newIndex] = {
+            ...newItems[newIndex],
+            channel: {
+              ...newItems[newIndex].channel,
+              status: destinationStatus,
+            },
+          };
+        }
+
+        const previousInGroup = [...newItems]
+          .slice(0, newIndex)
+          .reverse()
+          .find((item) => !enabledFirst || item.channel.status === destinationStatus);
+        const nextInGroup = newItems.slice(newIndex + 1).find((item) => !enabledFirst || item.channel.status === destinationStatus);
+
+        newItems[newIndex] = {
+          ...newItems[newIndex],
+          orderingWeight: calculateRelativeWeight(previousInGroup?.orderingWeight, nextInGroup?.orderingWeight),
+        };
+
+        setHasChanges(true);
+        return newItems;
+      });
+    },
+    [enabledCount, enabledFirst]
+  );
+
+  const handleWeightChange = useCallback(
+    (id: string, weight: number) => {
+      const normalizedWeight = clampWeight(weight);
+      setOrderedChannels((items) => {
+        const newItems = items.map((item) => (item.channel.id === id ? { ...item, orderingWeight: normalizedWeight } : item));
+        const sortedItems = sortOrderedChannels(newItems, enabledFirst);
+        setHasChanges(true);
+        return sortedItems;
+      });
+    },
+    [enabledFirst]
+  );
+
+  const handleStatusChange = useCallback(
+    (id: string, enabled: boolean) => {
+      const nextStatus: ChannelStatus = enabled ? 'enabled' : 'disabled';
+      setOrderedChannels((items) => {
+        const newItems = items.map((item) =>
+          item.channel.id === id
+            ? {
+                ...item,
+                channel: {
+                  ...item.channel,
+                  status: nextStatus,
+                },
+              }
+            : item
+        );
+
+        setHasChanges(true);
+        return enabledFirst ? sortOrderedChannels(newItems, true) : newItems;
+      });
+    },
+    [enabledFirst]
+  );
+
+  const handleEnabledFirstChange = useCallback((pressed: boolean) => {
+    setEnabledFirst(pressed);
+    setOrderedChannels((items) => sortOrderedChannels(items, pressed));
   }, []);
 
-  const handleWeightChange = useCallback((id: string, weight: number) => {
-    const normalizedWeight = clampWeight(weight);
-    setOrderedChannels((items) => {
-      const newItems = items.map((item) => (item.channel.id === id ? { ...item, orderingWeight: normalizedWeight } : item));
-      // Sort by orderingWeight DESC (higher weight first)
-      // Maintain stable sort for equal weights? Javascript sort is stable.
-      newItems.sort((a, b) => b.orderingWeight - a.orderingWeight);
-      setHasChanges(true);
-      return newItems;
-    });
-  }, []);
+  const handleMoveToTop = useCallback(
+    (index: number) => {
+      setOrderedChannels((items) => {
+        if (!items.length || index === 0) {
+          return items;
+        }
 
-  const handleMoveToTop = useCallback((index: number) => {
-    setOrderedChannels((items) => {
-      if (!items.length || index === 0) {
-        return items;
-      }
+        const status = items[index].channel.status;
+        const targetIndex = enabledFirst && !isEnabledStatus(status) ? enabledCount : 0;
+        if (index === targetIndex) return items;
 
-      const newItems = arrayMove(items, index, 0);
-      const nextWeight = newItems[1]?.orderingWeight;
+        const newItems = arrayMove(items, index, targetIndex);
+        const nextWeight = newItems.slice(targetIndex + 1).find((item) => !enabledFirst || item.channel.status === status)?.orderingWeight;
 
-      newItems[0] = {
-        ...newItems[0],
-        orderingWeight: calculateRelativeWeight(undefined, nextWeight),
-      };
+        newItems[targetIndex] = {
+          ...newItems[targetIndex],
+          orderingWeight: calculateRelativeWeight(undefined, nextWeight),
+        };
 
-      setHasChanges(true);
-      return newItems;
-    });
-  }, []);
+        setHasChanges(true);
+        return newItems;
+      });
+    },
+    [enabledCount, enabledFirst]
+  );
 
-  const handleMoveToBottom = useCallback((index: number) => {
-    setOrderedChannels((items) => {
-      if (!items.length || index === items.length - 1) {
-        return items;
-      }
+  const handleMoveToBottom = useCallback(
+    (index: number) => {
+      setOrderedChannels((items) => {
+        if (!items.length) {
+          return items;
+        }
 
-      const targetIndex = items.length - 1;
-      const newItems = arrayMove(items, index, targetIndex);
-      const prevWeight = newItems[targetIndex - 1]?.orderingWeight;
+        const status = items[index].channel.status;
+        const targetIndex = enabledFirst && isEnabledStatus(status) ? enabledCount - 1 : items.length - 1;
+        if (index === targetIndex) return items;
 
-      newItems[targetIndex] = {
-        ...newItems[targetIndex],
-        orderingWeight: calculateRelativeWeight(prevWeight, undefined),
-      };
+        const newItems = arrayMove(items, index, targetIndex);
+        const prevWeight = [...newItems]
+          .slice(0, targetIndex)
+          .reverse()
+          .find((item) => !enabledFirst || item.channel.status === status)?.orderingWeight;
 
-      setHasChanges(true);
-      return newItems;
-    });
-  }, []);
+        newItems[targetIndex] = {
+          ...newItems[targetIndex],
+          orderingWeight: calculateRelativeWeight(prevWeight, undefined),
+        };
+
+        setHasChanges(true);
+        return newItems;
+      });
+    },
+    [enabledCount, enabledFirst]
+  );
 
   const handleSave = async () => {
     try {
+      const originalStatuses = new Map(channelsData?.edges.map((edge) => [edge.node.id, edge.node.status]));
+      const enableIds = orderedChannels
+        .filter((item) => item.channel.status === 'enabled' && originalStatuses.get(item.channel.id) !== 'enabled')
+        .map((item) => item.channel.id);
+      const disableIds = orderedChannels
+        .filter((item) => item.channel.status === 'disabled' && originalStatuses.get(item.channel.id) !== 'disabled')
+        .map((item) => item.channel.id);
+
+      if (disableIds.length > 0) {
+        await bulkDisableMutation.mutateAsync(disableIds);
+      }
+      if (enableIds.length > 0) {
+        await bulkEnableMutation.mutateAsync(enableIds);
+      }
+
       const updates = orderedChannels.map((item) => ({
         id: item.channel.id,
         orderingWeight: item.orderingWeight,
@@ -340,13 +515,9 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
 
   const handleCancel = () => {
     // Reset to original order
-    if (channelsData?.edges) {
-      const channels = channelsData.edges.map((edge, index) => ({
-        channel: edge.node,
-        orderingWeight: clampWeight(edge.node.orderingWeight ?? channelsData.edges.length - index),
-      }));
-      channels.sort((a, b) => b.orderingWeight - a.orderingWeight);
-      setOrderedChannels(channels);
+    if (channelsData) {
+      setOrderedChannels(createOrderedChannels(channelsData));
+      setEnabledFirst(false);
       setHasChanges(false);
     }
     onOpenChange(false);
@@ -391,6 +562,17 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
                       count: orderedChannels.length,
                     })}
                   </Badge>
+                  <Button
+                    type='button'
+                    variant={enabledFirst ? 'secondary' : 'outline'}
+                    size='sm'
+                    className='h-8 gap-1.5'
+                    aria-pressed={enabledFirst}
+                    onClick={() => handleEnabledFirstChange(!enabledFirst)}
+                  >
+                    {enabledFirst ? <Check className='h-3.5 w-3.5' /> : <ArrowDownWideNarrow className='h-3.5 w-3.5' />}
+                    {t('channels.dialogs.bulkOrdering.enabledFirst')}
+                  </Button>
                   {hasChanges && (
                     <Badge
                       variant='outline'
@@ -406,18 +588,32 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={orderedChannels.map((item) => item.channel.id)} strategy={verticalListSortingStrategy}>
                   <div className='flex-1 space-y-1'>
-                    {orderedChannels.map((item, index) => (
-                      <ChannelOrderingItemComponent
-                        key={item.channel.id}
-                        channel={item.channel}
-                        orderingWeight={item.orderingWeight}
-                        index={index}
-                        total={orderedChannels.length}
-                        onMoveToTop={handleMoveToTop}
-                        onMoveToBottom={handleMoveToBottom}
-                        onWeightChange={handleWeightChange}
-                      />
-                    ))}
+                    {orderedChannels.map((item, index) => {
+                      const groupStart = enabledFirst && item.channel.status === 'disabled' ? enabledCount : 0;
+                      const groupEnd = enabledFirst && item.channel.status === 'enabled' ? enabledCount - 1 : orderedChannels.length - 1;
+
+                      return (
+                        <Fragment key={item.channel.id}>
+                          {enabledFirst && index === enabledCount && (
+                            <ChannelStatusDivider enabledCount={enabledCount} disabledCount={disabledCount} />
+                          )}
+                          <ChannelOrderingItemComponent
+                            channel={item.channel}
+                            orderingWeight={item.orderingWeight}
+                            index={index}
+                            onMoveToTop={handleMoveToTop}
+                            onMoveToBottom={handleMoveToBottom}
+                            onWeightChange={handleWeightChange}
+                            onStatusChange={handleStatusChange}
+                            canMoveToTop={index > groupStart}
+                            canMoveToBottom={index < groupEnd}
+                          />
+                        </Fragment>
+                      );
+                    })}
+                    {enabledFirst && enabledCount === orderedChannels.length && (
+                      <ChannelStatusDivider enabledCount={enabledCount} disabledCount={disabledCount} />
+                    )}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -439,8 +635,12 @@ export function ChannelsBulkOrderingDialog({ open, onOpenChange }: ChannelsBulkO
               <Button variant='outline' onClick={handleCancel}>
                 {t('common.buttons.cancel')}
               </Button>
-              <Button onClick={handleSave} disabled={!hasChanges || bulkUpdateMutation.isPending} className='min-w-[120px]'>
-                {bulkUpdateMutation.isPending ? (
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || bulkUpdateMutation.isPending || bulkEnableMutation.isPending || bulkDisableMutation.isPending}
+                className='min-w-[120px]'
+              >
+                {bulkUpdateMutation.isPending || bulkEnableMutation.isPending || bulkDisableMutation.isPending ? (
                   <div className='flex items-center gap-2'>
                     <div className='h-4 w-4 animate-spin rounded-full border-b-2 border-white'></div>
                     {t('common.buttons.saving')}
