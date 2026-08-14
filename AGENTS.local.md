@@ -221,3 +221,98 @@ docker compose \
 - 必须说明当前槽位是现场验证的 `blue`、`green` 还是无法可靠判定，以及下一步会重启哪个容器。
 - 必须说明绿色直连健康检查和关键日志是否正常。
 - 必须说明 Git、Forgejo 或镜像仓库是否发生推送；没有推送也要明确说明。
+
+### 将绿色完整晋升到蓝色
+
+本流程用于把绿色当前的完整 SQLite 数据和指定 `ai-slop` 代码版本一起晋升到群晖蓝色。它是单用户环境下允许短暂停服的完整覆盖流程，不是双向同步。执行后蓝色成为新的唯一数据事实来源，后续写入不会自动回流到绿色。
+
+#### 固定路径和产物边界
+
+| 项目 | Mac 路径 | NAS 路径 |
+| --- | --- | --- |
+| 绿色数据库 | `/Users/tux/Playground/AxonHub/data/axonhub.db` | 不适用 |
+| 绿色晋升快照 | `/Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db` | 不适用 |
+| 蓝色项目 | `/Volumes/docker/axonhub` | `/volume1/docker/axonhub` |
+| 蓝色数据库 | `/Volumes/docker/axonhub/volumes/axonhub%data/axonhub.db` | `/volume1/docker/axonhub/volumes/axonhub%data/axonhub.db` |
+| 蓝色回滚备份 | `/Volumes/docker/axonhub/backups/green-to-blue/<UTC时间戳>` | `/volume1/docker/axonhub/backups/green-to-blue/<UTC时间戳>` |
+
+- Docker 镜像只包含代码和前端产物，SQLite 数据库必须单独备份和传输，禁止打进镜像。
+- 蓝色必须使用从准确 commit 构建的不可变镜像标签，例如 `forgejo.109062.xyz:88/tux/axonhub:ai-slop-<short-sha>`。
+- 蓝色平台固定为 `linux/amd64`；绿色平台为 `linux/arm64`，不得把绿色本地镜像直接导入群晖。
+- 所有备份名使用同一个 UTC 时间戳。旧数据库、旧 Compose、`-wal` 和 `-shm` 文件均保留，不得覆盖或删除旧备份。
+
+#### 阶段一：不停服准备蓝色镜像
+
+1. 记录准确源码工作树、分支、HEAD 和未提交状态；构建时使用该 commit 的干净临时工作树，避免把用户未提交文件带入构建上下文。
+2. 先把目标 commit 推送到 Forgejo，再构建并推送不可变标签：
+
+   ```sh
+   docker buildx build \
+     --platform linux/amd64 \
+     --tag "forgejo.109062.xyz:88/tux/axonhub:ai-slop-<short-sha>" \
+     --push \
+     --file /absolute/path/to/clean-worktree/Dockerfile \
+     /absolute/path/to/clean-worktree
+   ```
+
+3. 检查 manifest 至少包含 `linux/amd64`，记录 index digest。BuildKit 的 `unknown/unknown` attestation 不是可运行平台。
+4. 在绿色仍运行时把新镜像预加载到 NAS。优先使用 NAS 的只读 package Token 拉取；如果 NAS 无法拉取，可以在 Mac 拉取 amd64 镜像后 `docker save`，通过 `/Volumes/docker/axonhub` 挂载目录传递 tar，再在 NAS 上执行 `docker load`。加载后核对远端镜像 `.Os=linux`、`.Architecture=amd64`，并删除临时 tar。
+5. 修改或重建蓝色前，按 `/Volumes/docker/AGENTS.md` 核对现有容器的 Compose 项目、服务、工作目录和配置文件标签必须分别是 `axonhub`、`axonhub`、`/volume1/docker/axonhub`、`/volume1/docker/axonhub/compose.yaml`。
+
+#### 阶段二：冻结并制作一致性快照
+
+1. 现场读取 Axon Switch 的 `backends.active`，并用公网 `/health` 与绿色直连 `/health` 交叉确认当前确实为 `active=green`。未确认时禁止继续。
+2. 明确告知用户将进入短暂停服。只有用户确认暂时不使用蓝绿两侧后，才停止当前绿色和未激活的蓝色：
+
+   ```sh
+   docker stop --timeout 60 axonhub-local
+   # NAS 上：sudo docker stop --time 60 axonhub
+   ```
+
+3. 确认两个容器均为 `exited`。绿色停止后，先检查源库，再使用 SQLite `.backup` 创建快照并再次校验：
+
+   ```sh
+   sqlite3 /Users/tux/Playground/AxonHub/data/axonhub.db 'PRAGMA quick_check;'
+   sqlite3 /Users/tux/Playground/AxonHub/data/axonhub.db \
+     ".backup '/Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db'"
+   sqlite3 /Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db \
+     'PRAGMA quick_check;'
+   shasum -a 256 /Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db
+   ```
+
+4. 在 NAS 本机使用 `/usr/bin/sqlite3` 对停止后的蓝色旧库执行 `PRAGMA quick_check` 和 `.backup`，把结果保存为 `backups/green-to-blue/<UTC时间戳>/blue-before-axonhub.db`；同时 `cp -p` 保存 `compose.yaml.before`。数据库备份校验成功且 Compose 备份存在后才能覆盖蓝色。
+
+#### 阶段三：恢复蓝色并启动
+
+1. 把绿色静态快照复制为蓝色数据目录中的临时文件 `axonhub.db.incoming-<UTC时间戳>`。在 NAS 本机再次执行 `PRAGMA quick_check` 和 SHA-256；结果必须为 `ok`，哈希必须与绿色快照一致。
+2. 继承旧蓝色数据库文件的所有者和模式后，在蓝色数据目录内完成同文件系统改名：
+   - 旧 `axonhub.db` 改为 `axonhub.db.pre-green-promotion-<UTC时间戳>`；
+   - 存在的 `axonhub.db-wal` 和 `axonhub.db-shm` 使用同一前缀保留；
+   - incoming 文件改名为正式 `axonhub.db`；
+   - 对正式数据库再次执行 `PRAGMA quick_check`。
+3. 使用 `apply_patch` 把 `/Volumes/docker/axonhub/compose.yaml` 的镜像改为目标不可变标签，不得整体重写 Compose。先保存的 `compose.yaml.before` 是回滚基线。
+4. 在 NAS 原项目目录验证并只重建蓝色服务：
+
+   ```sh
+   cd /volume1/docker/axonhub
+   sudo /var/packages/ContainerManager/target/usr/bin/docker-compose config --quiet
+   sudo /var/packages/ContainerManager/target/usr/bin/docker-compose up -d axonhub
+   ```
+
+   如果镜像是通过 tar 预加载且 NAS 没有 registry 登录态，启动命令必须禁止拉取或使用已加载的本地不可变标签，不能退回官方镜像。
+5. 从蓝色容器内部检查 `http://127.0.0.1:8090/health`，并核对容器为 `running`、重启次数正常、镜像引用和镜像 ID 正确、平台为 `linux/amd64`。健康检查未通过时不得切换流量。
+
+#### 阶段四：切换和收尾
+
+1. 优先通过已认证的 Axon Switch 管理页面切换为蓝色，禁止用 `jq`、文本编辑器或整体覆盖方式修改 `state.json`。
+2. 无可用管理会话但用户已明确授权无人值守切换时，只能调用 Axon Switch 自身 `internal/store` 的 `SetActive("blue")`：它会使用 `state.lock` 跨进程锁和原子保存。临时辅助程序不得输出后端 URL、Key、会话或完整状态，执行后必须删除并确认 Axon Switch 工作树干净。
+3. 重新只读提取 `backends.active`，必须得到 `blue`；公网 `/health` 的 build time、platform 和 uptime 必须与蓝色容器直连结果一致。
+4. 只有确认 `active=blue` 后才能重新启动绿色备用容器。绿色启动后只检查 `http://127.0.0.1:9090/health`，不得自动切回绿色。
+5. 交付时记录：目标 commit、不可变镜像标签和 digest、蓝绿实际镜像 ID、快照时间戳、快照及旧蓝色备份路径、两次 `quick_check`、哈希比对、当前活动槽位和公网健康结果。
+
+#### 回滚
+
+- 蓝色启动前失败：保持 Axon Switch 指向绿色，把蓝色旧数据库和 Compose 恢复后启动绿色；不要删除任何备份或 incoming 文件。
+- 蓝色启动成功但切换前验证失败：蓝色保持停用，修复或恢复旧蓝色；绿色源库仍是晋升时的完整数据，可直接恢复服务。
+- 切换蓝色后发现问题：先确认绿色健康，再把 Axon Switch 切回绿色；随后停止蓝色，恢复 `compose.yaml.before` 和 `blue-before-axonhub.db`，完成校验后再处理。
+- 任何回滚均不得用旧蓝色数据库覆盖已经在新蓝色产生的有效新写入；发生新写入后必须先另做当前蓝色快照，再决定数据取舍。
