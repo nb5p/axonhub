@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { DashboardIcon } from '@radix-ui/react-icons';
 import { zhCN, enUS } from 'date-fns/locale';
-import { Copy, Clock, Key, Database, FileText, Layers, Download, Terminal, ArrowUp } from 'lucide-react';
+import { Copy, Clock, Key, Database, FileText, Layers, Download, Terminal, ArrowUp, ChevronsDownUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { extractNumberID } from '@/lib/utils';
@@ -34,7 +34,6 @@ interface RequestDetailContentProps {
 interface AdaptiveJsonViewerProps {
   data: unknown;
   defaultExpanded: boolean;
-  expandedHeightClassName: string;
   viewerClassName: string;
   expandDepth?: number | 'all';
   surfaceClassName: string;
@@ -46,7 +45,6 @@ interface AdaptiveJsonViewerProps {
 function AdaptiveJsonViewer({
   data,
   defaultExpanded,
-  expandedHeightClassName,
   viewerClassName,
   expandDepth,
   surfaceClassName,
@@ -88,10 +86,8 @@ function AdaptiveJsonViewer({
   }, [collapseVersion, onExpandedChange, viewerId]);
 
   return (
-    <div
-      className={`${surfaceClassName} relative w-full overflow-hidden rounded-lg border transition-[height] ${rootExpanded ? expandedHeightClassName : 'h-auto'}`}
-    >
-      <div ref={scrollRef} className={rootExpanded ? 'h-full overflow-auto p-4' : 'overflow-hidden p-4'}>
+    <div className={`${surfaceClassName} relative h-auto w-full overflow-hidden rounded-lg border`}>
+      <div ref={scrollRef} className='overflow-hidden p-4'>
         <JsonViewer
           data={data}
           rootName=''
@@ -682,7 +678,6 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                   <AdaptiveJsonViewer
                     data={request.requestHeaders}
                     defaultExpanded={false}
-                    expandedHeightClassName='h-[300px]'
                     viewerClassName='text-sm'
                     expandDepth='all'
                     surfaceClassName='bg-muted/20'
@@ -723,7 +718,6 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                   <AdaptiveJsonViewer
                     data={request.requestBody}
                     defaultExpanded={true}
-                    expandedHeightClassName='h-[500px]'
                     viewerClassName='text-sm'
                     expandDepth='all'
                     surfaceClassName='bg-muted/20'
@@ -864,7 +858,6 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                       <AdaptiveJsonViewer
                         data={request.responseBody}
                         defaultExpanded={true}
-                        expandedHeightClassName='h-[500px]'
                         viewerClassName='text-sm'
                         expandDepth='all'
                         surfaceClassName='bg-muted/20'
@@ -1027,8 +1020,8 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                               <AdaptiveJsonViewer
                                 data={execution.requestHeaders}
                                 defaultExpanded={false}
-                                expandedHeightClassName='h-64'
                                 viewerClassName='text-xs'
+                                expandDepth='all'
                                 surfaceClassName='bg-background'
                                 viewerId={`execution-request-headers-${execution.id}`}
                                 collapseVersion={jsonCollapseVersion}
@@ -1058,8 +1051,8 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                               <AdaptiveJsonViewer
                                 data={execution.requestBody}
                                 defaultExpanded={false}
-                                expandedHeightClassName='h-80'
                                 viewerClassName='text-xs'
+                                expandDepth='all'
                                 surfaceClassName='bg-background'
                                 viewerId={`execution-request-body-${execution.id}`}
                                 collapseVersion={jsonCollapseVersion}
@@ -1093,8 +1086,8 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
                               <AdaptiveJsonViewer
                                 data={execution.responseBody}
                                 defaultExpanded={false}
-                                expandedHeightClassName='h-80'
                                 viewerClassName='text-xs'
+                                expandDepth='all'
                                 surfaceClassName='bg-background'
                                 viewerId={`execution-response-body-${execution.id}`}
                                 collapseVersion={jsonCollapseVersion}
@@ -1145,7 +1138,7 @@ export function RequestDetailContent({ requestId, projectId, previewRequest, isP
           title={t(expandedJsonViewerCount > 0 ? 'requests.detail.collapseExpandedContent' : 'requests.conversation.backToTop')}
           aria-label={t(expandedJsonViewerCount > 0 ? 'requests.detail.collapseExpandedContent' : 'requests.conversation.backToTop')}
         >
-          <ArrowUp className='h-5 w-5' />
+          {expandedJsonViewerCount > 0 ? <ChevronsDownUp className='h-5 w-5' /> : <ArrowUp className='h-5 w-5' />}
         </Button>
       )}
     </div>

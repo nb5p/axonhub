@@ -6,6 +6,7 @@ import { ChevronDown, ChevronsDownUp, ChevronsUpDown, FileText, Layers, Search, 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { parseRequestConversation, type ConversationData, type ConversationMessage, type ConversationTool } from '../utils/request-conversation';
 
 interface RequestConversationViewerProps {
@@ -319,7 +320,7 @@ function MessageCard({
       {rawOpen && (
         <div className='border-border bg-muted/40 border-b px-3 py-2.5'>
           <div className='text-muted-foreground mb-1 font-mono text-[10.5px]'>Raw JSON — message #{message.index}</div>
-          <pre className='text-muted-foreground max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed'>
+          <pre className='text-muted-foreground whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed'>
             {prettyJsonBlock(message.raw)}
           </pre>
         </div>
@@ -397,6 +398,7 @@ export function RequestConversationViewer({ body, format, className }: RequestCo
   const [showSystem, setShowSystem] = useState(true);
   const [expandAllContent, setExpandAllContent] = useState(false);
   const [rawOpenIndex, setRawOpenIndex] = useState<number | null>(null);
+  const toolbarScrollRef = useHorizontalScroll<HTMLDivElement>();
 
   const jumpTo = useCallback((target: string | number) => {
     const el = typeof target === 'number' ? document.getElementById(`conv-msg-${target}`) : document.getElementById(target);
@@ -471,18 +473,22 @@ export function RequestConversationViewer({ body, format, className }: RequestCo
   return (
     <div className={cn('space-y-4', className)}>
       {/* Toolbar */}
-      <div className='border-border bg-muted/20 sticky top-0 z-10 rounded-lg border p-3 backdrop-blur'>
-        <div className='flex flex-wrap items-center gap-2.5'>
+      <div
+        ref={toolbarScrollRef}
+        className='border-border bg-muted/20 sticky top-0 z-10 overflow-x-auto rounded-lg border p-2.5 backdrop-blur [scrollbar-width:none] sm:p-3 [&::-webkit-scrollbar]:hidden'
+        data-testid='request-conversation-toolbar'
+      >
+        <div className='flex w-max items-center gap-2.5 sm:block sm:w-full'>
           <div className='flex items-center gap-2'>
             <span className='h-2.5 w-2.5 rounded-full bg-blue-500' />
-            <span className='text-sm font-semibold'>{t('requests.conversation.title')}</span>
+            <span className='shrink-0 text-sm font-semibold'>{t('requests.conversation.title')}</span>
+            {data.model && (
+              <span className='border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 max-w-[15rem] truncate rounded-full border px-2.5 py-0.5 font-mono text-[11.5px] whitespace-nowrap sm:max-w-full'>
+                {data.model}
+              </span>
+            )}
           </div>
-          {data.model && (
-            <span className='border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border px-2.5 py-0.5 font-mono text-[11.5px]'>
-              {data.model}
-            </span>
-          )}
-          <div className='ml-auto flex flex-wrap items-center gap-2'>
+          <div className='flex items-center gap-2 sm:mt-2 sm:w-full'>
             <div className='relative'>
               <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2' />
               <Input

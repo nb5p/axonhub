@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getTokenFromStorage } from '@/stores/authStore';
 import { useSelectedProjectId } from '@/stores/projectStore';
-import { extractNumberID } from '@/lib/utils';
+import { cn, extractNumberID } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,6 +15,7 @@ import { Main } from '@/components/layout/main';
 import { useStoragePolicy } from '@/features/system/data/system';
 import { type Request, useRequest } from '../data';
 import { RequestDetailContent } from './request-detail-content';
+import { useMobileAutoHideHeader } from './use-mobile-auto-hide-header';
 
 type PreviewFallbackResponse = {
   mode?: string;
@@ -132,6 +133,8 @@ export default function RequestDetailPage() {
   const [previewFallbackActive, setPreviewFallbackActive] = useState(false);
   const previewCompletedRef = useRef(false);
   const previewChunkCountRef = useRef(0);
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const mobileHeaderHidden = useMobileAutoHideHeader(mainScrollRef);
 
   const { data: requestData, refetch: refetchRequest } = useRequest(requestId, {
     projectId: selectedProjectId,
@@ -360,7 +363,14 @@ export default function RequestDetailPage() {
 
   return (
     <div className='flex h-full flex-col'>
-      <Header className='bg-background/95 supports-[backdrop-filter]:bg-background/60 border-b backdrop-blur'>
+      <Header
+        className={cn(
+          'bg-background/95 supports-[backdrop-filter]:bg-background/60 overflow-hidden border-b backdrop-blur transition-[height,padding,opacity,transform,border-color] duration-200',
+          mobileHeaderHidden && 'max-md:h-0 max-md:-translate-y-full max-md:border-transparent max-md:p-0 max-md:opacity-0'
+        )}
+        aria-hidden={mobileHeaderHidden || undefined}
+        data-testid='request-detail-header'
+      >
         <div className='flex items-center space-x-4'>
           <Button variant='ghost' size='sm' onClick={handleBack} className='hover:bg-accent'>
             <ArrowLeft className='mr-2 h-4 w-4' />
@@ -379,7 +389,13 @@ export default function RequestDetailPage() {
                 </h1>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant='ghost' size='icon-sm' className='h-7 w-7' onClick={() => void copyRequestID()} aria-label={t('requests.actions.copyRequestId')}>
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      className='h-7 w-7'
+                      onClick={() => void copyRequestID()}
+                      aria-label={t('requests.actions.copyRequestId')}
+                    >
                       <Copy className='h-3.5 w-3.5' />
                     </Button>
                   </TooltipTrigger>
@@ -398,7 +414,7 @@ export default function RequestDetailPage() {
         </div>
       </Header>
 
-      <Main className='flex-1 overflow-auto'>
+      <Main ref={mainScrollRef} className='flex-1 overflow-auto'>
         <div className='container mx-auto max-w-7xl p-6'>
           <RequestDetailContent
             requestId={requestId}

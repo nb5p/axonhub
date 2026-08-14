@@ -1,9 +1,10 @@
+import { useRef } from 'react';
 import { format } from 'date-fns';
 import { useParams, useRouter } from '@tanstack/react-router';
 import { ArrowLeft, Copy, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { extractNumberID } from '@/lib/utils';
+import { cn, extractNumberID } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,12 +12,15 @@ import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
 import { useRequest } from '../data';
 import { RequestDetailContent } from './request-detail-content';
+import { useMobileAutoHideHeader } from './use-mobile-auto-hide-header';
 
 export default function RequestDetailGlobalPage() {
   const { t } = useTranslation();
   const { requestId } = useParams({ from: '/_authenticated/requests/$requestId' });
   const router = useRouter();
   const { data: request } = useRequest(requestId, { projectId: null });
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const mobileHeaderHidden = useMobileAutoHideHeader(mainScrollRef);
 
   const copyRequestID = async () => {
     try {
@@ -30,7 +34,14 @@ export default function RequestDetailGlobalPage() {
 
   return (
     <div className='flex h-full flex-col'>
-      <Header className='bg-background/95 supports-[backdrop-filter]:bg-background/60 border-b backdrop-blur'>
+      <Header
+        className={cn(
+          'bg-background/95 supports-[backdrop-filter]:bg-background/60 overflow-hidden border-b backdrop-blur transition-[height,padding,opacity,transform,border-color] duration-200',
+          mobileHeaderHidden && 'max-md:h-0 max-md:-translate-y-full max-md:border-transparent max-md:p-0 max-md:opacity-0'
+        )}
+        aria-hidden={mobileHeaderHidden || undefined}
+        data-testid='request-detail-header'
+      >
         <div className='flex items-center space-x-4'>
           <Button variant='ghost' size='sm' onClick={() => router.history.back()} className='hover:bg-accent'>
             <ArrowLeft className='mr-2 h-4 w-4' />
@@ -44,11 +55,18 @@ export default function RequestDetailGlobalPage() {
             <div>
               <div className='flex items-center gap-1'>
                 <h1 className='text-lg leading-none font-semibold'>
-                  {t('requests.detail.title')} #{request ? extractNumberID(request.id) || request.id : extractNumberID(requestId) || requestId}
+                  {t('requests.detail.title')} #
+                  {request ? extractNumberID(request.id) || request.id : extractNumberID(requestId) || requestId}
                 </h1>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant='ghost' size='icon-sm' className='h-7 w-7' onClick={() => void copyRequestID()} aria-label={t('requests.actions.copyRequestId')}>
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      className='h-7 w-7'
+                      onClick={() => void copyRequestID()}
+                      aria-label={t('requests.actions.copyRequestId')}
+                    >
                       <Copy className='h-3.5 w-3.5' />
                     </Button>
                   </TooltipTrigger>
@@ -67,7 +85,7 @@ export default function RequestDetailGlobalPage() {
         </div>
       </Header>
 
-      <Main className='flex-1 overflow-auto'>
+      <Main ref={mainScrollRef} className='flex-1 overflow-auto'>
         <div className='container mx-auto max-w-7xl p-6'>
           <RequestDetailContent requestId={requestId} projectId={null} />
         </div>
