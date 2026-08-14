@@ -73,6 +73,120 @@ var translationCapableAPIFormats = map[string]struct{}{
 	"openai/audio_translations": {},
 }
 
+// PassThroughConversionOption describes one supported, directional API format
+// conversion that can be exempted from pass-through-first routing.
+type PassThroughConversionOption struct {
+	Key          string
+	RequestType  llm.RequestType
+	SourceFormat llm.APIFormat
+	TargetFormat llm.APIFormat
+}
+
+type conversionFormats struct {
+	requestType llm.RequestType
+	sources     []llm.APIFormat
+	targets     []llm.APIFormat
+}
+
+var supportedConversionFormats = []conversionFormats{
+	{
+		requestType: llm.RequestTypeChat,
+		sources: []llm.APIFormat{
+			llm.APIFormatOpenAIChatCompletion,
+			llm.APIFormatOpenAIResponse,
+			llm.APIFormatAnthropicMessage,
+			llm.APIFormatGeminiContents,
+			llm.APIFormatAiSDKDataStream,
+		},
+		targets: []llm.APIFormat{
+			llm.APIFormatOpenAIChatCompletion,
+			llm.APIFormatOpenAIResponse,
+			llm.APIFormatAnthropicMessage,
+			llm.APIFormatGeminiContents,
+			llm.APIFormatOllamaChat,
+		},
+	},
+	{
+		requestType: llm.RequestTypeEmbedding,
+		sources: []llm.APIFormat{
+			llm.APIFormatOpenAIEmbedding,
+			llm.APIFormatJinaEmbedding,
+		},
+		targets: []llm.APIFormat{
+			llm.APIFormatOpenAIEmbedding,
+			llm.APIFormatJinaEmbedding,
+			llm.APIFormatGeminiEmbedding,
+		},
+	},
+	{
+		requestType: llm.RequestTypeImage,
+		sources: []llm.APIFormat{
+			llm.APIFormatOpenAIImageGeneration,
+			llm.APIFormatOpenAIImageEdit,
+			llm.APIFormatOpenAIImageVariation,
+		},
+		targets: []llm.APIFormat{
+			llm.APIFormatOpenAIImageGeneration,
+			llm.APIFormatOpenAIImageEdit,
+			llm.APIFormatOpenAIImageVariation,
+		},
+	},
+	{
+		requestType: llm.RequestTypeVideo,
+		sources: []llm.APIFormat{
+			llm.APIFormatOpenAIVideo,
+			llm.APIFormatSeedanceVideo,
+		},
+		targets: []llm.APIFormat{
+			llm.APIFormatOpenAIVideo,
+			llm.APIFormatSeedanceVideo,
+		},
+	},
+}
+
+// PassThroughConversionKey returns the stable key used to persist a
+// directional conversion exception.
+func PassThroughConversionKey(source, target llm.APIFormat) string {
+	return source.String() + "->" + target.String()
+}
+
+// SupportedPassThroughConversions returns every currently supported
+// cross-format conversion. Same-format routes are omitted because they do not
+// perform protocol conversion.
+func SupportedPassThroughConversions() []PassThroughConversionOption {
+	options := make([]PassThroughConversionOption, 0)
+	for _, formats := range supportedConversionFormats {
+		for _, source := range formats.sources {
+			for _, target := range formats.targets {
+				if source == target {
+					continue
+				}
+
+				options = append(options, PassThroughConversionOption{
+					Key:          PassThroughConversionKey(source, target),
+					RequestType:  formats.requestType,
+					SourceFormat: source,
+					TargetFormat: target,
+				})
+			}
+		}
+	}
+
+	return options
+}
+
+// IsSupportedPassThroughConversion reports whether a persisted conversion key
+// is still supported by the current transformer/endpoint registry.
+func IsSupportedPassThroughConversion(key string) bool {
+	for _, option := range SupportedPassThroughConversions() {
+		if option.Key == key {
+			return true
+		}
+	}
+
+	return false
+}
+
 // SelectAPIFormat selects the most appropriate APIFormat from a channel's resolved endpoints
 // based on the request type and inbound API format. Prefers an endpoint whose API format
 // matches the inbound request format so that pass-through can be enabled when identical

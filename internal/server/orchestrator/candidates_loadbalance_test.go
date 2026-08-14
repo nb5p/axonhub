@@ -536,3 +536,60 @@ func TestLoadBalancedSelector_Select_PreferPassThrough(t *testing.T) {
 	require.Len(t, result, 2)
 	require.Equal(t, conversionChannel.ID, result[0].Channel.ID)
 }
+
+func TestLoadBalancedSelector_Select_PreferPassThroughConversionExceptions(t *testing.T) {
+	ctx, client := setupTest(t)
+	systemService := newTestSystemService(client)
+	require.NoError(t, systemService.SetPassThrough(ctx, true))
+	require.NoError(t, systemService.SetPreferPassThrough(ctx, true))
+
+	conversionChannel := &biz.Channel{Channel: &ent.Channel{
+		ID:             1,
+		Name:           "High Weight Responses Conversion",
+		OrderingWeight: 100,
+	}}
+	passThroughChannel := &biz.Channel{Channel: &ent.Channel{
+		ID:             2,
+		Name:           "Low Weight Chat Pass-Through",
+		OrderingWeight: 1,
+	}}
+
+	baseSelector := &staticChannelSelector{candidates: []*ChannelModelsCandidate{
+		{Channel: conversionChannel, APIFormat: llm.APIFormatOpenAIResponse.String()},
+		{Channel: passThroughChannel, APIFormat: llm.APIFormatOpenAIChatCompletion.String()},
+	}}
+	loadBalancer := NewLoadBalancer(systemService, nil, NewWeightStrategy())
+	selector := WithLoadBalancedSelector(baseSelector, loadBalancer, systemService)
+	req := &llm.Request{
+		Model:       "gpt-4.1",
+		RequestType: llm.RequestTypeChat,
+		APIFormat:   llm.APIFormatOpenAIChatCompletion,
+	}
+
+	correctDirection := PassThroughConversionKey(llm.APIFormatOpenAIChatCompletion, llm.APIFormatOpenAIResponse)
+	reverseDirection := PassThroughConversionKey(llm.APIFormatOpenAIResponse, llm.APIFormatOpenAIChatCompletion)
+
+	require.NoError(t, systemService.SetPreferPassThroughExceptions(ctx, &biz.PreferPassThroughExceptionSettings{
+		Enabled:     true,
+		Conversions: []string{reverseDirection},
+	}))
+	result, err := selector.Select(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, passThroughChannel.ID, result[0].Channel.ID, "conversion exceptions must remain directional")
+
+	require.NoError(t, systemService.SetPreferPassThroughExceptions(ctx, &biz.PreferPassThroughExceptionSettings{
+		Enabled:     true,
+		Conversions: []string{correctDirection},
+	}))
+	result, err = selector.Select(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, conversionChannel.ID, result[0].Channel.ID, "excepted conversions should retain the normal weight order")
+
+	require.NoError(t, systemService.SetPreferPassThroughExceptions(ctx, &biz.PreferPassThroughExceptionSettings{
+		Enabled:     false,
+		Conversions: []string{correctDirection},
+	}))
+	result, err = selector.Select(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, passThroughChannel.ID, result[0].Channel.ID, "disabled exceptions must not affect routing")
+}

@@ -664,11 +664,13 @@ type LoadBalancedSelector struct {
 type passThroughPreferenceProvider interface {
 	PassThrough(ctx context.Context) (bool, error)
 	PreferPassThrough(ctx context.Context) (bool, error)
+	PreferPassThroughExceptions(ctx context.Context) (*biz.PreferPassThroughExceptionSettings, error)
 }
 
 type passThroughPreference struct {
 	enabled                  bool
 	globalPassThroughEnabled bool
+	conversionExceptions     map[string]struct{}
 }
 
 // WithLoadBalancedSelector creates a selector that applies load balancing to sort candidates.
@@ -756,7 +758,7 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 
 	if traceStickyMode == biz.TraceStickyPreferPreviousChannel {
 		if stickyCandidate, remainingCandidates := s.selectTraceStickyCandidate(ctx, candidates); stickyCandidate != nil {
-			if !hasPreferredPassThroughCandidate(candidates, req, preference) || candidateSupportsPassThrough(stickyCandidate, req, preference) {
+			if !hasPreferredPassThroughCandidate(candidates, req, preference) || candidateHasPassThroughPriority(stickyCandidate, req, preference) {
 				stickyCandidate.TraceSticky = true
 
 				fallbackCount := max(requiredCount-1, 0)
@@ -808,7 +810,20 @@ func (s *LoadBalancedSelector) resolvePassThroughPreference(ctx context.Context)
 		log.Warn(ctx, "failed to get global pass-through setting for channel preference", log.Cause(err))
 	}
 
-	return passThroughPreference{enabled: true, globalPassThroughEnabled: globalEnabled}
+	preference := passThroughPreference{enabled: true, globalPassThroughEnabled: globalEnabled}
+	exceptionSettings, err := provider.PreferPassThroughExceptions(ctx)
+	if err != nil {
+		log.Warn(ctx, "failed to get pass-through conversion exceptions", log.Cause(err))
+
+		return preference
+	}
+	if exceptionSettings.Enabled {
+		preference.conversionExceptions = lo.SliceToMap(exceptionSettings.Conversions, func(key string) (string, struct{}) {
+			return key, struct{}{}
+		})
+	}
+
+	return preference
 }
 
 func candidateSupportsPassThrough(
@@ -831,13 +846,36 @@ func candidateSupportsPassThrough(
 	return enabled
 }
 
+func candidateMatchesPassThroughException(
+	candidate *ChannelModelsCandidate,
+	req *llm.Request,
+	preference passThroughPreference,
+) bool {
+	if !preference.enabled || len(preference.conversionExceptions) == 0 || candidate == nil || req == nil || req.APIFormat == "" {
+		return false
+	}
+
+	key := PassThroughConversionKey(req.APIFormat, llm.APIFormat(candidate.APIFormat))
+	_, ok := preference.conversionExceptions[key]
+
+	return ok
+}
+
+func candidateHasPassThroughPriority(
+	candidate *ChannelModelsCandidate,
+	req *llm.Request,
+	preference passThroughPreference,
+) bool {
+	return candidateSupportsPassThrough(candidate, req, preference) || candidateMatchesPassThroughException(candidate, req, preference)
+}
+
 func hasPreferredPassThroughCandidate(
 	candidates []*ChannelModelsCandidate,
 	req *llm.Request,
 	preference passThroughPreference,
 ) bool {
 	return lo.ContainsBy(candidates, func(candidate *ChannelModelsCandidate) bool {
-		return candidateSupportsPassThrough(candidate, req, preference)
+		return candidateHasPassThroughPriority(candidate, req, preference)
 	})
 }
 
@@ -853,7 +891,7 @@ func groupCandidatesByPassThroughPreference(
 	preferred := make([]*ChannelModelsCandidate, 0, len(candidates))
 	fallback := make([]*ChannelModelsCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
-		if candidateSupportsPassThrough(candidate, req, preference) {
+		if candidateHasPassThroughPriority(candidate, req, preference) {
 			preferred = append(preferred, candidate)
 		} else {
 			fallback = append(fallback, candidate)

@@ -17,6 +17,7 @@ import (
 	"github.com/looplj/axonhub/internal/scopes"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/internal/server/gc"
+	"github.com/looplj/axonhub/internal/server/orchestrator"
 	"github.com/samber/lo"
 )
 
@@ -362,6 +363,29 @@ func (r *mutationResolver) UpdatePassThroughSettings(ctx context.Context, input 
 		}
 	}
 
+	if input.PreferPassThroughExceptionsEnabled != nil || input.PreferPassThroughExceptionConversions != nil {
+		settings, err := r.systemService.PreferPassThroughExceptions(ctx)
+		if err != nil {
+			return false, fmt.Errorf("failed to get pass-through conversion exceptions: %w", err)
+		}
+
+		if input.PreferPassThroughExceptionsEnabled != nil {
+			settings.Enabled = *input.PreferPassThroughExceptionsEnabled
+		}
+		if input.PreferPassThroughExceptionConversions != nil {
+			for _, conversion := range input.PreferPassThroughExceptionConversions {
+				if !orchestrator.IsSupportedPassThroughConversion(conversion) {
+					return false, fmt.Errorf("unsupported pass-through conversion exception: %s", conversion)
+				}
+			}
+			settings.Conversions = input.PreferPassThroughExceptionConversions
+		}
+
+		if err := r.systemService.SetPreferPassThroughExceptions(ctx, settings); err != nil {
+			return false, fmt.Errorf("failed to update pass-through conversion exceptions: %w", err)
+		}
+	}
+
 	return true, nil
 }
 
@@ -633,7 +657,27 @@ func (r *queryResolver) PassThroughSettings(ctx context.Context) (*PassThroughSe
 		return nil, fmt.Errorf("failed to get pass-through preference: %w", err)
 	}
 
-	return &PassThroughSettings{Enabled: enabled, PreferPassThrough: preferPassThrough}, nil
+	exceptionSettings, err := r.systemService.PreferPassThroughExceptions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pass-through conversion exceptions: %w", err)
+	}
+
+	availableConversions := lo.Map(orchestrator.SupportedPassThroughConversions(), func(option orchestrator.PassThroughConversionOption, _ int) *PassThroughConversionOption {
+		return &PassThroughConversionOption{
+			Key:          option.Key,
+			RequestType:  option.RequestType.String(),
+			SourceFormat: option.SourceFormat.String(),
+			TargetFormat: option.TargetFormat.String(),
+		}
+	})
+
+	return &PassThroughSettings{
+		Enabled:                               enabled,
+		PreferPassThrough:                     preferPassThrough,
+		PreferPassThroughExceptionsEnabled:    exceptionSettings.Enabled,
+		PreferPassThroughExceptionConversions: exceptionSettings.Conversions,
+		AvailableConversions:                  availableConversions,
+	}, nil
 }
 
 // GetCacheDiagnostics is the resolver for the getCacheDiagnostics field.

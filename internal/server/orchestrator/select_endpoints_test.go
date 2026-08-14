@@ -95,3 +95,21 @@ func TestSelectAPIFormat_AlphaSearch(t *testing.T) {
 		APIFormat:   llm.APIFormatOpenAICodexAlphaSearch,
 	}))
 }
+
+func TestSupportedPassThroughConversions(t *testing.T) {
+	options := SupportedPassThroughConversions()
+	require.Len(t, options, 33)
+
+	keys := make(map[string]struct{}, len(options))
+	for _, option := range options {
+		require.NotEqual(t, option.SourceFormat, option.TargetFormat)
+		_, exists := keys[option.Key]
+		require.False(t, exists, "duplicate conversion key %s", option.Key)
+		keys[option.Key] = struct{}{}
+	}
+
+	chatToResponses := PassThroughConversionKey(llm.APIFormatOpenAIChatCompletion, llm.APIFormatOpenAIResponse)
+	require.Contains(t, keys, chatToResponses)
+	require.True(t, IsSupportedPassThroughConversion(chatToResponses))
+	require.False(t, IsSupportedPassThroughConversion("openai/chat_completions->unsupported/format"))
+}

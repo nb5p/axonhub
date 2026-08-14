@@ -1421,6 +1421,36 @@ func TestSystemService_PreferPassThrough(t *testing.T) {
 	require.False(t, enabled)
 }
 
+func TestSystemService_PreferPassThroughExceptions(t *testing.T) {
+	service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+
+	settings, err := service.PreferPassThroughExceptions(ctx)
+	require.NoError(t, err)
+	require.False(t, settings.Enabled)
+	require.Empty(t, settings.Conversions)
+
+	require.NoError(t, service.SetPreferPassThroughExceptions(ctx, &PreferPassThroughExceptionSettings{
+		Enabled: true,
+		Conversions: []string{
+			" openai/responses->openai/chat_completions ",
+			"openai/chat_completions->openai/responses",
+			"openai/chat_completions->openai/responses",
+			"",
+		},
+	}))
+
+	settings, err = service.PreferPassThroughExceptions(ctx)
+	require.NoError(t, err)
+	require.True(t, settings.Enabled)
+	require.Equal(t, []string{
+		"openai/chat_completions->openai/responses",
+		"openai/responses->openai/chat_completions",
+	}, settings.Conversions)
+}
+
 func TestNormalizeRetryPolicy_LoadBalancerStrategy(t *testing.T) {
 	t.Run("invalid strategy falls back to default", func(t *testing.T) {
 		policy := &RetryPolicy{LoadBalancerStrategy: "unknown"}

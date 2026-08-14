@@ -385,11 +385,23 @@ input UpdateUserAgentPassThroughSettingsInput {
 type PassThroughSettings {
   enabled: Boolean!
   preferPassThrough: Boolean!
+  preferPassThroughExceptionsEnabled: Boolean!
+  preferPassThroughExceptionConversions: [String!]!
+  availableConversions: [PassThroughConversionOption!]!
+}
+
+type PassThroughConversionOption {
+  key: String!
+  requestType: String!
+  sourceFormat: String!
+  targetFormat: String!
 }
 
 input UpdatePassThroughSettingsInput {
   enabled: Boolean
   preferPassThrough: Boolean
+  preferPassThroughExceptionsEnabled: Boolean
+  preferPassThroughExceptionConversions: [String!]
 }
 
 

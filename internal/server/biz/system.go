@@ -127,6 +127,11 @@ const (
 	//nolint:gosec // Not a secret.
 	SystemKeyPreferPassThrough = "system_prefer_pass_through"
 
+	// SystemKeyPreferPassThroughExceptions stores directional API format
+	// conversions that should retain the normal routing order even when
+	// pass-through-first routing is enabled.
+	SystemKeyPreferPassThroughExceptions = "system_prefer_pass_through_exceptions"
+
 	// SystemKeyQuotaEnforcementSettings is the key used to store the quota enforcement settings.
 	// The value is JSON-encoded QuotaEnforcementSettings struct.
 	SystemKeyQuotaEnforcementSettings = "quota_enforcement_settings"
@@ -141,6 +146,13 @@ type SystemGeneralSettings struct {
 	// CurrencyCode is the code used for currency display (e.g., USD, RMB).
 	CurrencyCode string `json:"currency_code"`
 	Timezone     string `json:"timezone"`
+}
+
+// PreferPassThroughExceptionSettings controls directional conversion
+// exceptions for pass-through-first routing.
+type PreferPassThroughExceptionSettings struct {
+	Enabled     bool     `json:"enabled"`
+	Conversions []string `json:"conversions"`
 }
 
 // SidebarNavigationSettings controls which navigation entries are hidden in the UI.
@@ -1988,6 +2000,56 @@ func (s *SystemService) SetPreferPassThrough(ctx context.Context, enabled bool) 
 	}
 
 	return s.setSystemValue(ctx, SystemKeyPreferPassThrough, strValue)
+}
+
+// PreferPassThroughExceptions retrieves the directional protocol conversion
+// exceptions for pass-through-first routing.
+func (s *SystemService) PreferPassThroughExceptions(ctx context.Context) (*PreferPassThroughExceptionSettings, error) {
+	value, err := s.getSystemValue(ctx, SystemKeyPreferPassThroughExceptions)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &PreferPassThroughExceptionSettings{Conversions: []string{}}, nil
+		}
+
+		return nil, fmt.Errorf("failed to get pass-through conversion exceptions: %w", err)
+	}
+
+	var settings PreferPassThroughExceptionSettings
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		return nil, fmt.Errorf("failed to decode pass-through conversion exceptions: %w", err)
+	}
+	if settings.Conversions == nil {
+		settings.Conversions = []string{}
+	}
+
+	return &settings, nil
+}
+
+// SetPreferPassThroughExceptions stores directional protocol conversion
+// exceptions for pass-through-first routing.
+func (s *SystemService) SetPreferPassThroughExceptions(ctx context.Context, settings *PreferPassThroughExceptionSettings) error {
+	if settings == nil {
+		settings = &PreferPassThroughExceptionSettings{}
+	}
+
+	conversions := make([]string, 0, len(settings.Conversions))
+	for _, conversion := range settings.Conversions {
+		if conversion = strings.TrimSpace(conversion); conversion != "" {
+			conversions = append(conversions, conversion)
+		}
+	}
+	slices.Sort(conversions)
+	settings = &PreferPassThroughExceptionSettings{
+		Enabled:     settings.Enabled,
+		Conversions: slices.Compact(conversions),
+	}
+
+	jsonBytes, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to encode pass-through conversion exceptions: %w", err)
+	}
+
+	return s.setSystemValue(ctx, SystemKeyPreferPassThroughExceptions, string(jsonBytes))
 }
 
 // QuotaEnforcementSettings retrieves the quota enforcement settings.

@@ -1182,9 +1182,19 @@ type ComplexityRoot struct {
 		StartCursor     func(childComplexity int) int
 	}
 
+	PassThroughConversionOption struct {
+		Key          func(childComplexity int) int
+		RequestType  func(childComplexity int) int
+		SourceFormat func(childComplexity int) int
+		TargetFormat func(childComplexity int) int
+	}
+
 	PassThroughSettings struct {
-		Enabled           func(childComplexity int) int
-		PreferPassThrough func(childComplexity int) int
+		AvailableConversions                  func(childComplexity int) int
+		Enabled                               func(childComplexity int) int
+		PreferPassThrough                     func(childComplexity int) int
+		PreferPassThroughExceptionConversions func(childComplexity int) int
+		PreferPassThroughExceptionsEnabled    func(childComplexity int) int
 	}
 
 	PriceOverride struct {
@@ -7459,6 +7469,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
+	case "PassThroughConversionOption.key":
+		if e.complexity.PassThroughConversionOption.Key == nil {
+			break
+		}
+
+		return e.complexity.PassThroughConversionOption.Key(childComplexity), true
+	case "PassThroughConversionOption.requestType":
+		if e.complexity.PassThroughConversionOption.RequestType == nil {
+			break
+		}
+
+		return e.complexity.PassThroughConversionOption.RequestType(childComplexity), true
+	case "PassThroughConversionOption.sourceFormat":
+		if e.complexity.PassThroughConversionOption.SourceFormat == nil {
+			break
+		}
+
+		return e.complexity.PassThroughConversionOption.SourceFormat(childComplexity), true
+	case "PassThroughConversionOption.targetFormat":
+		if e.complexity.PassThroughConversionOption.TargetFormat == nil {
+			break
+		}
+
+		return e.complexity.PassThroughConversionOption.TargetFormat(childComplexity), true
+
+	case "PassThroughSettings.availableConversions":
+		if e.complexity.PassThroughSettings.AvailableConversions == nil {
+			break
+		}
+
+		return e.complexity.PassThroughSettings.AvailableConversions(childComplexity), true
 	case "PassThroughSettings.enabled":
 		if e.complexity.PassThroughSettings.Enabled == nil {
 			break
@@ -7471,6 +7512,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PassThroughSettings.PreferPassThrough(childComplexity), true
+	case "PassThroughSettings.preferPassThroughExceptionConversions":
+		if e.complexity.PassThroughSettings.PreferPassThroughExceptionConversions == nil {
+			break
+		}
+
+		return e.complexity.PassThroughSettings.PreferPassThroughExceptionConversions(childComplexity), true
+	case "PassThroughSettings.preferPassThroughExceptionsEnabled":
+		if e.complexity.PassThroughSettings.PreferPassThroughExceptionsEnabled == nil {
+			break
+		}
+
+		return e.complexity.PassThroughSettings.PreferPassThroughExceptionsEnabled(childComplexity), true
 
 	case "PriceOverride.items":
 		if e.complexity.PriceOverride.Items == nil {
@@ -40351,6 +40404,122 @@ func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _PassThroughConversionOption_key(ctx context.Context, field graphql.CollectedField, obj *PassThroughConversionOption) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughConversionOption_key,
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughConversionOption_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughConversionOption",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughConversionOption_requestType(ctx context.Context, field graphql.CollectedField, obj *PassThroughConversionOption) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughConversionOption_requestType,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughConversionOption_requestType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughConversionOption",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughConversionOption_sourceFormat(ctx context.Context, field graphql.CollectedField, obj *PassThroughConversionOption) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughConversionOption_sourceFormat,
+		func(ctx context.Context) (any, error) {
+			return obj.SourceFormat, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughConversionOption_sourceFormat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughConversionOption",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughConversionOption_targetFormat(ctx context.Context, field graphql.CollectedField, obj *PassThroughConversionOption) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughConversionOption_targetFormat,
+		func(ctx context.Context) (any, error) {
+			return obj.TargetFormat, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughConversionOption_targetFormat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughConversionOption",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PassThroughSettings_enabled(ctx context.Context, field graphql.CollectedField, obj *PassThroughSettings) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -40404,6 +40573,103 @@ func (ec *executionContext) fieldContext_PassThroughSettings_preferPassThrough(_
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughSettings_preferPassThroughExceptionsEnabled(ctx context.Context, field graphql.CollectedField, obj *PassThroughSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughSettings_preferPassThroughExceptionsEnabled,
+		func(ctx context.Context) (any, error) {
+			return obj.PreferPassThroughExceptionsEnabled, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughSettings_preferPassThroughExceptionsEnabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughSettings_preferPassThroughExceptionConversions(ctx context.Context, field graphql.CollectedField, obj *PassThroughSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughSettings_preferPassThroughExceptionConversions,
+		func(ctx context.Context) (any, error) {
+			return obj.PreferPassThroughExceptionConversions, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughSettings_preferPassThroughExceptionConversions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PassThroughSettings_availableConversions(ctx context.Context, field graphql.CollectedField, obj *PassThroughSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PassThroughSettings_availableConversions,
+		func(ctx context.Context) (any, error) {
+			return obj.AvailableConversions, nil
+		},
+		nil,
+		ec.marshalNPassThroughConversionOption2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐPassThroughConversionOptionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PassThroughSettings_availableConversions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PassThroughSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "key":
+				return ec.fieldContext_PassThroughConversionOption_key(ctx, field)
+			case "requestType":
+				return ec.fieldContext_PassThroughConversionOption_requestType(ctx, field)
+			case "sourceFormat":
+				return ec.fieldContext_PassThroughConversionOption_sourceFormat(ctx, field)
+			case "targetFormat":
+				return ec.fieldContext_PassThroughConversionOption_targetFormat(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PassThroughConversionOption", field.Name)
 		},
 	}
 	return fc, nil
@@ -47443,6 +47709,12 @@ func (ec *executionContext) fieldContext_Query_passThroughSettings(_ context.Con
 				return ec.fieldContext_PassThroughSettings_enabled(ctx, field)
 			case "preferPassThrough":
 				return ec.fieldContext_PassThroughSettings_preferPassThrough(ctx, field)
+			case "preferPassThroughExceptionsEnabled":
+				return ec.fieldContext_PassThroughSettings_preferPassThroughExceptionsEnabled(ctx, field)
+			case "preferPassThroughExceptionConversions":
+				return ec.fieldContext_PassThroughSettings_preferPassThroughExceptionConversions(ctx, field)
+			case "availableConversions":
+				return ec.fieldContext_PassThroughSettings_availableConversions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PassThroughSettings", field.Name)
 		},
@@ -85617,7 +85889,7 @@ func (ec *executionContext) unmarshalInputUpdatePassThroughSettingsInput(ctx con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"enabled", "preferPassThrough"}
+	fieldsInOrder := [...]string{"enabled", "preferPassThrough", "preferPassThroughExceptionsEnabled", "preferPassThroughExceptionConversions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -85638,6 +85910,20 @@ func (ec *executionContext) unmarshalInputUpdatePassThroughSettingsInput(ctx con
 				return it, err
 			}
 			it.PreferPassThrough = data
+		case "preferPassThroughExceptionsEnabled":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preferPassThroughExceptionsEnabled"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PreferPassThroughExceptionsEnabled = data
+		case "preferPassThroughExceptionConversions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preferPassThroughExceptionConversions"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PreferPassThroughExceptionConversions = data
 		}
 	}
 
@@ -99921,6 +100207,60 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var passThroughConversionOptionImplementors = []string{"PassThroughConversionOption"}
+
+func (ec *executionContext) _PassThroughConversionOption(ctx context.Context, sel ast.SelectionSet, obj *PassThroughConversionOption) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, passThroughConversionOptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PassThroughConversionOption")
+		case "key":
+			out.Values[i] = ec._PassThroughConversionOption_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requestType":
+			out.Values[i] = ec._PassThroughConversionOption_requestType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sourceFormat":
+			out.Values[i] = ec._PassThroughConversionOption_sourceFormat(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetFormat":
+			out.Values[i] = ec._PassThroughConversionOption_targetFormat(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var passThroughSettingsImplementors = []string{"PassThroughSettings"}
 
 func (ec *executionContext) _PassThroughSettings(ctx context.Context, sel ast.SelectionSet, obj *PassThroughSettings) graphql.Marshaler {
@@ -99939,6 +100279,21 @@ func (ec *executionContext) _PassThroughSettings(ctx context.Context, sel ast.Se
 			}
 		case "preferPassThrough":
 			out.Values[i] = ec._PassThroughSettings_preferPassThrough(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preferPassThroughExceptionsEnabled":
+			out.Values[i] = ec._PassThroughSettings_preferPassThroughExceptionsEnabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preferPassThroughExceptionConversions":
+			out.Values[i] = ec._PassThroughSettings_preferPassThroughExceptionConversions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "availableConversions":
+			out.Values[i] = ec._PassThroughSettings_availableConversions(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -115011,6 +115366,60 @@ func (ec *executionContext) unmarshalNOverrideWhenInput2githubᚗcomᚋloopljᚋ
 
 func (ec *executionContext) marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPassThroughConversionOption2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐPassThroughConversionOptionᚄ(ctx context.Context, sel ast.SelectionSet, v []*PassThroughConversionOption) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPassThroughConversionOption2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐPassThroughConversionOption(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPassThroughConversionOption2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐPassThroughConversionOption(ctx context.Context, sel ast.SelectionSet, v *PassThroughConversionOption) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PassThroughConversionOption(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPassThroughSettings2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐPassThroughSettings(ctx context.Context, sel ast.SelectionSet, v PassThroughSettings) graphql.Marshaler {

@@ -392,9 +392,19 @@ type OnboardingInfo struct {
 	AutoDisableChannel *AutoDisableChannelOnboarding `json:"autoDisableChannel,omitempty"`
 }
 
+type PassThroughConversionOption struct {
+	Key          string `json:"key"`
+	RequestType  string `json:"requestType"`
+	SourceFormat string `json:"sourceFormat"`
+	TargetFormat string `json:"targetFormat"`
+}
+
 type PassThroughSettings struct {
-	Enabled           bool `json:"enabled"`
-	PreferPassThrough bool `json:"preferPassThrough"`
+	Enabled                               bool                           `json:"enabled"`
+	PreferPassThrough                     bool                           `json:"preferPassThrough"`
+	PreferPassThroughExceptionsEnabled    bool                           `json:"preferPassThroughExceptionsEnabled"`
+	PreferPassThroughExceptionConversions []string                       `json:"preferPassThroughExceptionConversions"`
+	AvailableConversions                  []*PassThroughConversionOption `json:"availableConversions"`
 }
 
 type PromptProtectionRulePreviewInput struct {
@@ -612,8 +622,10 @@ type UpdateMyPasswordInput struct {
 }
 
 type UpdatePassThroughSettingsInput struct {
-	Enabled           *bool `json:"enabled,omitempty"`
-	PreferPassThrough *bool `json:"preferPassThrough,omitempty"`
+	Enabled                               *bool    `json:"enabled,omitempty"`
+	PreferPassThrough                     *bool    `json:"preferPassThrough,omitempty"`
+	PreferPassThroughExceptionsEnabled    *bool    `json:"preferPassThroughExceptionsEnabled,omitempty"`
+	PreferPassThroughExceptionConversions []string `json:"preferPassThroughExceptionConversions,omitempty"`
 }
 
 type UpdateProjectUserInput struct {
