@@ -40,7 +40,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `api-key-activity-heatmap` | 本地原创 | `active` | `71c2bd7d`, `41098593`, `55c0df9d` | `none` | [`features/api-key-activity-heatmap.md`](features/api-key-activity-heatmap.md) |
 | `playground-api-key-testing` | 本地原创 | `active` | `20d01ec6`, `408fe333`, `b665efff` | `none` | [`features/playground-api-key-testing.md`](features/playground-api-key-testing.md) |
 | `table-column-visibility` | 本地原创 | `active` | `7d0084e6`, `f8066acf`, `8eb858cc`, `a08c30e7`, `0aa6afd2`, `26d7f68b` | `none` | [`features/table-column-visibility.md`](features/table-column-visibility.md) |
-| `table-column-sizing` | 本地原创 | `active` | `b7489b68`, `8f30bfb3` | `none` | [`features/table-column-sizing.md`](features/table-column-sizing.md) |
+| `table-column-sizing` | 本地原创 | `active` | `b7489b68`, `8f30bfb3`, `faa9a8c4` | `none` | [`features/table-column-sizing.md`](features/table-column-sizing.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
 
