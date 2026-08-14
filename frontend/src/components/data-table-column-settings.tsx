@@ -1,15 +1,15 @@
 import { useId } from 'react';
+import { ResetIcon } from '@radix-ui/react-icons';
+import type { Column, Table } from '@tanstack/react-table';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ResetIcon } from '@radix-ui/react-icons';
-import type { Column, Table } from '@tanstack/react-table';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { DataTableColumnSizingReset } from '@/components/data-table-column-sizing';
-import { cn } from '@/lib/utils';
 
 interface SortableColumnItemProps<TData> {
   column: Column<TData, unknown>;
@@ -19,6 +19,7 @@ interface SortableColumnItemProps<TData> {
 function SortableColumnItem<TData>({ column, label }: SortableColumnItemProps<TData>) {
   const { t } = useTranslation();
   const checkboxId = useId();
+  const canHide = column.getCanHide();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id });
 
   return (
@@ -32,7 +33,7 @@ function SortableColumnItem<TData>({ column, label }: SortableColumnItemProps<TD
     >
       <button
         type='button'
-        className='text-muted-foreground hover:text-foreground flex size-7 touch-none cursor-grab items-center justify-center rounded-sm outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring'
+        className='text-muted-foreground hover:text-foreground focus-visible:ring-ring flex size-7 cursor-grab touch-none items-center justify-center rounded-sm outline-none focus-visible:ring-2 active:cursor-grabbing'
         aria-label={t('common.dragColumn', { column: label })}
         {...attributes}
         {...listeners}
@@ -42,10 +43,11 @@ function SortableColumnItem<TData>({ column, label }: SortableColumnItemProps<TD
       <Checkbox
         id={checkboxId}
         checked={column.getIsVisible()}
+        disabled={!canHide}
         onCheckedChange={(value) => column.toggleVisibility(value === true)}
         aria-label={label}
       />
-      <label htmlFor={checkboxId} className='min-w-0 flex-1 cursor-pointer truncate py-1.5'>
+      <label htmlFor={checkboxId} className={cn('min-w-0 flex-1 truncate py-1.5', canHide ? 'cursor-pointer' : 'cursor-default')}>
         {label}
       </label>
     </div>
