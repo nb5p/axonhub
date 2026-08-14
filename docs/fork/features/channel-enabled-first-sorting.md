@@ -15,9 +15,10 @@ source:
   license: Apache-2.0
 local:
   branch: ai-slop
-  commit_marker: null
+  commit_marker: "🧩"
   commits:
     - 823d8c19bb252fd926b0cad80ec26a37c36a5e98
+    - 6d920dddb8116622f4e79d7f6a0a64d0bafa3a62
   modules:
     - internal/server/biz/channel_query.go
     - internal/server/biz/channel_query_test.go
@@ -51,6 +52,8 @@ database:
 - 多模型和端点筛选的内存结果采用相同的稳定分组逻辑。
 - 状态列排序菜单提供独立开关，不改变当前升序或降序；状态开关持久化到浏览器本地。
 - 渠道表声明为服务端排序，避免浏览器只对当前页重新排序而破坏启用优先顺序。
+- 批量渠道排序弹窗增加独立“启用优先”按钮；启用后显示状态分割线，行内开关和跨线拖拽会同步变更渠道状态并移动到对应分区。
+- 批量保存复用既有启用、禁用和排序 mutation，不新增接口或数据库字段。
 
 ## 上游收敛
 
@@ -66,9 +69,11 @@ database:
 - `go test ./internal/server/biz -count=1`
 - `go test ./internal/server/api -count=1`
 - 覆盖权重降序下启用优先、关闭开关后的纯权重顺序、跨页游标以及模型筛选结果。
+- `frontend/node_modules/.bin/tsc --noEmit`：通过。
 
 ## 更新历史
 
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-13 | `upstream/unstable@fc1d27da` | `823d8c19bb252fd926b0cad80ec26a37c36a5e98` | 在独立官方基线分支实现，并 cherry-pick 到 `ai-slop`。 |
+| 2026-08-14 | 用户反馈与批量排序弹窗 | `6d920dddb8116622f4e79d7f6a0a64d0bafa3a62` | original：增加启用优先分组、状态分割线、跨线拖拽和行内启停开关。 |
