@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -266,6 +267,50 @@ func TestPromptProtectionRuleService_DeleteRule(t *testing.T) {
 	_, err = client.PromptProtectionRule.Get(ctx, created.ID)
 	require.Error(t, err)
 	require.True(t, ent.IsNotFound(err))
+}
+
+func TestPromptProtectionRuleService_EnabledRulesRefreshDetectsOnlyChanges(t *testing.T) {
+	svc, client, ctx := setupPromptProtectionRuleService(t)
+	defer svc.Stop()
+	defer client.Close()
+
+	rules, updateTime, changed, err := svc.onEnabledRulesRefreshed(ctx, nil, time.Time{})
+	require.NoError(t, err)
+	require.Empty(t, rules)
+	require.False(t, changed)
+	require.True(t, updateTime.IsZero())
+
+	created, err := svc.CreateRule(ctx, ent.CreatePromptProtectionRuleInput{
+		Name:    uuid.NewString(),
+		Pattern: "secret",
+		Settings: &objects.PromptProtectionSettings{
+			Action: objects.PromptProtectionActionReject,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = svc.UpdateRuleStatus(ctx, created.ID, promptprotectionrule.StatusEnabled)
+	require.NoError(t, err)
+
+	rules, updateTime, changed, err = svc.onEnabledRulesRefreshed(ctx, rules, updateTime)
+	require.NoError(t, err)
+	require.Len(t, rules, 1)
+	require.True(t, changed)
+	require.False(t, updateTime.IsZero())
+
+	unchangedRules, unchangedUpdateTime, changed, err := svc.onEnabledRulesRefreshed(ctx, rules, updateTime)
+	require.NoError(t, err)
+	require.False(t, changed)
+	require.Equal(t, updateTime, unchangedUpdateTime)
+
+	_, err = svc.UpdateRuleStatus(ctx, created.ID, promptprotectionrule.StatusDisabled)
+	require.NoError(t, err)
+
+	disabledRules, disabledUpdateTime, changed, err := svc.onEnabledRulesRefreshed(ctx, unchangedRules, unchangedUpdateTime)
+	require.NoError(t, err)
+	require.Empty(t, disabledRules)
+	require.True(t, changed)
+	require.Equal(t, unchangedUpdateTime, disabledUpdateTime)
 }
 
 func TestPromptProtectionRuleService_UpdateRuleStatus(t *testing.T) {

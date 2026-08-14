@@ -182,7 +182,7 @@ func (svc *PromptProtectionRuleService) Stop() {
 	}
 }
 
-func (svc *PromptProtectionRuleService) onEnabledRulesRefreshed(ctx context.Context, _ []*ent.PromptProtectionRule, lastUpdate time.Time) ([]*ent.PromptProtectionRule, time.Time, bool, error) {
+func (svc *PromptProtectionRuleService) onEnabledRulesRefreshed(ctx context.Context, previous []*ent.PromptProtectionRule, lastUpdate time.Time) ([]*ent.PromptProtectionRule, time.Time, bool, error) {
 	ctx = authz.WithSystemBypass(ctx, "prompt-protection-rule-cache")
 	client := svc.entFromContext(ctx)
 
@@ -202,10 +202,11 @@ func (svc *PromptProtectionRuleService) onEnabledRulesRefreshed(ctx context.Cont
 		}).UpdatedAt
 	}
 
-	// We always mark as changed because:
-	// - list membership changes (enable/disable/delete) are not safely detectable from time alone
-	// - cache refresh cost is low (rules list is expected to be small)
-	return rules, newUpdateTime, true, nil
+	changed := !slices.EqualFunc(previous, rules, func(previousRule, nextRule *ent.PromptProtectionRule) bool {
+		return previousRule.ID == nextRule.ID && previousRule.UpdatedAt.Equal(nextRule.UpdatedAt)
+	})
+
+	return rules, newUpdateTime, changed, nil
 }
 
 func (svc *PromptProtectionRuleService) asyncReloadEnabledRules() {
