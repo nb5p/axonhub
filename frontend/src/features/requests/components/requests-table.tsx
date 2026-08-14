@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { DateTimeRangeValue } from '@/utils/date-range';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
-import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
+import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -35,6 +35,7 @@ import { DEFAULT_HIDDEN_COLUMN_IDS, DEFAULT_MOBILE_HIDDEN_COLUMN_IDS, useRequest
 const COLUMN_VISIBILITY_STORAGE_KEY = 'requests-table-column-visibility';
 const COLUMN_VISIBILITY_STORAGE_VERSION = 3;
 const COLUMN_SIZING_STORAGE_KEY = 'requests-table-column-sizing';
+const COLUMN_ORDER_STORAGE_KEY = 'requests-table-column-order';
 
 const MotionTableRow = motion.create(TableRow);
 
@@ -129,6 +130,7 @@ export function RequestsTable({
   const requestsColumns = useRequestsColumns({ onViewDetail });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
+  const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
   const isMobile = useIsMobile();
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -293,6 +295,7 @@ export function RequestsTable({
       sorting,
       columnVisibility,
       columnSizing,
+      columnOrder,
       rowSelection,
       columnFilters,
     },
@@ -302,6 +305,7 @@ export function RequestsTable({
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSizingChange: setColumnSizing,
+    onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

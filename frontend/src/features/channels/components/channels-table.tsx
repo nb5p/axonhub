@@ -16,7 +16,7 @@ import {
 import { IconArchive, IconBan, IconCheck, IconFlask, IconTrash, IconTemplate, IconX, IconEraser } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
+import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -85,6 +85,7 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
 };
 
 const COLUMN_SIZING_STORAGE_KEY = 'channels-table-column-sizing';
+const COLUMN_ORDER_STORAGE_KEY = 'channels-table-column-order';
 
 export function ChannelsTable({
   columns,
@@ -126,6 +127,7 @@ export function ChannelsTable({
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
+  const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
 
   // Load column visibility from localStorage with useMemo to avoid re-parsing
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
@@ -251,6 +253,7 @@ export function ChannelsTable({
       sorting,
       columnVisibility,
       columnSizing,
+      columnOrder,
       rowSelection,
       columnFilters,
       expanded,
@@ -263,6 +266,7 @@ export function ChannelsTable({
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),

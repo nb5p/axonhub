@@ -27,7 +27,7 @@ function getResizePair<TData>(table: Table<TData>, columnId: string) {
   const columnIndex = columns.findIndex((column) => column.id === columnId);
   if (columnIndex < 0 || columns.length < 2) return null;
 
-  const neighbor = columns[columnIndex + 1];
+  const neighbor = columns[columnIndex + 1] ?? columns[columnIndex - 1];
   if (!neighbor) return null;
 
   return {
@@ -59,6 +59,30 @@ function resizeColumnPair<TData>(
   }));
 }
 
+function resizeSingleColumn<TData>(
+  table: Table<TData>,
+  measuredSizes: Record<string, number>,
+  column: Column<TData, unknown>,
+  requestedDelta: number
+) {
+  const columnSize = measuredSizes[column.id] ?? column.getSize();
+  const columnBounds = getColumnBounds(column);
+  const nextSize = Math.min(columnBounds.max, Math.max(columnBounds.min, columnSize + requestedDelta));
+
+  table.setColumnSizing((current) => ({
+    ...current,
+    ...measuredSizes,
+    [column.id]: nextSize,
+  }));
+}
+
+function isTableHorizontallyOverflowing(tableElement: HTMLTableElement) {
+  const scrollContainer = tableElement.parentElement;
+  if (!scrollContainer) return false;
+
+  return tableElement.getBoundingClientRect().width > scrollContainer.clientWidth + 1;
+}
+
 interface DataTableColumnResizerProps<TData, TValue> {
   header: Header<TData, TValue>;
 }
@@ -69,7 +93,7 @@ export function DataTableColumnResizer<TData, TValue>({ header }: DataTableColum
   const table = header.getContext().table;
   const resizePair = getResizePair(table, column.id);
 
-  if (!column.getCanResize() || !resizePair) return null;
+  if (!column.getCanResize()) return null;
 
   const beginResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
@@ -83,6 +107,8 @@ export function DataTableColumnResizer<TData, TValue>({ header }: DataTableColum
 
     const startX = event.clientX;
     const measuredSizes = getMeasuredColumnSizes(table, tableElement);
+    const independentlyResize = isTableHorizontallyOverflowing(tableElement);
+    if (!independentlyResize && !resizePair) return;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
     document.body.style.cursor = 'col-resize';
@@ -90,7 +116,12 @@ export function DataTableColumnResizer<TData, TValue>({ header }: DataTableColum
     setIsResizing(true);
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      resizeColumnPair(table, measuredSizes, resizePair.column, resizePair.neighbor, moveEvent.clientX - startX);
+      const delta = moveEvent.clientX - startX;
+      if (independentlyResize) {
+        resizeSingleColumn(table, measuredSizes, column, delta);
+      } else if (resizePair) {
+        resizeColumnPair(table, measuredSizes, resizePair.column, resizePair.neighbor, delta);
+      }
     };
     const finishResize = () => {
       document.removeEventListener('pointermove', handlePointerMove);
@@ -116,7 +147,12 @@ export function DataTableColumnResizer<TData, TValue>({ header }: DataTableColum
     event.stopPropagation();
     const direction = event.key === 'ArrowRight' ? 1 : -1;
     const step = event.shiftKey ? 24 : 8;
-    resizeColumnPair(table, getMeasuredColumnSizes(table, tableElement), resizePair.column, resizePair.neighbor, direction * step);
+    const measuredSizes = getMeasuredColumnSizes(table, tableElement);
+    if (isTableHorizontallyOverflowing(tableElement)) {
+      resizeSingleColumn(table, measuredSizes, column, direction * step);
+    } else if (resizePair) {
+      resizeColumnPair(table, measuredSizes, resizePair.column, resizePair.neighbor, direction * step);
+    }
   };
 
   return (
@@ -145,12 +181,10 @@ export function DataTableColGroup<TData>({ table }: { table: Table<TData> }) {
   const hasCustomSizing = columns.some((column) => table.getState().columnSizing[column.id] !== undefined);
   if (!hasCustomSizing) return null;
 
-  const totalSize = columns.reduce((total, column) => total + column.getSize(), 0);
-
   return (
     <colgroup>
       {columns.map((column) => (
-        <col key={column.id} style={{ width: `${(column.getSize() / totalSize) * 100}%` }} />
+        <col key={column.id} style={{ width: `${column.getSize()}px` }} />
       ))}
     </colgroup>
   );
@@ -164,13 +198,10 @@ export function getDataTableSizingStyle<TData>(table: Table<TData>): CSSProperti
   if (!hasCustomSizing) return { minWidth: `${minimumWidth}px` };
 
   const totalSize = columns.reduce((total, column) => total + column.getSize(), 0);
-  const constrainedMinimumWidth = columns.reduce((requiredWidth, column) => {
-    const columnSize = column.getSize();
-    if (columnSize <= 0 || totalSize <= 0) return requiredWidth;
-    return Math.max(requiredWidth, ((column.columnDef.minSize ?? 20) * totalSize) / columnSize);
-  }, minimumWidth);
 
-  return { minWidth: `${Math.ceil(constrainedMinimumWidth)}px` };
+  return {
+    minWidth: `${Math.max(minimumWidth, Math.ceil(totalSize))}px`,
+  };
 }
 
 export function getDataTableLayoutClass<TData>(table: Table<TData>) {

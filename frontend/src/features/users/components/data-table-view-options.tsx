@@ -5,12 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { DataTableColumnSizingReset } from '@/components/data-table-column-sizing';
+import { DataTableColumnSettings } from '@/components/data-table-column-settings';
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
@@ -18,6 +17,7 @@ interface DataTableViewOptionsProps<TData> {
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
+  const configurableColumns = table.getAllLeafColumns().filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide());
 
   return (
     <DropdownMenu modal={false}>
@@ -27,25 +27,10 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           {t('common.view')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-[180px]'>
-        <DropdownMenuLabel>{t('common.toggleColumns')}</DropdownMenuLabel>
+      <DropdownMenuContent align='end' className='w-[220px]'>
+        <DropdownMenuLabel>{t('common.configureColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())
-          .map((column) => {
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                className='capitalize'
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-              >
-                {column.id}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        <DataTableColumnSizingReset table={table} />
+        <DataTableColumnSettings table={table} columns={configurableColumns} getColumnLabel={(column) => column.id} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -5,12 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { DataTableColumnSizingReset } from '@/components/data-table-column-sizing';
+import { DataTableColumnSettings } from '@/components/data-table-column-settings';
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
@@ -18,6 +17,24 @@ interface DataTableViewOptionsProps<TData> {
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
+  const configurableColumns = table
+    .getAllLeafColumns()
+    .filter((column) => (typeof column.accessorFn !== 'undefined' || column.id === 'select') && column.getCanHide())
+    .filter((column) => column.id !== 'tags' && column.id !== 'model');
+
+  const getColumnLabel = (columnId: string) => {
+    const labelKey =
+      columnId === 'select'
+        ? 'common.columns.selection'
+        : columnId === 'id'
+          ? 'common.columns.id'
+          : columnId === 'endpoints'
+            ? 'channels.columns.supportedEndpoints'
+            : columnId === 'createdAt'
+              ? 'common.columns.createdAt'
+              : `channels.columns.${columnId}`;
+    return t(labelKey);
+  };
 
   return (
     <DropdownMenu modal={false}>
@@ -27,36 +44,10 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           {t('common.view')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-[180px]'>
-        <DropdownMenuLabel>{t('common.toggleColumns')}</DropdownMenuLabel>
+      <DropdownMenuContent align='end' className='w-[220px]'>
+        <DropdownMenuLabel>{t('common.configureColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter((column) => (typeof column.accessorFn !== 'undefined' || column.id === 'select') && column.getCanHide())
-          .filter((column) => column?.columnDef.id != 'tags' && column?.columnDef.id != 'model')
-          .map((column) => {
-            const labelKey =
-              column.id === 'select'
-                ? 'common.columns.selection'
-                : column.id === 'id'
-                  ? 'common.columns.id'
-                  : column.id === 'endpoints'
-                    ? 'channels.columns.supportedEndpoints'
-                    : column.id === 'createdAt'
-                      ? 'common.columns.createdAt'
-                      : `channels.columns.${column.id}`;
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                className='capitalize'
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-              >
-                {t(labelKey)}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        <DataTableColumnSizingReset table={table} />
+        <DataTableColumnSettings table={table} columns={configurableColumns} getColumnLabel={(column) => getColumnLabel(column.id)} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

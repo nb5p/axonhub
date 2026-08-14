@@ -5,12 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { DataTableColumnSizingReset } from '@/components/data-table-column-sizing';
+import { DataTableColumnSettings } from '@/components/data-table-column-settings';
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
@@ -30,6 +29,12 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
     createdAt: t('common.columns.createdAt'),
     updatedAt: t('common.columns.updatedAt'),
   };
+  const configurableColumns = table.getAllLeafColumns().filter((column) => {
+    const accessorKey = column.columnDef.accessorKey;
+    return (
+      (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined' || column.id === 'select') && column.getCanHide()
+    );
+  });
 
   return (
     <DropdownMenu modal={false}>
@@ -39,31 +44,14 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           {t('common.view')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-[180px]'>
-        <DropdownMenuLabel>{t('common.toggleColumns')}</DropdownMenuLabel>
+      <DropdownMenuContent align='end' className='w-[220px]'>
+        <DropdownMenuLabel>{t('common.configureColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter((column) => {
-            const accessorKey = column.columnDef.accessorKey;
-            return (
-              (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined' || column.id === 'select') &&
-              column.getCanHide()
-            );
-          })
-          .map((column) => {
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                className='capitalize'
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-              >
-                {columnLabels[column.id] ?? column.id}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        <DataTableColumnSizingReset table={table} />
+        <DataTableColumnSettings
+          table={table}
+          columns={configurableColumns}
+          getColumnLabel={(column) => columnLabels[column.id] ?? column.id}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

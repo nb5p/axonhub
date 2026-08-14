@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ColumnSizingState } from '@tanstack/react-table';
+import type { ColumnOrderState, ColumnSizingState } from '@tanstack/react-table';
 
 function parseColumnSizing(value: string | null): ColumnSizingState {
   if (!value) return {};
@@ -40,4 +40,41 @@ export function usePersistedColumnSizing(storageKey: string) {
   }, [columnSizing, storageKey]);
 
   return [columnSizing, setColumnSizing] as const;
+}
+
+function parseColumnOrder(value: string | null): ColumnOrderState {
+  if (!value) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return [...new Set(parsed.filter((columnId): columnId is string => typeof columnId === 'string' && columnId.length > 0))];
+  } catch {
+    return [];
+  }
+}
+
+export function usePersistedColumnOrder(storageKey: string) {
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() => {
+    try {
+      return parseColumnOrder(localStorage.getItem(storageKey));
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (columnOrder.length === 0) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, JSON.stringify(columnOrder));
+      }
+    } catch {
+      // Keep column ordering available for this session when storage is unavailable.
+    }
+  }, [columnOrder, storageKey]);
+
+  return [columnOrder, setColumnOrder] as const;
 }

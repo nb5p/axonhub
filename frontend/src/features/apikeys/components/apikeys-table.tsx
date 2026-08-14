@@ -15,7 +15,7 @@ import {
 import { IconX, IconUserOff, IconArchive, IconCheck } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { DateTimeRangeValue } from '@/utils/date-range';
-import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
+import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -32,6 +32,7 @@ import { DataTableToolbar } from './data-table-toolbar';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'apikeys-table-column-visibility';
 const COLUMN_SIZING_STORAGE_KEY = 'apikeys-table-column-sizing';
+const COLUMN_ORDER_STORAGE_KEY = 'apikeys-table-column-order';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -95,6 +96,7 @@ export function ApiKeysTable({
   const { setResetRowSelection, setSelectedApiKeys, openDialog } = useApiKeysContext();
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
+  const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     try {
       const stored = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
@@ -171,6 +173,7 @@ export function ApiKeysTable({
       sorting,
       columnVisibility,
       columnSizing,
+      columnOrder,
       rowSelection,
       columnFilters,
     },
@@ -180,6 +183,7 @@ export function ApiKeysTable({
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,

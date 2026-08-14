@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
-import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
+import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import {
@@ -26,6 +26,7 @@ import { User, UserConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
 
 const COLUMN_SIZING_STORAGE_KEY = 'users-table-column-sizing';
+const COLUMN_ORDER_STORAGE_KEY = 'users-table-column-order';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -73,6 +74,7 @@ export function UsersTable({
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
+  const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -128,6 +130,7 @@ export function UsersTable({
       sorting,
       columnVisibility,
       columnSizing,
+      columnOrder,
       rowSelection,
       columnFilters,
     },
@@ -137,6 +140,7 @@ export function UsersTable({
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     manualFiltering: true,

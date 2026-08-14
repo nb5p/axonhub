@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { DateTimeRangeValue } from '@/utils/date-range';
-import { usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
+import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -33,6 +33,7 @@ import { useTracesColumns } from './traces-columns';
 const MotionTableRow = motion.create(TableRow);
 const MotionExpandedRow = motion.create(TableRow);
 const COLUMN_SIZING_STORAGE_KEY = 'traces-table-column-sizing';
+const COLUMN_ORDER_STORAGE_KEY = 'traces-table-column-order';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -88,6 +89,7 @@ export function TracesTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
+  const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
   const [rowSelection, setRowSelection] = useState({});
 
   const displayedData = useAnimatedList(data, autoRefresh, pageSize);
@@ -104,6 +106,7 @@ export function TracesTable({
       sorting,
       columnVisibility,
       columnSizing,
+      columnOrder,
       rowSelection,
       columnFilters,
     },
@@ -113,6 +116,7 @@ export function TracesTable({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
+    onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
