@@ -611,6 +611,9 @@ func (s *APIKeyService) UpdateAPIKeyProfiles(ctx context.Context, id int, profil
 			}
 		}
 
+		if err := s.ProfileTemplateService.normalizeLinkedProfileNames(ctx, existing, &profiles); err != nil {
+			return err
+		}
 		if err := validateProfileNames(profiles.Profiles); err != nil {
 			return err
 		}
@@ -694,9 +697,39 @@ func findLinkedProfile(profiles *objects.APIKeyProfiles, templateID int, name st
 	return nil
 }
 
+func findLinkedProfileByTemplateID(profiles *objects.APIKeyProfiles, templateID int) *objects.APIKeyProfile {
+	if profiles == nil {
+		return nil
+	}
+
+	for i := range profiles.Profiles {
+		profile := &profiles.Profiles[i]
+		if profile.TemplateID != nil && *profile.TemplateID == templateID {
+			return profile
+		}
+	}
+
+	return nil
+}
+
 func sameProfileIgnoringTemplate(a, b *objects.APIKeyProfile) bool {
 	left := normalizeProfileForComparison(a)
 	right := normalizeProfileForComparison(b)
+	left.TemplateID = nil
+	right.TemplateID = nil
+	left.TemplateName = ""
+	right.TemplateName = ""
+	left.TemplateSync = false
+	right.TemplateSync = false
+
+	return reflect.DeepEqual(left, right)
+}
+
+func sameLinkedProfileContents(a, b *objects.APIKeyProfile) bool {
+	left := normalizeProfileForComparison(a)
+	right := normalizeProfileForComparison(b)
+	left.Name = ""
+	right.Name = ""
 	left.TemplateID = nil
 	right.TemplateID = nil
 	left.TemplateName = ""

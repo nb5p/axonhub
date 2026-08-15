@@ -32,7 +32,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AutoComplete } from '@/components/auto-complete';
 import { useAllChannelSummarys } from '@/features/channels/data/channels';
 import { useApiKeysContext } from '../context/apikeys-context';
-import { useApiKeyProfilePreview, useApiKeyQuotaUsages } from '../data/apikeys';
+import { useApiKeyProfilePreview, useApiKeyProfileTemplates, useApiKeyQuotaUsages } from '../data/apikeys';
 import {
   normalizeApiKeyProfileRoutingPolicy,
   updateApiKeyProfilesInputSchemaFactory,
@@ -61,6 +61,19 @@ function getAvailableDefaultProfileName(profiles: ApiKeyProfile[], currentIndex:
       return candidate;
     }
   }
+}
+
+function canonicalizeLinkedTemplateProfileNames(data: UpdateApiKeyProfilesInput): UpdateApiKeyProfilesInput {
+  const activeProfile = data.profiles.find((profile) => profile.name === data.activeProfile);
+  const activeTemplateName = activeProfile?.templateID != null ? activeProfile.templateName?.trim() : '';
+
+  return {
+    activeProfile: activeTemplateName || data.activeProfile,
+    profiles: data.profiles.map((profile) => {
+      const templateName = profile.templateID != null ? profile.templateName?.trim() : '';
+      return templateName ? { ...profile, name: templateName } : profile;
+    }),
+  };
 }
 
 function quotaPeriodLabel(period: ApiKeyQuotaPeriod | null | undefined, t: (key: string) => string) {
@@ -127,6 +140,7 @@ export function ApiKeyProfilesDialog({
   const { t, i18n } = useTranslation();
   const { selectedApiKey } = useApiKeysContext();
   const selectedProjectId = useSelectedProjectId();
+  const { data: profileTemplates } = useApiKeyProfileTemplates(open ? selectedProjectId : null);
   const { data: availableModels, mutateAsync: fetchModels } = useQueryModels();
   const [templateLoadPending, setTemplateLoadPending] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
@@ -167,6 +181,10 @@ export function ApiKeyProfilesDialog({
     }),
     []
   );
+  const reservedTemplateNames = useMemo(
+    () => new Map((profileTemplates ?? []).map((template) => [template.name.trim().toLowerCase(), template.name])),
+    [profileTemplates]
+  );
 
   const form = useForm<UpdateApiKeyProfilesInput>({
     resolver: zodResolver(updateApiKeyProfilesInputSchemaFactory(t)),
@@ -183,10 +201,10 @@ export function ApiKeyProfilesDialog({
         ? initialData.activeProfile
         : initialData.profiles[0]?.name || defaultValues.activeProfile;
 
-      return {
+      return canonicalizeLinkedTemplateProfileNames({
         activeProfile: fallbackActiveProfile,
         profiles: initialData.profiles.map(normalizeApiKeyProfileRoutingPolicy),
-      };
+      });
     }
 
     return defaultValues;
@@ -204,9 +222,12 @@ export function ApiKeyProfilesDialog({
 
   // Watch profile names to update activeProfile dropdown options
   const watchedProfiles = form.watch('profiles') || [];
-  const profileNames = watchedProfiles.map((profile) => profile.name || '');
   const activeProfileName = form.watch('activeProfile');
   const activeProfile = watchedProfiles.find((profile) => profile.name === activeProfileName);
+  const activeProfileDisplayName =
+    activeProfile?.templateID != null && activeProfile.templateName?.trim()
+      ? t('apikeys.columns.linkedTemplate', { name: activeProfile.templateName.trim() })
+      : activeProfileName;
   const previewProfile = resolveAPIKeyProfilePreview(activeProfile);
   const debouncedPreviewProfile = useDebounce(previewProfile, 250);
   const profilePreviewQuery = useApiKeyProfilePreview(apiKeyId, debouncedPreviewProfile, {
@@ -214,6 +235,7 @@ export function ApiKeyProfilesDialog({
   });
 
   useEffect(() => {
+    const hasProfileAwaitingName = watchedProfiles.some((profile) => !profile?.name?.trim());
     const nonEmptyProfiles = watchedProfiles.filter((profile) => profile?.name?.trim());
     const currentActiveProfile = form.getValues('activeProfile') || '';
 
@@ -221,6 +243,10 @@ export function ApiKeyProfilesDialog({
       if (currentActiveProfile !== '') {
         form.setValue('activeProfile', '');
       }
+      return;
+    }
+
+    if (hasProfileAwaitingName) {
       return;
     }
 
@@ -367,10 +393,10 @@ export function ApiKeyProfilesDialog({
                         apiKeyID={apiKeyId}
                         projectID={selectedProjectId}
                         onLoadComplete={(loadedProfiles) => {
-                          const resetData = {
+                          const resetData = canonicalizeLinkedTemplateProfileNames({
                             activeProfile: loadedProfiles.activeProfile || loadedProfiles.profiles[0]?.name || '',
                             profiles: loadedProfiles.profiles.map(normalizeApiKeyProfileRoutingPolicy),
-                          };
+                          });
                           setTemplateLoadPending(true);
                           form.reset(resetData);
                           lastInitialDataRef.current = JSON.stringify(resetData);
@@ -430,6 +456,7 @@ export function ApiKeyProfilesDialog({
                                 defaultExpanded={isActive}
                                 portalContainer={dialogContent}
                                 selectedProjectId={selectedProjectId}
+                                reservedTemplateNames={reservedTemplateNames}
                                 onSaveTemplate={(idx) => {
                                   setSaveTemplateProfileIndex(idx);
                                   setSaveTemplateOpen(true);
@@ -460,11 +487,13 @@ export function ApiKeyProfilesDialog({
                             <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {profileNames
-                              .filter((name) => name.trim() !== '')
-                              .map((profileName) => (
-                                <SelectItem key={profileName} value={profileName}>
-                                  {profileName}
+                            {watchedProfiles
+                              .filter((profile) => profile.name.trim() !== '')
+                              .map((profile) => (
+                                <SelectItem key={profile.name} value={profile.name}>
+                                  {profile.templateID != null && profile.templateName?.trim()
+                                    ? t('apikeys.columns.linkedTemplate', { name: profile.templateName.trim() })
+                                    : profile.name}
                                 </SelectItem>
                               ))}
                           </SelectContent>
@@ -478,7 +507,7 @@ export function ApiKeyProfilesDialog({
             </div>
           </div>
           <ApiKeyProfilePreviewPanel
-            profileName={activeProfileName}
+            profileName={activeProfileDisplayName}
             preview={profilePreviewQuery.data}
             loading={profilePreviewQuery.isFetching}
             error={profilePreviewQuery.isError}
@@ -516,6 +545,15 @@ export function ApiKeyProfilesDialog({
             profileData={form.watch(`profiles.${saveTemplateProfileIndex}`)}
             projectID={selectedProjectId}
             onSaved={(template) => {
+              const previousName = form.getValues(`profiles.${saveTemplateProfileIndex}.name`);
+              if (form.getValues('activeProfile') === previousName) {
+                form.setValue('activeProfile', template.name, { shouldDirty: true, shouldValidate: true });
+              }
+              form.setValue(`profiles.${saveTemplateProfileIndex}.name`, template.name, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+              });
               form.setValue(`profiles.${saveTemplateProfileIndex}.templateID`, extractNumberIDAsNumber(template.id), { shouldDirty: true });
               form.setValue(`profiles.${saveTemplateProfileIndex}.templateName`, template.name, { shouldDirty: true });
               form.setValue(`profiles.${saveTemplateProfileIndex}.templateSync`, template.templateSync, { shouldDirty: true });
@@ -559,6 +597,7 @@ interface ProfileCardProps {
   portalContainer?: HTMLElement | null;
   /** 当前选中的 project ID */
   selectedProjectId?: string | null;
+  reservedTemplateNames: Map<string, string>;
   onSaveTemplate: (profileIndex: number) => void;
 }
 
@@ -574,6 +613,7 @@ function ProfileCard({
   defaultExpanded = false,
   portalContainer,
   selectedProjectId,
+  reservedTemplateNames,
   onSaveTemplate,
 }: ProfileCardProps) {
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
@@ -617,23 +657,32 @@ function ProfileCard({
     (value: string) => {
       const trimmedValue = value.trim().toLowerCase();
       if (trimmedValue === '') {
-        form.clearErrors(`profiles.${profileIndex}.name`);
+        form.setError(`profiles.${profileIndex}.name`, {
+          type: 'manual',
+          message: t('apikeys.validation.profileNameRequired'),
+        });
         return;
       }
 
       const otherProfiles = allProfiles.filter((_profile: ApiKeyProfile, idx: number) => idx !== profileIndex);
       const isDuplicate = otherProfiles.some((p: ApiKeyProfile) => p.name && p.name.trim().toLowerCase() === trimmedValue);
+      const conflictingTemplateName = templateID == null ? reservedTemplateNames.get(trimmedValue) : undefined;
 
       if (isDuplicate) {
         form.setError(`profiles.${profileIndex}.name`, {
           type: 'manual',
           message: t('apikeys.validation.duplicateProfileName'),
         });
+      } else if (conflictingTemplateName) {
+        form.setError(`profiles.${profileIndex}.name`, {
+          type: 'manual',
+          message: t('apikeys.validation.profileNameConflictsWithTemplate'),
+        });
       } else {
         form.clearErrors(`profiles.${profileIndex}.name`);
       }
     },
-    [form, profileIndex, allProfiles, t]
+    [form, profileIndex, allProfiles, reservedTemplateNames, t, templateID]
   );
   useEffect(() => {
     checkDuplicate(profileName || '');
@@ -641,15 +690,14 @@ function ProfileCard({
 
   const detachTemplate = () => {
     const previousName = form.getValues(`profiles.${profileIndex}.name`);
-    const nextName = getAvailableDefaultProfileName(allProfiles, profileIndex);
 
-    form.setValue(`profiles.${profileIndex}.name`, nextName, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    if (form.getValues('activeProfile') === previousName) {
+      form.setValue('activeProfile', '', { shouldDirty: true, shouldValidate: true });
+    }
+    form.setValue(`profiles.${profileIndex}.name`, '', { shouldDirty: true, shouldTouch: true, shouldValidate: true });
     form.setValue(`profiles.${profileIndex}.templateID`, null, { shouldDirty: true });
     form.setValue(`profiles.${profileIndex}.templateName`, null, { shouldDirty: true });
     form.setValue(`profiles.${profileIndex}.templateSync`, false, { shouldDirty: true });
-    if (form.getValues('activeProfile') === previousName) {
-      form.setValue('activeProfile', nextName, { shouldDirty: true, shouldValidate: true });
-    }
   };
 
   const addMapping = useCallback(() => {
@@ -671,10 +719,15 @@ function ProfileCard({
                       value={field.value}
                       onChange={(e) => {
                         const newValue = e.target.value;
+                        const previousName = field.value;
                         field.onChange(newValue);
+                        if (form.getValues('activeProfile') === previousName) {
+                          form.setValue('activeProfile', newValue, { shouldDirty: true, shouldValidate: true });
+                        }
                         checkDuplicate(newValue);
                       }}
                       onBlur={field.onBlur}
+                      disabled={templateID != null}
                       placeholder={t('apikeys.profiles.profileName')}
                       className='w-full font-medium md:w-[12em]'
                     />

@@ -527,6 +527,36 @@ func TestAPIKeyService_UpdateAPIKeyProfiles(t *testing.T) {
 		require.Equal(t, "staging", updatedAPIKey.Profiles.ActiveProfile)
 		require.Len(t, updatedAPIKey.Profiles.Profiles, 3)
 	})
+
+	t.Run("Template names are canonical and reserved", func(t *testing.T) {
+		template, err := client.APIKeyProfileTemplate.Create().
+			SetName("Reserved").
+			SetProject(testProject).
+			SetProfile(&objects.APIKeyProfile{Name: "Reserved"}).
+			Save(ctx)
+		require.NoError(t, err)
+
+		templateID := template.ID
+		updatedAPIKey, err := apiKeyService.UpdateAPIKeyProfiles(ctx, apiKey.ID, objects.APIKeyProfiles{
+			ActiveProfile: "Local package alias",
+			Profiles: []objects.APIKeyProfile{{
+				Name:         "Local package alias",
+				TemplateID:   &templateID,
+				TemplateName: template.Name,
+			}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, template.Name, updatedAPIKey.Profiles.ActiveProfile)
+		require.Equal(t, template.Name, updatedAPIKey.Profiles.Profiles[0].Name)
+
+		_, err = apiKeyService.UpdateAPIKeyProfiles(ctx, apiKey.ID, objects.APIKeyProfiles{
+			ActiveProfile: " reserved ",
+			Profiles: []objects.APIKeyProfile{{
+				Name: " reserved ",
+			}},
+		})
+		require.ErrorContains(t, err, "conflicts with template name")
+	})
 }
 
 func TestAPIKeyService_BulkEnableAPIKeys(t *testing.T) {

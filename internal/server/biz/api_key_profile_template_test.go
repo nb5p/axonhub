@@ -228,7 +228,7 @@ func TestLoadTemplate_HappyPath(t *testing.T) {
 	require.Equal(t, "gpt-4", updatedKey.Profiles.Profiles[0].ModelMappings[0].From)
 
 	// Verify loaded profile is appended
-	require.Equal(t, "Production", updatedKey.Profiles.Profiles[1].Name)
+	require.Equal(t, template.Name, updatedKey.Profiles.Profiles[1].Name)
 	require.NotNil(t, updatedKey.Profiles.Profiles[1].TemplateID)
 	require.Equal(t, template.ID, *updatedKey.Profiles.Profiles[1].TemplateID)
 	require.Equal(t, template.Name, updatedKey.Profiles.Profiles[1].TemplateName)
@@ -290,8 +290,9 @@ func TestUpdateTemplatePublishesToLinkedAndUnchangedLegacyProfiles(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, 2, count)
 
-	_, err = svc.UpdateTemplate(ctx, template.ID, ent.UpdateAPIKeyProfileTemplateInput{}, &objects.APIKeyProfile{
-		Name:          "Production",
+	renamedTemplate := "Published"
+	_, err = svc.UpdateTemplate(ctx, template.ID, ent.UpdateAPIKeyProfileTemplateInput{Name: &renamedTemplate}, &objects.APIKeyProfile{
+		Name:          renamedTemplate,
 		ModelMappings: []objects.ModelMapping{{From: "claude", To: "new-model"}},
 	})
 	require.NoError(t, err)
@@ -299,14 +300,12 @@ func TestUpdateTemplatePublishesToLinkedAndUnchangedLegacyProfiles(t *testing.T)
 	for _, key := range []*ent.APIKey{linkedKey, legacyKey} {
 		updated, getErr := client.APIKey.Get(ctx, key.ID)
 		require.NoError(t, getErr)
+		require.Equal(t, renamedTemplate, updated.Profiles.ActiveProfile)
+		require.Equal(t, renamedTemplate, updated.Profiles.Profiles[0].Name)
 		require.Equal(t, "new-model", updated.Profiles.Profiles[0].ModelMappings[0].To)
 		require.NotNil(t, updated.Profiles.Profiles[0].TemplateID)
 		require.Equal(t, template.ID, *updated.Profiles.Profiles[0].TemplateID)
 	}
-
-	updatedLinked, err := client.APIKey.Get(ctx, linkedKey.ID)
-	require.NoError(t, err)
-	require.Equal(t, "Local alias", updatedLinked.Profiles.Profiles[0].Name)
 
 	updatedDetached, err := client.APIKey.Get(ctx, detachedKey.ID)
 	require.NoError(t, err)
@@ -494,6 +493,8 @@ func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, attachedKey.Profiles.Profiles[0].TemplateID)
 	require.True(t, attachedKey.Profiles.Profiles[0].TemplateSync)
+	require.Equal(t, template.Name, attachedKey.Profiles.ActiveProfile)
+	require.Equal(t, template.Name, attachedKey.Profiles.Profiles[0].Name)
 
 	cachedSecond, err := apiKeyService.GetAPIKey(ctx, secondKey.Key)
 	require.NoError(t, err)
@@ -512,6 +513,8 @@ func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, updatedFirst.Profiles.Profiles[0].TemplateSync)
 	require.NotNil(t, updatedFirst.Profiles.Profiles[0].TemplateID)
+	require.Equal(t, template.Name, updatedFirst.Profiles.ActiveProfile)
+	require.Equal(t, template.Name, updatedFirst.Profiles.Profiles[0].Name)
 
 	updatedTemplate, err := client.APIKeyProfileTemplate.Get(ctx, template.ID)
 	require.NoError(t, err)
@@ -520,12 +523,15 @@ func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
 
 	updatedSecond, err := apiKeyService.GetAPIKey(ctx, secondKey.Key)
 	require.NoError(t, err)
-	require.Equal(t, "Second alias", updatedSecond.Profiles.Profiles[0].Name)
+	require.Equal(t, template.Name, updatedSecond.Profiles.ActiveProfile)
+	require.Equal(t, template.Name, updatedSecond.Profiles.Profiles[0].Name)
 	require.True(t, updatedSecond.Profiles.Profiles[0].TemplateSync)
 	require.Equal(t, "new-model", updatedSecond.Profiles.Profiles[0].ModelMappings[0].To)
 
 	updatedNewlyLinked, err := client.APIKey.Get(ctx, newlyLinkedKey.ID)
 	require.NoError(t, err)
+	require.Equal(t, template.Name, updatedNewlyLinked.Profiles.ActiveProfile)
+	require.Equal(t, template.Name, updatedNewlyLinked.Profiles.Profiles[0].Name)
 	require.Equal(t, "new-model", updatedNewlyLinked.Profiles.Profiles[0].ModelMappings[0].To)
 
 	_, err = templateService.UpdateTemplate(ctx, template.ID, ent.UpdateAPIKeyProfileTemplateInput{}, &objects.APIKeyProfile{
@@ -540,8 +546,8 @@ func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
 	require.True(t, updatedTemplate.Profile.TemplateSync, "synchronization cannot be disabled once enabled")
 }
 
-// TestLoadTemplate_NameConflict tests loading a template where profile name already exists.
-// Auto-rename with suffix " (1)".
+// TestLoadTemplate_NameConflict tests that a template cannot hide an existing
+// independent profile behind the same canonical name.
 func TestLoadTemplate_NameConflict(t *testing.T) {
 	svc, client := setupTestTemplateService(t)
 	defer client.Close()
@@ -603,7 +609,7 @@ func TestLoadTemplate_NameConflict(t *testing.T) {
 	}
 
 	template, err := client.APIKeyProfileTemplate.Create().
-		SetName("prod-template").
+		SetName("Production").
 		SetDescription("Production template").
 		SetProject(testProject).
 		SetProfile(templateProfile).
@@ -611,27 +617,18 @@ func TestLoadTemplate_NameConflict(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load template into API key
-	updatedKey, err := svc.LoadTemplate(ctx, template.ID, apiKey.ID)
+	_, err = svc.LoadTemplate(ctx, template.ID, apiKey.ID)
+	require.ErrorContains(t, err, "conflicts with template name")
+
+	unchangedKey, err := client.APIKey.Get(ctx, apiKey.ID)
 	require.NoError(t, err)
-	require.NotNil(t, updatedKey)
-
-	// Verify profiles
-	require.NotNil(t, updatedKey.Profiles)
-	require.Equal(t, "Production", updatedKey.Profiles.ActiveProfile, "active profile should not change")
-	require.Len(t, updatedKey.Profiles.Profiles, 2, "should have 2 profiles")
-
-	// Original profile unchanged
-	require.Equal(t, "Production", updatedKey.Profiles.Profiles[0].Name)
-
-	// Loaded profile should be auto-renamed to "Production (1)"
-	require.Equal(t, "Production (1)", updatedKey.Profiles.Profiles[1].Name)
-	require.Len(t, updatedKey.Profiles.Profiles[1].ModelMappings, 1)
-	require.Equal(t, "claude-3", updatedKey.Profiles.Profiles[1].ModelMappings[0].From)
+	require.Len(t, unchangedKey.Profiles.Profiles, 1)
+	require.Equal(t, "Production", unchangedKey.Profiles.ActiveProfile)
 }
 
-// TestLoadTemplate_MultipleConflicts tests loading a template when multiple name conflicts exist.
-// Key has "Production", "Production (1)", template is "Production". Should become "Production (2)".
-func TestLoadTemplate_MultipleConflicts(t *testing.T) {
+// TestLoadTemplate_AlreadyLinked rejects loading a second copy of a template,
+// including profiles stored with a legacy local alias.
+func TestLoadTemplate_AlreadyLinked(t *testing.T) {
 	svc, client := setupTestTemplateService(t)
 	defer client.Close()
 
@@ -660,20 +657,14 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create API key with "Production" and "Production (1)"
+	// Create API key with a legacy alias linked to the template created below.
 	existingProfiles := &objects.APIKeyProfiles{
-		ActiveProfile: "Production",
+		ActiveProfile: "Production package",
 		Profiles: []objects.APIKeyProfile{
 			{
-				Name: "Production",
+				Name: "Production package",
 				ModelMappings: []objects.ModelMapping{
 					{From: "gpt-4", To: "gpt-4-turbo"},
-				},
-			},
-			{
-				Name: "Production (1)",
-				ModelMappings: []objects.ModelMapping{
-					{From: "gpt-3.5", To: "gpt-3.5-turbo"},
 				},
 			},
 		},
@@ -689,7 +680,7 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	// Create template named "Production"
+	// Create template named "Production" and attach the existing profile to it.
 	templateProfile := &objects.APIKeyProfile{
 		Name: "Production",
 		ModelMappings: []objects.ModelMapping{
@@ -704,22 +695,14 @@ func TestLoadTemplate_MultipleConflicts(t *testing.T) {
 		SetProfile(templateProfile).
 		Save(ctx)
 	require.NoError(t, err)
-
-	// Load template into API key
-	updatedKey, err := svc.LoadTemplate(ctx, template.ID, apiKey.ID)
+	templateID := template.ID
+	existingProfiles.Profiles[0].TemplateID = &templateID
+	existingProfiles.Profiles[0].TemplateName = template.Name
+	_, err = client.APIKey.UpdateOneID(apiKey.ID).SetProfiles(existingProfiles).Save(ctx)
 	require.NoError(t, err)
-	require.NotNil(t, updatedKey)
 
-	// Verify profiles
-	require.NotNil(t, updatedKey.Profiles)
-	require.Len(t, updatedKey.Profiles.Profiles, 3, "should have 3 profiles")
-
-	// Original profiles unchanged
-	require.Equal(t, "Production", updatedKey.Profiles.Profiles[0].Name)
-	require.Equal(t, "Production (1)", updatedKey.Profiles.Profiles[1].Name)
-
-	// Loaded profile should be auto-renamed to "Production (2)"
-	require.Equal(t, "Production (2)", updatedKey.Profiles.Profiles[2].Name)
+	_, err = svc.LoadTemplate(ctx, template.ID, apiKey.ID)
+	require.ErrorContains(t, err, "already has a profile linked")
 }
 
 // TestLoadTemplate_TemplateNotFound tests that loading a non-existent template returns an error.

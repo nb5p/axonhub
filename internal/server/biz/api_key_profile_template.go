@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/samber/lo"
 	"go.uber.org/fx"
@@ -317,12 +318,17 @@ func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templat
 			existingProfiles = &objects.APIKeyProfiles{}
 		}
 
-		profileName := templateProfile.Name
-		if profileName == "" {
-			profileName = template.Name
+		for i := range existingProfiles.Profiles {
+			profile := &existingProfiles.Profiles[i]
+			if profile.TemplateID != nil && *profile.TemplateID == template.ID {
+				return fmt.Errorf("API key already has a profile linked to template '%s'", template.Name)
+			}
+			if normalizeProfileName(profile.Name) == normalizeProfileName(template.Name) {
+				return fmt.Errorf("profile name '%s' conflicts with template name '%s'", profile.Name, template.Name)
+			}
 		}
-		resolvedName := resolveProfileNameConflict(existingProfiles.Profiles, profileName)
-		templateProfile.Name = resolvedName
+
+		templateProfile.Name = template.Name
 		templateProfile.TemplateID = lo.ToPtr(template.ID)
 		templateProfile.TemplateName = template.Name
 
@@ -343,6 +349,92 @@ func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templat
 	s.invalidateAPIKeys(ctx, []string{updatedKey.Key})
 
 	return updatedKey, nil
+}
+
+// normalizeLinkedProfileNames makes the template name the single display and
+// storage name for linked profiles. It also rejects independent profile names
+// that would be indistinguishable from a project template in the UI.
+func (s *APIKeyProfileTemplateService) normalizeLinkedProfileNames(
+	ctx context.Context,
+	existingKey *ent.APIKey,
+	nextProfiles *objects.APIKeyProfiles,
+) error {
+	if existingKey == nil || nextProfiles == nil {
+		return nil
+	}
+
+	client := s.entFromContext(ctx)
+	templates, err := client.APIKeyProfileTemplate.Query().
+		Where(apikeyprofiletemplate.ProjectIDEQ(existingKey.ProjectID)).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list API key profile templates: %w", err)
+	}
+
+	templatesByID := make(map[int]*ent.APIKeyProfileTemplate, len(templates))
+	templatesByName := make(map[string]*ent.APIKeyProfileTemplate, len(templates))
+	for _, template := range templates {
+		templatesByID[template.ID] = template
+		templatesByName[normalizeProfileName(template.Name)] = template
+	}
+
+	var activeTemplateID *int
+	for i := range nextProfiles.Profiles {
+		profile := &nextProfiles.Profiles[i]
+		if profile.Name == nextProfiles.ActiveProfile && profile.TemplateID != nil {
+			activeTemplateID = lo.ToPtr(*profile.TemplateID)
+			break
+		}
+	}
+	if activeTemplateID == nil && existingKey.Profiles != nil && existingKey.Profiles.ActiveProfile == nextProfiles.ActiveProfile {
+		for i := range existingKey.Profiles.Profiles {
+			profile := &existingKey.Profiles.Profiles[i]
+			if profile.Name == existingKey.Profiles.ActiveProfile && profile.TemplateID != nil {
+				activeTemplateID = lo.ToPtr(*profile.TemplateID)
+				break
+			}
+		}
+	}
+
+	for i := range nextProfiles.Profiles {
+		profile := &nextProfiles.Profiles[i]
+		if profile.TemplateID == nil {
+			profile.TemplateName = ""
+			profile.TemplateSync = false
+			continue
+		}
+
+		template, ok := templatesByID[*profile.TemplateID]
+		if !ok {
+			profile.TemplateID = nil
+			profile.TemplateName = ""
+			profile.TemplateSync = false
+			continue
+		}
+
+		profile.Name = template.Name
+		profile.TemplateName = template.Name
+		profile.TemplateSync = template.Profile != nil && template.Profile.TemplateSync
+	}
+
+	if activeTemplateID != nil {
+		if template, ok := templatesByID[*activeTemplateID]; ok {
+			nextProfiles.ActiveProfile = template.Name
+		}
+	}
+
+	for i := range nextProfiles.Profiles {
+		profile := &nextProfiles.Profiles[i]
+		if profile.TemplateID != nil {
+			continue
+		}
+
+		if template, ok := templatesByName[normalizeProfileName(profile.Name)]; ok {
+			return fmt.Errorf("profile name '%s' conflicts with template name '%s'", profile.Name, template.Name)
+		}
+	}
+
+	return nil
 }
 
 // CountLinkedProfiles returns how many API key profiles currently follow a
@@ -421,7 +513,7 @@ func (s *APIKeyProfileTemplateService) reconcileLinkedProfileChanges(
 		syncEnabled := template.Profile != nil && template.Profile.TemplateSync
 		profile.TemplateName = template.Name
 		profile.TemplateSync = syncEnabled
-		linkedProfile := findLinkedProfile(existingKey.Profiles, *profile.TemplateID, profile.Name)
+		linkedProfile := findLinkedProfileByTemplateID(existingKey.Profiles, *profile.TemplateID)
 		if linkedProfile == nil {
 			if template.Profile != nil && sameTemplateProfileContents(profile, template.Profile) {
 				continue
@@ -431,7 +523,7 @@ func (s *APIKeyProfileTemplateService) reconcileLinkedProfileChanges(
 			profile.TemplateSync = false
 			continue
 		}
-		if sameProfileIgnoringTemplate(linkedProfile, profile) {
+		if sameLinkedProfileContents(linkedProfile, profile) {
 			continue
 		}
 
@@ -481,9 +573,8 @@ func (s *APIKeyProfileTemplateService) reconcileLinkedProfileChanges(
 				continue
 			}
 
-			profileName := current.Name
 			next := update.published.Clone()
-			next.Name = profileName
+			next.Name = template.Name
 			next.TemplateID = lo.ToPtr(templateID)
 			next.TemplateName = template.Name
 			next.TemplateSync = true
@@ -536,19 +627,22 @@ func (s *APIKeyProfileTemplateService) syncLinkedProfiles(
 				continue
 			}
 
-			// The API key profile name is an alias local to that key. Preserve it
-			// during publishing so renamed templates and conflict suffixes never
-			// invalidate activeProfile or collide with neighboring profiles.
-			profileName := current.Name
+			previousProfileName := current.Name
 			next := publishedProfile.Clone()
-			next.Name = profileName
+			next.Name = template.Name
 			next.TemplateID = lo.ToPtr(template.ID)
 			next.TemplateName = template.Name
 			key.Profiles.Profiles[i] = *next
+			if key.Profiles.ActiveProfile == previousProfileName {
+				key.Profiles.ActiveProfile = template.Name
+			}
 			changed = true
 		}
 
 		if changed {
+			if err := validateProfileNames(key.Profiles.Profiles); err != nil {
+				return nil, fmt.Errorf("cannot publish template '%s' to API key %d: %w", template.Name, key.ID, err)
+			}
 			if _, err := client.APIKey.UpdateOneID(key.ID).SetProfiles(key.Profiles).Save(ctx); err != nil {
 				return nil, fmt.Errorf("failed to publish template to API key %d: %w", key.ID, err)
 			}
@@ -621,20 +715,6 @@ func (s *APIKeyProfileTemplateService) detachLinkedProfiles(ctx context.Context,
 	return updatedKeys, nil
 }
 
-func resolveProfileNameConflict(existingProfiles []objects.APIKeyProfile, newName string) string {
-	nameSet := make(map[string]bool, len(existingProfiles))
-	for _, p := range existingProfiles {
-		nameSet[p.Name] = true
-	}
-
-	if !nameSet[newName] {
-		return newName
-	}
-
-	for i := 1; ; i++ {
-		candidate := fmt.Sprintf("%s (%d)", newName, i)
-		if !nameSet[candidate] {
-			return candidate
-		}
-	}
+func normalizeProfileName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
 }
