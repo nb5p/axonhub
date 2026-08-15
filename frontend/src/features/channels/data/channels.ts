@@ -6,6 +6,7 @@ import { pageInfoSchema } from '@/gql/pagination';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useErrorHandler } from '@/hooks/use-error-handler';
+import { invalidateChannelDependentQueries } from './channel-query-invalidation';
 import {
   Channel,
   ChannelConnection,
@@ -1144,7 +1145,7 @@ export function useCreateChannel() {
       return channelSchema.parse(data.createChannel);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.createSuccess'));
     },
     onError: (error) => {
@@ -1164,7 +1165,7 @@ export function useDuplicateChannel() {
       return channelSchema.parse(data.duplicateChannel);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('common.success.duplicated'));
     },
     onError: (error) => {
@@ -1204,7 +1205,7 @@ export function useBulkCreateChannels() {
       }
     },
     onSuccess: (channels) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.batchCreateSuccess', { count: channels.length }));
     },
   });
@@ -1221,7 +1222,7 @@ export function useUpdateChannel() {
       return channelSchema.parse(data.updateChannel);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['channel', data.id] });
       toast.success(t('channels.messages.updateSuccess'));
     },
@@ -1247,7 +1248,7 @@ export function useSaveChannelEndpoints() {
       return channelEndpointsResponseSchema.parse(data.saveChannelEndpoints);
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['channel', variables.channelID] });
       toast.success(t('channels.messages.updateSuccess'));
     },
@@ -1276,7 +1277,7 @@ export function useClearChannelErrorMessage() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['channel', data.id] });
       queryClient.invalidateQueries({ queryKey: ['errorChannelsCount'] });
       toast.success(t('channels.messages.errorResolvedSuccess'));
@@ -1303,7 +1304,7 @@ export function useUpdateChannelStatus() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       const statusText =
         variables.status === 'enabled'
           ? t('channels.status.enabled')
@@ -1334,7 +1335,7 @@ export function useBulkArchiveChannels() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.bulkArchiveSuccess', { count: variables.length }));
     },
   });
@@ -1356,7 +1357,7 @@ export function useBulkDisableChannels() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.bulkDisableSuccess', { count: variables.length }));
     },
   });
@@ -1378,7 +1379,7 @@ export function useBulkEnableChannels() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.bulkEnableSuccess', { count: variables.length }));
     },
   });
@@ -1400,7 +1401,7 @@ export function useBulkRecoverChannels() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['errorChannelsCount'] });
       toast.success(t('channels.messages.bulkRecoverSuccess', { count: variables.length }));
     },
@@ -1423,7 +1424,7 @@ export function useDeleteChannel() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.deleteSuccess'));
     },
   });
@@ -1445,7 +1446,7 @@ export function useBulkDeleteChannels() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.bulkDeleteSuccess', { count: variables.length }));
     },
   });
@@ -1563,7 +1564,7 @@ export function useBulkImportChannels() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
 
       if (data.success) {
         toast.success(
@@ -1629,7 +1630,7 @@ export function useBulkUpdateChannelOrdering() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['allChannelSummarys'] });
       toast.success(
         t('channels.messages.orderingUpdateSuccess', {
@@ -1670,7 +1671,7 @@ export function useSyncChannelModels() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.syncModelsSuccess'));
     },
   });
@@ -1876,7 +1877,7 @@ export function useDisableChannelAPIKey() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['channelDisabledAPIKeys', variables.channelID] });
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.disableAPIKeySuccess'));
     },
   });
@@ -1902,7 +1903,7 @@ export function useEnableChannelAPIKey() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['channelDisabledAPIKeys', variables.channelID] });
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.enableAPIKeySuccess'));
     },
   });
@@ -1927,7 +1928,7 @@ export function useEnableAllChannelAPIKeys() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['channelDisabledAPIKeys', variables.channelID] });
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.enableAllAPIKeysSuccess'));
     },
   });
@@ -1953,7 +1954,7 @@ export function useEnableSelectedChannelAPIKeys() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['channelDisabledAPIKeys', variables.channelID] });
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.messages.enableSelectedAPIKeysSuccess'));
     },
   });
@@ -1979,7 +1980,7 @@ export function useDeleteDisabledChannelAPIKeys() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['channelDisabledAPIKeys', variables.channelID] });
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
 
       // Show appropriate message based on the result
       if (data.message === 'ONE_KEY_PRESERVED') {

@@ -5,6 +5,7 @@ import { pageInfoSchema } from '@/gql/pagination';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useErrorHandler } from '@/hooks/use-error-handler';
+import { invalidateChannelDependentQueries } from './channel-query-invalidation';
 import { overrideOperationSchema } from './schema';
 
 // Zod Schemas for Template Types
@@ -344,7 +345,7 @@ export function useApplyChannelOverrideTemplate() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.templates.messages.applySuccess', { count: data.updated }));
     },
   });
@@ -369,7 +370,7 @@ export function useClearChannelOverrideTemplates() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      invalidateChannelDependentQueries(queryClient);
       toast.success(t('channels.templates.messages.clearSuccess', { count: data.updated }));
     },
   });
