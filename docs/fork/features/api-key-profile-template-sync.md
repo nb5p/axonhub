@@ -20,6 +20,7 @@ local:
     - 94b9edd65a1733aa776bc402cd8130c4ea720612
     - b72cac454d23392b3eac985e7e1e101d288e3f9f
     - 3939673c0e1338d0387f48f8de12921c3c0af714
+    - 8d110d917849690ba9688d4585ac8b7d62e417af
   modules:
     - internal/objects/apikey.go
     - internal/server/biz/api_key.go
@@ -84,6 +85,7 @@ database:
 - `go test ./internal/server/biz -run 'TestActivateTemplateProfile|TestLoadTemplate|TestUpdateTemplatePublishes|TestSynchronizedTemplate|TestAPIKeyService_UpdateAPIKeyProfiles' -count=1`：通过。
 - `./node_modules/.bin/tsc --noEmit`：通过。
 - `node --test src/features/apikeys/*.test.mjs`：通过。
+- `api-key-profile-template-activation.test.mjs` 覆盖快捷切换将嵌入配置中的数字模板 ID 转换为 GraphQL GUID 后再提交。
 - `TestSynchronizedTemplatePublishesAPIKeyProfileEdits` 覆盖新关联、Key 端修改、跨 Key 传播、运行时缓存失效和开关不可关闭。
 - `TestLoadTemplate_NameConflict`、`TestLoadTemplate_AlreadyLinked` 和 `TestAPIKeyService_UpdateAPIKeyProfiles/Template_names_are_canonical_and_reserved` 覆盖模板唯一名称、旧别名收敛及重名拒绝。
 
@@ -95,3 +97,4 @@ database:
 | 2026-08-11 | 用户反馈 | `94b9edd65a1733aa776bc402cd8130c4ea720612` | 脱离模板时立即恢复唯一默认配置名，并在编辑期间实时校验重名。 |
 | 2026-08-15 | 用户反馈 | `b72cac454d23392b3eac985e7e1e101d288e3f9f` | 在 API Key 列表增加仅面向已关联模板的生效配置快捷切换，并使用专用 mutation 避免覆盖完整配置。 |
 | 2026-08-15 | 用户反馈 | `3939673c0e1338d0387f48f8de12921c3c0af714` | 取消关联配置的本地别名，统一采用模板名；脱离后强制重新命名，并阻止独立配置与模板重名。 |
+| 2026-08-15 | 用户反馈 | `8d110d917849690ba9688d4585ac8b7d62e417af` | 修复快捷切换误将数字模板 ID 直接提交给 GraphQL 的问题，统一发送 `APIKeyProfileTemplate` GUID。 |
