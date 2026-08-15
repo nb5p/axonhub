@@ -241,23 +241,91 @@ docker compose \
 - 蓝色平台固定为 `linux/amd64`；绿色平台为 `linux/arm64`，不得把绿色本地镜像直接导入群晖。
 - 所有备份名使用同一个 UTC 时间戳。旧数据库、旧 Compose、`-wal` 和 `-shm` 文件均保留，不得覆盖或删除旧备份。
 
+开始晋升时一次性生成并记录本次变量，后续所有镜像、备份和 incoming 文件都复用同一组值，禁止中途重新生成时间戳或改用另一个 HEAD：
+
+```sh
+PROMOTION_TS="$(date -u +%Y%m%dT%H%M%SZ)"
+TARGET_COMMIT="$(git rev-parse HEAD)"
+TARGET_SHORT="$(git rev-parse --short=12 "$TARGET_COMMIT")"
+TARGET_IMAGE="forgejo.109062.xyz:88/tux/axonhub:ai-slop-$TARGET_SHORT"
+```
+
+每个新的 shell、SSH 会话或工具调用都可能丢失这些变量。后续命令必须在同一 shell 块中运行、重新赋入上面已经记录的实际值，或直接使用已记录的完整字面值；不得悄悄重新计算 HEAD 或时间戳。
+
+#### Registry 认证边界和错误判读
+
+- Git 推送与容器镜像推送是两套独立认证。`forgejo` Git remote 使用 SSH 成功，只能证明代码仓库可写，不能证明 Docker 已登录 `forgejo.109062.xyz:88`。
+- Mac 是镜像发布端，需要对 package owner `tux` 具有 `write:package` 权限的 Forgejo Token；使用 `docker login forgejo.109062.xyz:88 --username <Forgejo用户名> --password-stdin` 登录，禁止把 Token 放进命令行参数、文档、聊天或日志。Mac Docker Desktop 通常把凭据保存在系统钥匙串中。
+- NAS 是镜像运行端，只需 `read:package` 权限。NAS 上的 Docker 命令通过 `sudo` 执行，因此实际使用的是 root 的 Docker 登录态；Mac 的登录态和 NAS 普通用户的登录态都不会自动传给它。禁止打印 `/root/.docker/config.json`，只允许检查目标 registry 条目是否存在，或用 `docker manifest inspect` 做只读权限验证。
+- `docker push` 返回 `401 Unauthorized`：优先检查发布端是否登录、Token 是否过期，以及是否有 `write:package` 权限。不要因为 `git push` 成功就排除认证问题。
+- 已认证的 `docker manifest inspect` 返回 `manifest unknown`：通常表示认证已通过，但该标签尚未发布；它与 `401` 不是同一问题。
+- BuildKit 推送的 OCI index 可能额外包含 `unknown/unknown` provenance/attestation，这是元数据，不是可运行镜像。验收时必须明确找到 `linux/amd64` 子 manifest。
+
 #### 阶段一：不停服准备蓝色镜像
 
 1. 记录准确源码工作树、分支、HEAD 和未提交状态；构建时使用该 commit 的干净临时工作树，避免把用户未提交文件带入构建上下文。
-2. 先把目标 commit 推送到 Forgejo，再构建并推送不可变标签：
+2. 先把目标 commit 推送到 Forgejo。随后分别预检两端认证：Mac 必须具备 Registry 写权限，NAS root 必须能对一个已知存在的私有镜像执行 `docker manifest inspect`。任何预检都不得输出 Token 或完整 Docker 配置。
+3. 从干净临时工作树构建并推送不可变标签：
 
    ```sh
    docker buildx build \
      --platform linux/amd64 \
-     --tag "forgejo.109062.xyz:88/tux/axonhub:ai-slop-<short-sha>" \
+     --tag "$TARGET_IMAGE" \
      --push \
      --file /absolute/path/to/clean-worktree/Dockerfile \
      /absolute/path/to/clean-worktree
    ```
 
-3. 检查 manifest 至少包含 `linux/amd64`，记录 index digest。BuildKit 的 `unknown/unknown` attestation 不是可运行平台。
-4. 在绿色仍运行时把新镜像预加载到 NAS。优先使用 NAS 的只读 package Token 拉取；如果 NAS 无法拉取，可以在 Mac 拉取 amd64 镜像后 `docker save`，通过 `/Volumes/docker/axonhub` 挂载目录传递 tar，再在 NAS 上执行 `docker load`。加载后核对远端镜像 `.Os=linux`、`.Architecture=amd64`，并删除临时 tar。
-5. 修改或重建蓝色前，按 `/Volumes/docker/AGENTS.md` 核对现有容器的 Compose 项目、服务、工作目录和配置文件标签必须分别是 `axonhub`、`axonhub`、`/volume1/docker/axonhub`、`/volume1/docker/axonhub/compose.yaml`。
+4. 检查 Registry manifest，记录 OCI index digest，并从详细 manifest 中取出 `linux/amd64` 子 manifest digest 和 config digest：
+
+   ```sh
+   docker manifest inspect --verbose "$TARGET_IMAGE" | jq -r '
+     (if type == "array" then .[] else . end)
+     | select(.Descriptor.platform.os == "linux"
+       and .Descriptor.platform.architecture == "amd64")
+     | [.Descriptor.digest, .OCIManifest.config.digest]
+     | @tsv'
+   ```
+
+   必须且只能找到一个 `linux/amd64` 结果。Mac 上 `docker image inspect .Id` 可能显示 OCI index digest，而 NAS 运行容器的 `.Image` 是平台子镜像的 config digest；两者层级不同，不能直接判断为镜像不一致。NAS 拉取或载入后，其镜像 ID 必须等于上面记录的 `linux/amd64` config digest。
+5. 在绿色仍运行时把新镜像预加载到 NAS。优先让 NAS 使用只读 package Token 拉取，再核对 `.Os=linux`、`.Architecture=amd64` 和镜像 ID。
+6. 只有 Registry 暂时无法使用且用户接受应急回退时，才允许在 Mac 构建/拉取 `linux/amd64` 镜像后 `docker save`，通过 `/Volumes/docker/axonhub` 挂载目录传递 tar，再在 NAS 上执行 `docker load`。此时必须：
+   - 记录“Registry 发布待补齐”，不能把“NAS 本地已有镜像”误报成“镜像已推送”；
+   - 加载后核对远端平台和镜像 ID，并删除临时 tar；
+   - 启动蓝色时使用 `--pull never`，避免 Compose 因远端标签不存在而失败或换用其他镜像；
+   - Registry 写权限恢复后补推同一镜像，重新验证 manifest 和 config digest。补推本身不需要重启已经运行的蓝色容器。
+
+   离线回退的机械步骤如下。若此前 `--push` 失败且本地没有目标镜像，使用同一个干净工作树重新执行 `--load`；后续补推这一个本地镜像，禁止再构建第三份同标签镜像：
+
+   ```sh
+   # Mac shell：使用本流程开始时记录的变量。
+   TRANSFER_TAR="/Volumes/docker/axonhub/$TARGET_SHORT-linux-amd64.tar"
+
+   docker buildx build \
+     --platform linux/amd64 \
+     --load \
+     --tag "$TARGET_IMAGE" \
+     --file /absolute/path/to/clean-worktree/Dockerfile \
+     /absolute/path/to/clean-worktree
+   docker save --output "$TRANSFER_TAR" "$TARGET_IMAGE"
+   ```
+
+   NAS shell 不会继承 Mac shell 变量，必须把本次已经记录的实际值显式带入，禁止在 NAS 上重新读取另一个 Git HEAD：
+
+   ```sh
+   # NAS shell：把占位符替换为本次记录的实际值。
+   TARGET_SHORT='<本次 TARGET_SHORT>'
+   TARGET_IMAGE='forgejo.109062.xyz:88/tux/axonhub:ai-slop-<本次 TARGET_SHORT>'
+
+   sudo /var/packages/ContainerManager/target/usr/bin/docker load \
+     --input "/volume1/docker/axonhub/$TARGET_SHORT-linux-amd64.tar"
+   sudo /var/packages/ContainerManager/target/usr/bin/docker image inspect \
+     --format 'id={{.Id}} os={{.Os}} arch={{.Architecture}}' \
+     "$TARGET_IMAGE"
+   ```
+
+   只有 NAS 载入成功且平台、镜像 ID 校验完成后，才删除这个明确路径的临时 tar。写权限恢复后在 Mac 执行 `docker push "$TARGET_IMAGE"`，再用阶段一第 4 步确认 Registry 的 `linux/amd64` config digest 与蓝色运行容器 `.Image` 一致。
+7. 修改或重建蓝色前，按 `/Volumes/docker/AGENTS.md` 核对现有容器的 Compose 项目、服务、工作目录和配置文件标签必须分别是 `axonhub`、`axonhub`、`/volume1/docker/axonhub`、`/volume1/docker/axonhub/compose.yaml`。
 
 #### 阶段二：冻结并制作一致性快照
 
@@ -272,15 +340,18 @@ docker compose \
 3. 确认两个容器均为 `exited`。绿色停止后，先检查源库，再使用 SQLite `.backup` 创建快照并再次校验：
 
    ```sh
+   # 使用流程开始时记录的 PROMOTION_TS，不要重新生成。
+   GREEN_BACKUP_DIR="/Users/tux/Playground/AxonHub/backups/green-to-blue/$PROMOTION_TS"
+   mkdir -p "$GREEN_BACKUP_DIR"
+
    sqlite3 /Users/tux/Playground/AxonHub/data/axonhub.db 'PRAGMA quick_check;'
    sqlite3 /Users/tux/Playground/AxonHub/data/axonhub.db \
-     ".backup '/Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db'"
-   sqlite3 /Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db \
-     'PRAGMA quick_check;'
-   shasum -a 256 /Users/tux/Playground/AxonHub/backups/green-to-blue/<UTC时间戳>/axonhub.db
+     ".backup '$GREEN_BACKUP_DIR/axonhub.db'"
+   sqlite3 "$GREEN_BACKUP_DIR/axonhub.db" 'PRAGMA quick_check;'
+   shasum -a 256 "$GREEN_BACKUP_DIR/axonhub.db"
    ```
 
-4. 在 NAS 本机使用 `/usr/bin/sqlite3` 对停止后的蓝色旧库执行 `PRAGMA quick_check` 和 `.backup`，把结果保存为 `backups/green-to-blue/<UTC时间戳>/blue-before-axonhub.db`；同时 `cp -p` 保存 `compose.yaml.before`。数据库备份校验成功且 Compose 备份存在后才能覆盖蓝色。
+4. 在 NAS 本机先创建 `/volume1/docker/axonhub/backups/green-to-blue/<本次 PROMOTION_TS>`，再使用 `/usr/bin/sqlite3` 对停止后的蓝色旧库执行 `PRAGMA quick_check` 和 `.backup`，把结果保存为该目录下的 `blue-before-axonhub.db`；同时 `cp -p` 保存 `compose.yaml.before`。数据库备份校验成功且 Compose 备份存在后才能覆盖蓝色。
 
 #### 阶段三：恢复蓝色并启动
 
@@ -299,8 +370,9 @@ docker compose \
    sudo /var/packages/ContainerManager/target/usr/bin/docker-compose up -d axonhub
    ```
 
-   如果镜像是通过 tar 预加载且 NAS 没有 registry 登录态，启动命令必须禁止拉取或使用已加载的本地不可变标签，不能退回官方镜像。
+   如果镜像是通过 tar 预加载且远端标签尚不存在，改用 `docker-compose up -d --pull never axonhub`，只能使用已加载的本地不可变标签，不能退回官方镜像。
 5. 从蓝色容器内部检查 `http://127.0.0.1:8090/health`，并核对容器为 `running`、重启次数正常、镜像引用和镜像 ID 正确、平台为 `linux/amd64`。健康检查未通过时不得切换流量。
+6. 蓝色数据库较大时，NAS 冷启动可能持续数分钟。本次 2.7GB 数据库的首次启动约 3 分钟；短时间内 health connection failure 不等于启动失败。若容器仍为 `running`、重启次数为 0 且进程仍有 CPU/IO 活动，应在有上限的观察窗口内继续查看状态和关键日志，不得反复重启。出现容器退出、重启次数增长、数据库校验失败、`FATAL` 或 `PANIC` 时才按失败处理。
 
 #### 阶段四：切换和收尾
 
@@ -309,6 +381,16 @@ docker compose \
 3. 重新只读提取 `backends.active`，必须得到 `blue`；公网 `/health` 的 build time、platform 和 uptime 必须与蓝色容器直连结果一致。
 4. 只有确认 `active=blue` 后才能重新启动绿色备用容器。绿色启动后只检查 `http://127.0.0.1:9090/health`，不得自动切回绿色。
 5. 交付时记录：目标 commit、不可变镜像标签和 digest、蓝绿实际镜像 ID、快照时间戳、快照及旧蓝色备份路径、两次 `quick_check`、哈希比对、当前活动槽位和公网健康结果。
+6. 本流程创建的每一份数据库、Compose 或其他回滚备份，都必须立即写入 `/Users/tux/Library/Mobile Documents/iCloud~md~obsidian/Documents/AI Notebook/备份日志.md`，包括描述、时间、Mac/NAS 路径、大小、哈希和校验结果；删除备份时同步删除或更新对应记录。
+
+#### 完成判定：缺一不可
+
+- Forgejo 上的 `ai-slop` 必须包含目标 commit，构建上下文必须来自该 commit 的干净工作树。
+- Registry 中必须存在目标不可变标签，且唯一的 `linux/amd64` config digest 与蓝色运行容器 `.Image` 一致。若使用离线应急回退且尚未补推，必须明确报告“Registry 发布待补齐”，不得宣告镜像发布完整完成。
+- 绿色快照、蓝色覆盖前备份和蓝色正式数据库均已完成 `PRAGMA quick_check`；绿色快照与蓝色正式数据库 SHA-256 一致。
+- 蓝色容器健康、重启次数正常；Axon Switch 权威状态为 `active=blue`，公网 health 与蓝色直连 health 一致。
+- 绿色备用容器仅在确认 `active=blue` 后恢复，且绿色直连 health 正常。
+- 所有备份均已登记到备份日志；临时辅助程序和镜像 tar 已删除；没有输出或遗留明文 Token、密码或完整状态文件。
 
 #### 回滚
 
