@@ -45,6 +45,7 @@
 | `mobile-touch-hover-overlays` | `none` | 是 | 无 | 仅统一前端悬浮层的触摸、手写笔、鼠标和键盘交互。 |
 | `mobile-ui-improvements` | `none` | 是 | 无 | 仅涉及前端 UI，且已被上游吸收。 |
 | `responses-reasoning-item-ids` | `none` | 是 | 无 | 已通过历史重写移除代码，仅保留账本记录。 |
+| `codex-remote-compaction-affinity` | `none` | 是 | 无 | 仅复用既有 trace、历史渠道和渠道 API Key 粘性选择，不修改持久化结构。 |
 | `channel-api-key-copy` | `none` | 是 | 无 | 仅涉及渠道编辑界面的复制交互。 |
 | `request-log-layout` | `none` | 是 | 无 | 仅涉及请求日志查询字段和前端表格布局。 |
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
