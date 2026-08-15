@@ -360,6 +360,63 @@ func TestDetachModifiedTemplateProfiles(t *testing.T) {
 	require.Empty(t, modified.Profiles[0].TemplateName)
 }
 
+func TestActivateTemplateProfile(t *testing.T) {
+	svc, client := setupTestTemplateService(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+	projectEntity, err := client.Project.Create().
+		SetName(fmt.Sprintf("activate-template-project-%d", time.Now().UnixNano())).
+		SetDescription("activate template profile test").
+		SetStatus(project.StatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+
+	privacyTemplate, err := client.APIKeyProfileTemplate.Create().
+		SetName("Privacy").
+		SetProject(projectEntity).
+		SetProfile(&objects.APIKeyProfile{Name: "Privacy", TemplateSync: true}).
+		Save(ctx)
+	require.NoError(t, err)
+	codeTemplate, err := client.APIKeyProfileTemplate.Create().
+		SetName("Code").
+		SetProject(projectEntity).
+		SetProfile(&objects.APIKeyProfile{Name: "Code", TemplateSync: true}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	privacyTemplateID := privacyTemplate.ID
+	codeTemplateID := codeTemplate.ID
+	key, err := client.APIKey.Create().
+		SetName("switchable-key").
+		SetKey(fmt.Sprintf("ah-switchable-%d", time.Now().UnixNano())).
+		SetProjectID(projectEntity.ID).
+		SetType(apikey.TypeUser).
+		SetProfiles(&objects.APIKeyProfiles{
+			ActiveProfile: "Privacy package",
+			Profiles: []objects.APIKeyProfile{
+				{Name: "Privacy package", TemplateID: &privacyTemplateID, TemplateName: privacyTemplate.Name, TemplateSync: true},
+				{Name: "Code package", TemplateID: &codeTemplateID, TemplateName: codeTemplate.Name, TemplateSync: true},
+			},
+		}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	updated, err := svc.ActivateTemplateProfile(ctx, key.ID, codeTemplate.ID)
+	require.NoError(t, err)
+	require.Equal(t, "Code package", updated.Profiles.ActiveProfile)
+	require.Len(t, updated.Profiles.Profiles, 2)
+
+	unlinkedTemplate, err := client.APIKeyProfileTemplate.Create().
+		SetName("Unlinked").
+		SetProject(projectEntity).
+		SetProfile(&objects.APIKeyProfile{Name: "Unlinked", TemplateSync: true}).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = svc.ActivateTemplateProfile(ctx, key.ID, unlinkedTemplate.ID)
+	require.ErrorContains(t, err, "has no linked profile")
+}
+
 func TestSynchronizedTemplatePublishesAPIKeyProfileEdits(t *testing.T) {
 	apiKeyService, client := setupTestAPIKeyService(t, xcache.Config{Mode: xcache.ModeMemory})
 	defer apiKeyService.Stop()

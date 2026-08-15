@@ -966,6 +966,7 @@ type Mutation {
     profile: APIKeyProfileInput
   ): APIKeyProfileTemplate!
   deleteApiKeyProfileTemplate(id: ID!): APIKeyProfileTemplate!
+  activateApiKeyProfileTemplate(apiKeyID: ID!, templateID: ID!): APIKey!
   loadApiKeyProfileTemplate(
     input: LoadApiKeyProfileTemplateInput!
   ): APIKey!

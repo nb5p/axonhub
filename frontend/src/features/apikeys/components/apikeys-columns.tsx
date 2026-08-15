@@ -1,14 +1,22 @@
 import { format } from 'date-fns';
 import { ColumnDef, Table, Row } from '@tanstack/react-table';
-import { Copy, Eye, RefreshCw, Settings } from 'lucide-react';
+import { ChevronDown, Copy, Eye, Loader2, RefreshCw, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn, extractNumberID } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
 import LongText from '@/components/long-text';
 import { useApiKeysContext } from '../context/apikeys-context';
+import { useActivateApiKeyProfileTemplate } from '../data/apikeys';
 import { ApiKey } from '../data/schema';
 import { DataTableRowActions } from './data-table-row-actions';
 
@@ -44,22 +52,26 @@ function ApiKeyCell({ apiKey, fullApiKey }: { apiKey: string; fullApiKey: ApiKey
 function ActiveProfileCell({ apiKey, canWrite }: { apiKey: ApiKey; canWrite: boolean }) {
   const { t } = useTranslation();
   const { openDialog } = useApiKeysContext();
+  const activateTemplate = useActivateApiKeyProfileTemplate();
   const activeProfile = apiKey.profiles?.activeProfile?.trim();
   const activeProfileConfig = apiKey.profiles?.profiles?.find((profile) => profile.name === activeProfile);
   const templateName = activeProfileConfig?.templateName?.trim();
   const templateSync = activeProfileConfig?.templateSync ?? false;
   const canOpenProfiles = canWrite && apiKey.type !== 'service_account';
+  const linkedTemplates = Array.from(
+    new Map(
+      (apiKey.profiles?.profiles ?? [])
+        .filter((profile) => profile.templateID != null && profile.templateName?.trim())
+        .map((profile) => [profile.templateID as number, { id: profile.templateID as number, name: profile.templateName!.trim() }])
+    ).values()
+  );
+  const displayName = templateName ? t('apikeys.columns.linkedTemplate', { name: templateName }) : activeProfile;
 
   if (!canOpenProfiles) {
-    return activeProfile ? (
-      <div className='min-w-0'>
-        <LongText className='max-w-36 font-medium'>{activeProfile}</LongText>
-        {templateName && (
-          <div className='text-muted-foreground flex max-w-36 items-center gap-1 truncate text-xs'>
-            {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
-            {t('apikeys.columns.linkedTemplate', { name: templateName })}
-          </div>
-        )}
+    return displayName ? (
+      <div className='flex max-w-40 min-w-0 items-center gap-1'>
+        {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
+        <LongText className='font-medium'>{displayName}</LongText>
       </div>
     ) : (
       <span className='text-muted-foreground text-sm'>{t('apikeys.columns.noActiveProfile')}</span>
@@ -67,26 +79,53 @@ function ActiveProfileCell({ apiKey, canWrite }: { apiKey: ApiKey; canWrite: boo
   }
 
   return (
-    <Button
-      variant='ghost'
-      size='sm'
-      className='h-8 max-w-44 justify-start gap-1.5 px-2 font-medium'
-      onClick={() => openDialog('profiles', apiKey)}
-      title={t('apikeys.columns.activeProfileHint')}
-    >
-      <Settings className='h-3.5 w-3.5 shrink-0' />
-      <span className='min-w-0 text-left'>
-        <span className={cn('block truncate', !activeProfile && 'text-muted-foreground')}>
-          {activeProfile || t('apikeys.columns.noActiveProfile')}
+    <div className='flex max-w-52 items-center'>
+      <Button
+        variant='ghost'
+        size='sm'
+        className={cn('h-8 min-w-0 flex-1 justify-start gap-1.5 px-2 font-medium', linkedTemplates.length > 0 && 'rounded-r-none pr-1')}
+        onClick={() => openDialog('profiles', apiKey)}
+        title={t('apikeys.columns.activeProfileHint')}
+      >
+        <Settings className='h-3.5 w-3.5 shrink-0' />
+        {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
+        <span className={cn('min-w-0 truncate text-left', !displayName && 'text-muted-foreground')}>
+          {displayName || t('apikeys.columns.noActiveProfile')}
         </span>
-        {templateName && (
-          <span className='text-muted-foreground flex items-center gap-1 truncate text-xs font-normal'>
-            {templateSync && <RefreshCw className='text-primary h-3 w-3 shrink-0' aria-label={t('apikeys.templates.syncedBadge')} />}
-            {t('apikeys.columns.linkedTemplate', { name: templateName })}
-          </span>
-        )}
-      </span>
-    </Button>
+      </Button>
+      {linkedTemplates.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-8 w-7 shrink-0 rounded-l-none px-0'
+              disabled={activateTemplate.isPending}
+              aria-label={t('apikeys.columns.quickSwitchActiveProfile')}
+              title={t('apikeys.columns.quickSwitchActiveProfile')}
+            >
+              {activateTemplate.isPending ? <Loader2 className='h-3.5 w-3.5 animate-spin' /> : <ChevronDown className='h-3.5 w-3.5' />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end' className='min-w-44'>
+            <DropdownMenuRadioGroup
+              value={activeProfileConfig?.templateID != null ? String(activeProfileConfig.templateID) : ''}
+              onValueChange={(value) => {
+                const templateID = Number(value);
+                if (!Number.isInteger(templateID) || templateID === activeProfileConfig?.templateID) return;
+                activateTemplate.mutate({ apiKeyID: apiKey.id, templateID });
+              }}
+            >
+              {linkedTemplates.map((template) => (
+                <DropdownMenuRadioItem key={template.id} value={String(template.id)}>
+                  {t('apikeys.columns.linkedTemplate', { name: template.name })}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   );
 }
 

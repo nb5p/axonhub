@@ -232,6 +232,59 @@ func (s *APIKeyProfileTemplateService) DeleteTemplate(ctx context.Context, id in
 	return template, nil
 }
 
+// ActivateTemplateProfile switches an API key to a profile already linked to
+// the requested template without replacing the rest of the profile settings.
+func (s *APIKeyProfileTemplateService) ActivateTemplateProfile(ctx context.Context, apiKeyID, templateID int) (*ent.APIKey, error) {
+	var updatedKey *ent.APIKey
+	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
+		client := s.entFromContext(ctx)
+
+		template, err := client.APIKeyProfileTemplate.Get(ctx, templateID)
+		if err != nil {
+			return fmt.Errorf("failed to get template: %w", err)
+		}
+
+		apiKey, err := client.APIKey.Get(ctx, apiKeyID)
+		if err != nil {
+			return fmt.Errorf("failed to get API key: %w", err)
+		}
+		if template.ProjectID != apiKey.ProjectID {
+			return fmt.Errorf("template and API key must belong to the same project")
+		}
+		if apiKey.Profiles == nil {
+			return fmt.Errorf("API key has no linked profile for template '%s'", template.Name)
+		}
+
+		profileName := ""
+		for i := range apiKey.Profiles.Profiles {
+			profile := &apiKey.Profiles.Profiles[i]
+			if profile.TemplateID != nil && *profile.TemplateID == template.ID {
+				profileName = profile.Name
+				break
+			}
+		}
+		if profileName == "" {
+			return fmt.Errorf("API key has no linked profile for template '%s'", template.Name)
+		}
+
+		apiKey.Profiles.ActiveProfile = profileName
+		updatedKey, err = client.APIKey.UpdateOneID(apiKey.ID).
+			SetProfiles(apiKey.Profiles).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to activate API key template profile: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.invalidateAPIKeys(ctx, []string{updatedKey.Key})
+
+	return updatedKey, nil
+}
+
 func (s *APIKeyProfileTemplateService) LoadTemplate(ctx context.Context, templateID, apiKeyID int) (*ent.APIKey, error) {
 	var updatedKey *ent.APIKey
 	err := s.RunInTransaction(ctx, func(ctx context.Context) error {

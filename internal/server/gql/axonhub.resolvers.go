@@ -672,6 +672,11 @@ func (r *mutationResolver) DeleteAPIKeyProfileTemplate(ctx context.Context, id o
 	return r.apiKeyProfileTemplateService.DeleteTemplate(ctx, id.ID)
 }
 
+// ActivateAPIKeyProfileTemplate is the resolver for the activateApiKeyProfileTemplate field.
+func (r *mutationResolver) ActivateAPIKeyProfileTemplate(ctx context.Context, apiKeyID objects.GUID, templateID objects.GUID) (*ent.APIKey, error) {
+	return r.apiKeyProfileTemplateService.ActivateTemplateProfile(ctx, apiKeyID.ID, templateID.ID)
+}
+
 // LoadAPIKeyProfileTemplate is the resolver for the loadApiKeyProfileTemplate field.
 func (r *mutationResolver) LoadAPIKeyProfileTemplate(ctx context.Context, input LoadAPIKeyProfileTemplateInput) (*ent.APIKey, error) {
 	return r.apiKeyProfileTemplateService.LoadTemplate(ctx, input.TemplateID.ID, input.APIKeyID.ID)

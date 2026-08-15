@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { graphqlRequest } from '@/gql/graphql';
 import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
+import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useSelectedProjectId } from '@/stores/projectStore';
@@ -440,6 +440,23 @@ const LOAD_APIKEY_PROFILE_TEMPLATE_MUTATION = `
               calendarDuration { unit }
             }
           }
+        }
+      }
+    }
+  }
+`;
+
+const ACTIVATE_APIKEY_PROFILE_TEMPLATE_MUTATION = `
+  mutation ActivateApiKeyProfileTemplate($apiKeyID: ID!, $templateID: ID!) {
+    activateApiKeyProfileTemplate(apiKeyID: $apiKeyID, templateID: $templateID) {
+      id
+      profiles {
+        activeProfile
+        profiles {
+          name
+          templateID
+          templateName
+          templateSync
         }
       }
     }
@@ -923,6 +940,31 @@ export function useLoadApiKeyProfileTemplate() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
       queryClient.invalidateQueries({ queryKey: ['apiKey', variables.apiKeyID] });
+    },
+  });
+}
+
+export function useActivateApiKeyProfileTemplate() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const selectedProjectId = useSelectedProjectId();
+
+  return useMutation({
+    mutationFn: ({ apiKeyID, templateID }: { apiKeyID: string; templateID: number }) => {
+      const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
+      return graphqlRequest<{ activateApiKeyProfileTemplate: ApiKey }>(
+        ACTIVATE_APIKEY_PROFILE_TEMPLATE_MUTATION,
+        { apiKeyID, templateID: String(templateID) },
+        headers
+      );
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+      queryClient.invalidateQueries({ queryKey: ['apiKey', variables.apiKeyID] });
+      toast.success(t('apikeys.messages.activeProfileUpdateSuccess'));
+    },
+    onError: () => {
+      toast.error(t('common.errors.internalServerError'));
     },
   });
 }
