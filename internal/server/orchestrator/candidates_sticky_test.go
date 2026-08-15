@@ -12,11 +12,29 @@ import (
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm"
+	"github.com/looplj/axonhub/llm/httpclient"
+	"github.com/looplj/axonhub/llm/transformer/openai/responses"
 )
 
 type fakePreviousChannelProvider struct {
 	traceChannelIDs  map[int]int
 	threadChannelIDs map[int]int
+}
+
+type stickyPassThroughPolicy struct {
+	*mockRetryPolicyProvider
+}
+
+func (p *stickyPassThroughPolicy) PassThrough(context.Context) (bool, error) {
+	return true, nil
+}
+
+func (p *stickyPassThroughPolicy) PreferPassThrough(context.Context) (bool, error) {
+	return true, nil
+}
+
+func (p *stickyPassThroughPolicy) PreferPassThroughExceptions(context.Context) (*biz.PreferPassThroughExceptionSettings, error) {
+	return &biz.PreferPassThroughExceptionSettings{}, nil
 }
 
 func (p *fakePreviousChannelProvider) GetPreviousChannelID(_ context.Context, traceID int) (int, error) {
@@ -126,6 +144,70 @@ func TestLoadBalancedSelector_TraceStickySelection(t *testing.T) {
 		)
 
 		result, err := selector.Select(ctx, &llm.Request{Model: "gpt-4"})
+		require.NoError(t, err)
+		require.Equal(t, []int{1, 3, 2}, []int{result[0].Channel.ID, result[1].Channel.ID, result[2].Channel.ID})
+		require.False(t, result[0].TraceSticky)
+	})
+
+	t.Run("remote compaction keeps the previous channel even when sticky mode is disabled", func(t *testing.T) {
+		candidates := []*ChannelModelsCandidate{
+			stickyTestCandidate(1, 0),
+			stickyTestCandidate(2, 2),
+			stickyTestCandidate(3, 1),
+		}
+		policy := &stickyPassThroughPolicy{mockRetryPolicyProvider: &mockRetryPolicyProvider{policy: &biz.RetryPolicy{
+			Enabled:           true,
+			MaxChannelRetries: 2,
+			TraceStickyMode:   biz.TraceStickyDisabled,
+		}}}
+		candidates[0].APIFormat = llm.APIFormatOpenAIResponse.String()
+		candidates[0].Channel.Settings = &objects.ChannelSettings{PassThroughBody: lo.ToPtr(true)}
+		candidates[1].APIFormat = llm.APIFormatOpenAIResponse.String()
+		candidates[1].Channel.Settings = &objects.ChannelSettings{PassThroughBody: lo.ToPtr(false)}
+		selector := WithTraceStickyLoadBalancedSelector(
+			&staticChannelSelector{candidates: candidates},
+			NewLoadBalancer(policy, nil),
+			policy,
+			&fakePreviousChannelProvider{
+				traceChannelIDs: map[int]int{trace.ID: 2},
+			},
+		)
+		request, err := responses.NewInboundTransformer().TransformRequest(context.Background(), &httpclient.Request{
+			Body: []byte(`{"model":"gpt-5.5","input":[{"type":"message","role":"user","content":"hello"},{"type":"compaction_trigger"}]}`),
+		})
+		require.NoError(t, err)
+
+		result, err := selector.Select(ctx, request)
+		require.NoError(t, err)
+		require.Equal(t, 2, result[0].Channel.ID)
+		require.True(t, result[0].TraceSticky)
+	})
+
+	t.Run("remote compaction falls back when the previous channel is unavailable", func(t *testing.T) {
+		candidates := []*ChannelModelsCandidate{
+			stickyTestCandidate(1, 0),
+			stickyTestCandidate(2, 2),
+			stickyTestCandidate(3, 1),
+		}
+		policy := &mockRetryPolicyProvider{policy: &biz.RetryPolicy{
+			Enabled:           true,
+			MaxChannelRetries: 2,
+			TraceStickyMode:   biz.TraceStickyDisabled,
+		}}
+		selector := WithTraceStickyLoadBalancedSelector(
+			&staticChannelSelector{candidates: candidates},
+			NewLoadBalancer(policy, nil),
+			policy,
+			&fakePreviousChannelProvider{
+				traceChannelIDs: map[int]int{trace.ID: 99},
+			},
+		)
+		request, err := responses.NewInboundTransformer().TransformRequest(context.Background(), &httpclient.Request{
+			Body: []byte(`{"model":"gpt-5.5","input":[{"type":"compaction_trigger"}]}`),
+		})
+		require.NoError(t, err)
+
+		result, err := selector.Select(ctx, request)
 		require.NoError(t, err)
 		require.Equal(t, []int{1, 3, 2}, []int{result[0].Channel.ID, result[1].Channel.ID, result[2].Channel.ID})
 		require.False(t, result[0].TraceSticky)

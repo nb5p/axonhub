@@ -13,6 +13,7 @@ const (
 	WindowIDHeader        = "X-Codex-Window-Id"
 	ClientRequestIDHeader = "X-Client-Request-Id"
 	BetaFeaturesHeader    = "X-Codex-Beta-Features"
+	RemoteCompactionV2    = "remote_compaction_v2"
 )
 
 type TurnMetadata struct {
@@ -53,4 +54,22 @@ func GetSessionIDFromHeaders(headers http.Header) string {
 	}
 
 	return ExtractSessionIDFromTurnMetadata(strings.TrimSpace(headers.Get(TurnMetadataHeader)))
+}
+
+// HasBetaFeature reports whether Codex advertised an exact feature token.
+// Feature names are comma-separated and case-sensitive on the upstream wire.
+func HasBetaFeature(headers http.Header, feature string) bool {
+	if headers == nil || feature == "" {
+		return false
+	}
+
+	for _, value := range headers.Values(BetaFeaturesHeader) {
+		for token := range strings.SplitSeq(value, ",") {
+			if strings.TrimSpace(token) == feature {
+				return true
+			}
+		}
+	}
+
+	return false
 }

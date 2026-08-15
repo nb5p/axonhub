@@ -749,6 +749,14 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 		*s.effectiveRoutingPolicy = resolvedPolicy
 		traceStickyMode = resolvedPolicy.TraceStickyMode
 	}
+	remoteCompaction := isOpenAIResponsesRemoteCompaction(req)
+	if remoteCompaction {
+		// Remote compaction may carry response IDs and opaque encrypted content
+		// produced by the account used for earlier turns. Treat affinity as a
+		// protocol correctness requirement even when ordinary trace sticky routing
+		// was disabled by a routing profile.
+		traceStickyMode = biz.TraceStickyPreferPreviousChannel
+	}
 
 	requiredCount := 1
 	if retryPolicy.Enabled {
@@ -758,7 +766,8 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 
 	if traceStickyMode == biz.TraceStickyPreferPreviousChannel {
 		if stickyCandidate, remainingCandidates := s.selectTraceStickyCandidate(ctx, candidates); stickyCandidate != nil {
-			if !hasPreferredPassThroughCandidate(candidates, req, preference) || candidateHasPassThroughPriority(stickyCandidate, req, preference) {
+			if remoteCompaction || !hasPreferredPassThroughCandidate(candidates, req, preference) ||
+				candidateHasPassThroughPriority(stickyCandidate, req, preference) {
 				stickyCandidate.TraceSticky = true
 
 				fallbackCount := max(requiredCount-1, 0)
@@ -775,6 +784,17 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 	}
 
 	return s.sortCandidates(ctx, loadBalancer, candidates, req, requiredCount, true, preference), nil
+}
+
+func isOpenAIResponsesRemoteCompaction(req *llm.Request) bool {
+	if req == nil || req.APIFormat != llm.APIFormatOpenAIResponse || req.ProviderExtensions == nil ||
+		req.ProviderExtensions.OpenAIResponses == nil || req.ProviderExtensions.OpenAIResponses.Request == nil {
+		return false
+	}
+
+	return lo.ContainsBy(req.ProviderExtensions.OpenAIResponses.Request.RawInputItems, func(item llm.OpenAIResponsesRawFragment) bool {
+		return item.Type == "compaction_trigger"
+	})
 }
 
 func resolveLoadBalancer(loadBalancers map[string]*LoadBalancer, strategy string) (*LoadBalancer, string) {

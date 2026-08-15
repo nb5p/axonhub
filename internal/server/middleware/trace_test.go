@@ -539,6 +539,114 @@ func TestWithTrace_CodexDisabled(t *testing.T) {
 	require.NotEqual(t, "codex-session-123", traceID)
 }
 
+func TestWithTrace_CodexRemoteCompactionUsesSessionWhenConfigDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	config := tracing.Config{
+		TraceHeader:       "AH-Trace-Id",
+		CodexTraceEnabled: false,
+	}
+
+	router, client, traceService := setupTestTraceMiddleware(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
+	ctx = ent.NewContext(ctx, client)
+
+	testProject, err := client.Project.Create().
+		SetName("test-project").
+		SetStatus(project.StatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+
+	router.Use(func(c *gin.Context) {
+		ctx := authz.WithTestBypass(c.Request.Context())
+		ctx = ent.NewContext(ctx, client)
+		ctx = contexts.WithProjectID(ctx, testProject.ID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.Use(WithTrace(config, traceService))
+
+	var capturedTraceIDs []string
+	router.POST("/v1/responses", func(c *gin.Context) {
+		trace, ok := contexts.GetTrace(c.Request.Context())
+		require.True(t, ok)
+		capturedTraceIDs = append(capturedTraceIDs, trace.TraceID)
+		c.Status(http.StatusOK)
+	})
+
+	for range 2 {
+		req := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewReader([]byte(`{"model":"gpt-5.5","input":"hello"}`)))
+		req.Header.Set("Session-Id", "codex-remote-compaction-session")
+		req.Header.Set("X-Codex-Beta-Features", "responses_websockets_v2, remote_compaction_v2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+	}
+
+	require.Equal(t, []string{
+		"codex-remote-compaction-session",
+		"codex-remote-compaction-session",
+	}, capturedTraceIDs)
+}
+
+func TestWithTrace_CodexRemoteCompactionFallsBackToPromptCacheKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	config := tracing.Config{
+		TraceHeader:       "AH-Trace-Id",
+		CodexTraceEnabled: false,
+	}
+
+	router, client, traceService := setupTestTraceMiddleware(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(httptest.NewRequest(http.MethodGet, "/", nil).Context())
+	ctx = ent.NewContext(ctx, client)
+
+	testProject, err := client.Project.Create().
+		SetName("test-project").
+		SetStatus(project.StatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+
+	router.Use(func(c *gin.Context) {
+		ctx := authz.WithTestBypass(c.Request.Context())
+		ctx = ent.NewContext(ctx, client)
+		ctx = contexts.WithProjectID(ctx, testProject.ID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.Use(WithTrace(config, traceService))
+
+	var (
+		capturedTraceID string
+		capturedBody    []byte
+	)
+	router.POST("/v1/responses", func(c *gin.Context) {
+		trace, ok := contexts.GetTrace(c.Request.Context())
+		require.True(t, ok)
+		capturedTraceID = trace.TraceID
+
+		genericReq, err := httpclient.ReadHTTPRequest(c.Request)
+		require.NoError(t, err)
+		capturedBody = genericReq.Body
+		c.Status(http.StatusOK)
+	})
+
+	body := []byte(`{"model":"gpt-5.5","prompt_cache_key":"codex-cache-session","input":[{"type":"compaction_trigger"}]}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewReader(body))
+	req.Header.Set("X-Codex-Beta-Features", "remote_compaction_v2")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "codex-cache-session", capturedTraceID)
+	require.JSONEq(t, string(body), string(capturedBody))
+}
+
 func TestWithTrace_CodexHeaderSetsTrace(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

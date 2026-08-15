@@ -92,8 +92,15 @@ func WithTrace(config tracing.Config, traceService *biz.TraceService) gin.Handle
 			}
 		}
 
-		if traceID == "" && config.CodexTraceEnabled {
-			traceID = tryExtractTraceIDFromCodexRequest(c)
+		codexTraceEnabled := config.CodexTraceEnabled || codex.HasBetaFeature(c.Request.Header, codex.RemoteCompactionV2)
+		if traceID == "" && codexTraceEnabled {
+			var err error
+
+			traceID, err = tryExtractTraceIDFromCodexRequest(c)
+			if err != nil {
+				AbortWithError(c, http.StatusBadRequest, err)
+				return
+			}
 		}
 
 		if traceID == "" && len(config.ExtraTraceBodyFields) > 0 {
@@ -219,18 +226,42 @@ func tryExtractTraceIDFromOpenCodeRequest(c *gin.Context) string {
 	return traceID
 }
 
-// tryExtractTraceIDFromCodexRequest extracts the trace ID from the Codex session header.
-func tryExtractTraceIDFromCodexRequest(c *gin.Context) string {
+// tryExtractTraceIDFromCodexRequest extracts the trace ID from Codex session
+// headers. Responses requests may fall back to prompt_cache_key, which Codex
+// keeps stable across the normal turns and the remote compaction turn.
+func tryExtractTraceIDFromCodexRequest(c *gin.Context) (string, error) {
 	traceID := codex.GetSessionIDFromHeaders(c.Request.Header)
-	if traceID == "" {
-		return ""
+	if traceID != "" {
+		traceSource := "codex header"
+		if strings.TrimSpace(c.GetHeader(codex.SessionHeader)) == "" &&
+			strings.TrimSpace(c.GetHeader(codex.SessionHeaderHyphen)) == "" {
+			traceSource = "codex turn metadata"
+		}
+		log.Debug(c.Request.Context(), "Extracted trace ID from "+traceSource, log.String("trace_id", traceID))
+
+		return traceID, nil
 	}
 
-	traceSource := "codex header"
-	if strings.TrimSpace(c.GetHeader(codex.SessionHeader)) == "" {
-		traceSource = "codex turn metadata"
+	if c.Request.Method != http.MethodPost || !isResponsesRequestPath(c.Request.URL.Path) {
+		return "", nil
 	}
-	log.Debug(c.Request.Context(), "Extracted trace ID from "+traceSource, log.String("trace_id", traceID))
 
-	return traceID
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read Codex request body: %w", err)
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+	traceID = strings.TrimSpace(gjson.GetBytes(body, "prompt_cache_key").String())
+	if traceID != "" {
+		log.Debug(c.Request.Context(), "Extracted trace ID from Codex prompt cache key", log.String("trace_id", traceID))
+	}
+
+	return traceID, nil
+}
+
+func isResponsesRequestPath(path string) bool {
+	path = strings.TrimRight(strings.TrimSpace(path), "/")
+
+	return strings.HasSuffix(path, "/v1/responses") || strings.HasSuffix(path, "/v1/responses/compact")
 }
