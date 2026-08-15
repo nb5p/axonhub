@@ -3,6 +3,7 @@ import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-a
 import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { buildGUID } from '@/lib/utils';
 import { useSelectedProjectId } from '@/stores/projectStore';
 import { useErrorHandler } from '@/hooks/use-error-handler';
 import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
@@ -954,7 +955,7 @@ export function useActivateApiKeyProfileTemplate() {
       const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
       return graphqlRequest<{ activateApiKeyProfileTemplate: ApiKey }>(
         ACTIVATE_APIKEY_PROFILE_TEMPLATE_MUTATION,
-        { apiKeyID, templateID: String(templateID) },
+        { apiKeyID, templateID: buildGUID('APIKeyProfileTemplate', String(templateID)) },
         headers
       );
     },
