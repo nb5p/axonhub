@@ -225,6 +225,25 @@ func TestSystemService_ListPaginationSettings(t *testing.T) {
 	require.False(t, settings.Requests)
 }
 
+func TestSystemService_TestRequestListSettings(t *testing.T) {
+	cacheConfig := xcache.Config{Mode: xcache.ModeMemory}
+	service, client := setupTestSystemService(t, cacheConfig)
+	defer client.Close()
+
+	baseCtx := ent.NewContext(context.Background(), client)
+	settings, err := service.TestRequestListSettings(baseCtx)
+	require.NoError(t, err)
+	require.False(t, settings.ShowInRequestList)
+
+	writeCtx := authz.WithTestBypass(baseCtx)
+	err = service.SetTestRequestListSettings(writeCtx, TestRequestListSettings{ShowInRequestList: true})
+	require.NoError(t, err)
+
+	settings, err = service.TestRequestListSettings(baseCtx)
+	require.NoError(t, err)
+	require.True(t, settings.ShowInRequestList)
+}
+
 func TestSystemService_QuotaEnforcementDisplaySettings(t *testing.T) {
 	t.Run("defaults", func(t *testing.T) {
 		service, client := setupTestSystemService(t, xcache.Config{Mode: xcache.ModeMemory})

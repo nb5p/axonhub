@@ -694,6 +694,12 @@ models:
   UpdateListPaginationSettingsInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.ListPaginationSettings
+  TestRequestListSettings:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.TestRequestListSettings
+  UpdateTestRequestListSettingsInput:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.TestRequestListSettings
   VideoStorageSettings:
     model:
       - github.com/looplj/axonhub/internal/server/biz.VideoStorageSettings

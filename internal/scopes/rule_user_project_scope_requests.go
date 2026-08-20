@@ -37,8 +37,16 @@ func UserProjectScopeReadRequestsRule(requiredScope ScopeSlug) privacy.QueryRule
 			return privacy.Skipf("User %d can not query project %d with scope %s", currentUser.ID, projectID, requiredScope)
 		}
 
-		// Apply project_id filtering
-		if pf, ok := q.(ProjectOwnedFilter); ok {
+		// Test requests are normally global records without a project ID. When the
+		// system setting enables them for the main request list, only users with
+		// the corresponding system scope can see those records alongside the
+		// selected project's requests.
+		if requestFilter, ok := q.(*ent.RequestFilter); ok && contexts.IncludeTestRequests(ctx) && HasSystemScope(currentUser, requiredScope) {
+			requestFilter.Where(entql.Or(
+				entql.IntEQ(projectID).Field(request.FieldProjectID),
+				entql.StringEQ(string(request.SourceTest)).Field(request.FieldSource),
+			))
+		} else if pf, ok := q.(ProjectOwnedFilter); ok {
 			pf.WhereProjectID(entql.IntEQ(projectID))
 		} else {
 			return privacy.Skipf("Not a project-owned query")

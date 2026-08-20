@@ -266,6 +266,18 @@ export const DEFAULT_LIST_PAGINATION_SETTINGS: ListPaginationSettings = {
   requests: true,
 };
 
+export interface TestRequestListSettings {
+  showInRequestList: boolean;
+}
+
+export interface TestRequestListSettingsResult extends TestRequestListSettings {
+  supported: boolean;
+}
+
+export const DEFAULT_TEST_REQUEST_LIST_SETTINGS: TestRequestListSettings = {
+  showInRequestList: false,
+};
+
 export interface VideoStorageSettings {
   enabled: boolean;
   dataStorageID: number;
@@ -983,6 +995,20 @@ const UPDATE_LIST_PAGINATION_SETTINGS_MUTATION = `
   }
 `;
 
+const TEST_REQUEST_LIST_SETTINGS_QUERY = `
+  query TestRequestListSettings {
+    testRequestListSettings {
+      showInRequestList
+    }
+  }
+`;
+
+const UPDATE_TEST_REQUEST_LIST_SETTINGS_MUTATION = `
+  mutation UpdateTestRequestListSettings($input: UpdateTestRequestListSettingsInput!) {
+    updateTestRequestListSettings(input: $input)
+  }
+`;
+
 const VIDEO_STORAGE_SETTINGS_QUERY = `
   query VideoStorageSettings {
     videoStorageSettings {
@@ -1276,6 +1302,52 @@ export function useUpdateListPaginationSettings() {
         error instanceof GraphQLRequestError &&
         (error.message.includes('UpdateListPaginationSettingsInput') || error.message.includes('updateListPaginationSettings'))
           ? i18n.t('system.listPagination.backendUnavailable')
+          : i18n.t('common.errors.systemUpdateFailed');
+      toast.error(message);
+    },
+  });
+}
+
+export function useTestRequestListSettings() {
+  const { handleError } = useErrorHandler();
+
+  return useQuery({
+    queryKey: ['testRequestListSettings'],
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ testRequestListSettings: TestRequestListSettings }>(TEST_REQUEST_LIST_SETTINGS_QUERY);
+        return { ...data.testRequestListSettings, supported: true } satisfies TestRequestListSettingsResult;
+      } catch (error) {
+        if (error instanceof GraphQLRequestError && error.message.includes('testRequestListSettings')) {
+          return { ...DEFAULT_TEST_REQUEST_LIST_SETTINGS, supported: false } satisfies TestRequestListSettingsResult;
+        }
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
+    },
+    placeholderData: { ...DEFAULT_TEST_REQUEST_LIST_SETTINGS, supported: false } satisfies TestRequestListSettingsResult,
+  });
+}
+
+export function useUpdateTestRequestListSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: TestRequestListSettings) => {
+      const data = await graphqlRequest<{ updateTestRequestListSettings: boolean }>(UPDATE_TEST_REQUEST_LIST_SETTINGS_MUTATION, { input });
+      return data.updateTestRequestListSettings;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.setQueryData<TestRequestListSettingsResult>(['testRequestListSettings'], { ...variables, supported: true });
+      queryClient.invalidateQueries({ queryKey: ['testRequestListSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
+      toast.success(i18n.t('common.success.systemUpdated'));
+    },
+    onError: (error) => {
+      const message =
+        error instanceof GraphQLRequestError &&
+        (error.message.includes('UpdateTestRequestListSettingsInput') || error.message.includes('updateTestRequestListSettings'))
+          ? i18n.t('system.testRequestList.backendUnavailable')
           : i18n.t('common.errors.systemUpdateFailed');
       toast.error(message);
     },

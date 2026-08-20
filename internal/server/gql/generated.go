@@ -1117,6 +1117,7 @@ type ComplexityRoot struct {
 		UpdateSystemChannelSettings           func(childComplexity int, input biz.UpdateSystemChannelSettings) int
 		UpdateSystemGeneralSettings           func(childComplexity int, input biz.SystemGeneralSettings) int
 		UpdateSystemModelSettings             func(childComplexity int, input biz.SystemModelSettings) int
+		UpdateTestRequestListSettings         func(childComplexity int, input biz.TestRequestListSettings) int
 		UpdateUser                            func(childComplexity int, id objects.GUID, input ent.UpdateUserInput) int
 		UpdateUserAgentPassThroughSettings    func(childComplexity int, input UpdateUserAgentPassThroughSettingsInput) int
 		UpdateUserStatus                      func(childComplexity int, id objects.GUID, status user.Status) int
@@ -1484,6 +1485,7 @@ type ComplexityRoot struct {
 		SystemStatus                    func(childComplexity int) int
 		SystemVersion                   func(childComplexity int) int
 		Systems                         func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.SystemOrder, where *ent.SystemWhereInput) int
+		TestRequestListSettings         func(childComplexity int) int
 		Threads                         func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.ThreadOrder, where *ent.ThreadWhereInput) int
 		TokenStats                      func(childComplexity int) int
 		TokenStatsByAPIKey              func(childComplexity int, timeWindow *string) int
@@ -1875,6 +1877,10 @@ type ComplexityRoot struct {
 		Latency func(childComplexity int) int
 		Message func(childComplexity int) int
 		Success func(childComplexity int) int
+	}
+
+	TestRequestListSettings struct {
+		ShowInRequestList func(childComplexity int) int
 	}
 
 	Thread struct {
@@ -2349,6 +2355,7 @@ type MutationResolver interface {
 	UpdateSystemGeneralSettings(ctx context.Context, input biz.SystemGeneralSettings) (bool, error)
 	UpdateSidebarNavigationSettings(ctx context.Context, input biz.SidebarNavigationSettings) (bool, error)
 	UpdateListPaginationSettings(ctx context.Context, input biz.ListPaginationSettings) (bool, error)
+	UpdateTestRequestListSettings(ctx context.Context, input biz.TestRequestListSettings) (bool, error)
 	UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error)
 	UpdateQuotaEnforcementSettings(ctx context.Context, input UpdateQuotaEnforcementSettingsInput) (bool, error)
 	UpdateProviderQuotaCollectionSettings(ctx context.Context, input UpdateProviderQuotaCollectionSettingsInput) (bool, error)
@@ -2484,6 +2491,7 @@ type QueryResolver interface {
 	SystemGeneralSettings(ctx context.Context) (*biz.SystemGeneralSettings, error)
 	SidebarNavigationSettings(ctx context.Context) (*biz.SidebarNavigationSettings, error)
 	ListPaginationSettings(ctx context.Context) (*biz.ListPaginationSettings, error)
+	TestRequestListSettings(ctx context.Context) (*biz.TestRequestListSettings, error)
 	VideoStorageSettings(ctx context.Context) (*biz.VideoStorageSettings, error)
 	QuotaEnforcementSettings(ctx context.Context) (*biz.QuotaEnforcementSettings, error)
 	ProviderQuotaCollectionSettings(ctx context.Context) (*biz.ProviderQuotaCollectionSettings, error)
@@ -7263,6 +7271,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateSystemModelSettings(childComplexity, args["input"].(biz.SystemModelSettings)), true
+	case "Mutation.updateTestRequestListSettings":
+		if e.complexity.Mutation.UpdateTestRequestListSettings == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTestRequestListSettings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTestRequestListSettings(childComplexity, args["input"].(biz.TestRequestListSettings)), true
 	case "Mutation.updateUser":
 		if e.complexity.Mutation.UpdateUser == nil {
 			break
@@ -9053,6 +9072,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Systems(childComplexity, args["after"].(*entgql.Cursor[int]), args["first"].(*int), args["before"].(*entgql.Cursor[int]), args["last"].(*int), args["orderBy"].(*ent.SystemOrder), args["where"].(*ent.SystemWhereInput)), true
+	case "Query.testRequestListSettings":
+		if e.complexity.Query.TestRequestListSettings == nil {
+			break
+		}
+
+		return e.complexity.Query.TestRequestListSettings(childComplexity), true
 	case "Query.threads":
 		if e.complexity.Query.Threads == nil {
 			break
@@ -10587,6 +10612,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TestChannelPayload.Success(childComplexity), true
+
+	case "TestRequestListSettings.showInRequestList":
+		if e.complexity.TestRequestListSettings.ShowInRequestList == nil {
+			break
+		}
+
+		return e.complexity.TestRequestListSettings.ShowInRequestList(childComplexity), true
 
 	case "Thread.archivedTracesCount":
 		if e.complexity.Thread.ArchivedTracesCount == nil {
@@ -12131,6 +12163,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateSystemGeneralSettingsInput,
 		ec.unmarshalInputUpdateSystemInput,
 		ec.unmarshalInputUpdateSystemModelSettingsInput,
+		ec.unmarshalInputUpdateTestRequestListSettingsInput,
 		ec.unmarshalInputUpdateThreadInput,
 		ec.unmarshalInputUpdateTraceInput,
 		ec.unmarshalInputUpdateUsageLogInput,
@@ -13968,6 +14001,17 @@ func (ec *executionContext) field_Mutation_updateSystemModelSettings_args(ctx co
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateSystemModelSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSystemModelSettings)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTestRequestListSettings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateTestRequestListSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐTestRequestListSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -37846,6 +37890,47 @@ func (ec *executionContext) fieldContext_Mutation_updateListPaginationSettings(c
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateTestRequestListSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateTestRequestListSettings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateTestRequestListSettings(ctx, fc.Args["input"].(biz.TestRequestListSettings))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateTestRequestListSettings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateTestRequestListSettings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateVideoStorageSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -48403,6 +48488,39 @@ func (ec *executionContext) fieldContext_Query_listPaginationSettings(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_testRequestListSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_testRequestListSettings,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().TestRequestListSettings(ctx)
+		},
+		nil,
+		ec.marshalNTestRequestListSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐTestRequestListSettings,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_testRequestListSettings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "showInRequestList":
+				return ec.fieldContext_TestRequestListSettings_showInRequestList(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TestRequestListSettings", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_videoStorageSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -56723,6 +56841,35 @@ func (ec *executionContext) fieldContext_TestChannelPayload_error(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TestRequestListSettings_showInRequestList(ctx context.Context, field graphql.CollectedField, obj *biz.TestRequestListSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TestRequestListSettings_showInRequestList,
+		func(ctx context.Context) (any, error) {
+			return obj.ShowInRequestList, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TestRequestListSettings_showInRequestList(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TestRequestListSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -88030,6 +88177,33 @@ func (ec *executionContext) unmarshalInputUpdateSystemModelSettingsInput(ctx con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateTestRequestListSettingsInput(ctx context.Context, obj any) (biz.TestRequestListSettings, error) {
+	var it biz.TestRequestListSettings
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"showInRequestList"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "showInRequestList":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showInRequestList"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowInRequestList = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateThreadInput(ctx context.Context, obj any) (ent.UpdateThreadInput, error) {
 	var it ent.UpdateThreadInput
 	asMap := map[string]any{}
@@ -100432,6 +100606,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateTestRequestListSettings":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateTestRequestListSettings(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateVideoStorageSettings":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateVideoStorageSettings(ctx, field)
@@ -104909,6 +105090,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "testRequestListSettings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_testRequestListSettings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "videoStorageSettings":
 			field := field
 
@@ -108980,6 +109183,45 @@ func (ec *executionContext) _TestChannelPayload(ctx context.Context, sel ast.Sel
 			out.Values[i] = ec._TestChannelPayload_message(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._TestChannelPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var testRequestListSettingsImplementors = []string{"TestRequestListSettings"}
+
+func (ec *executionContext) _TestRequestListSettings(ctx context.Context, sel ast.SelectionSet, obj *biz.TestRequestListSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, testRequestListSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TestRequestListSettings")
+		case "showInRequestList":
+			out.Values[i] = ec._TestRequestListSettings_showInRequestList(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -118385,6 +118627,20 @@ func (ec *executionContext) marshalNTestChannelPayload2ᚖgithubᚗcomᚋlooplj�
 	return ec._TestChannelPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNTestRequestListSettings2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐTestRequestListSettings(ctx context.Context, sel ast.SelectionSet, v biz.TestRequestListSettings) graphql.Marshaler {
+	return ec._TestRequestListSettings(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTestRequestListSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐTestRequestListSettings(ctx context.Context, sel ast.SelectionSet, v *biz.TestRequestListSettings) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TestRequestListSettings(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNThreadConnection2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐThreadConnection(ctx context.Context, sel ast.SelectionSet, v ent.ThreadConnection) graphql.Marshaler {
 	return ec._ThreadConnection(ctx, sel, &v)
 }
@@ -118955,6 +119211,11 @@ func (ec *executionContext) unmarshalNUpdateSystemGeneralSettingsInput2githubᚗ
 
 func (ec *executionContext) unmarshalNUpdateSystemModelSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐSystemModelSettings(ctx context.Context, v any) (biz.SystemModelSettings, error) {
 	res, err := ec.unmarshalInputUpdateSystemModelSettingsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateTestRequestListSettingsInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐTestRequestListSettings(ctx context.Context, v any) (biz.TestRequestListSettings, error) {
+	res, err := ec.unmarshalInputUpdateTestRequestListSettingsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

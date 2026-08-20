@@ -314,15 +314,10 @@ export function useRequests(variables?: RequestListVariables, options?: RequestL
     queryFn: async () => {
       try {
         const query = buildRequestsQuery(permissions);
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
-
-        // Add project filter if project scoping is enabled
+        const headers = scopeToSelectedProject && projectId ? { 'X-Project-ID': projectId } : undefined;
         const finalVariables = {
           ...variables,
-          where: {
-            ...variables?.where,
-            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
-          },
+          where: variables?.where,
         };
 
         const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
@@ -352,17 +347,14 @@ export function useInfiniteRequests(variables?: RequestListVariables, options?: 
     queryFn: async ({ pageParam }) => {
       try {
         const query = buildRequestsQuery(permissions);
-        const headers = projectId ? { 'X-Project-ID': projectId } : undefined;
+        const headers = scopeToSelectedProject && projectId ? { 'X-Project-ID': projectId } : undefined;
         const finalVariables = {
           ...variables,
           first: variables?.first ?? 20,
           after: pageParam,
           last: undefined,
           before: undefined,
-          where: {
-            ...variables?.where,
-            ...(scopeToSelectedProject && projectId && { projectID: projectId }),
-          },
+          where: variables?.where,
         };
 
         const data = await graphqlRequest<{ requests: RequestConnection }>(query, finalVariables, headers);
@@ -472,13 +464,10 @@ export async function fetchAdjacentRequestPage(params: {
       ? { first: params.pageSize, after: params.cursor }
       : { last: params.pageSize, before: params.cursor };
 
-  const where: Record<string, any> = { ...params.where };
-  if (params.projectId) where.projectID = params.projectId;
-
   const headers = params.projectId ? { 'X-Project-ID': params.projectId } : undefined;
   const data = await graphqlRequest<{ requests: RequestConnection }>(
     query,
-    { ...variables, where: Object.keys(where).length > 0 ? where : undefined, orderBy: { field: 'CREATED_AT', direction: 'DESC' } },
+    { ...variables, where: params.where, orderBy: { field: 'CREATED_AT', direction: 'DESC' } },
     headers
   );
   const result = requestConnectionSchema.parse(data?.requests);

@@ -23,7 +23,7 @@ import { calculateTokensPerSecond, getTokensPerSecondValue } from '../utils/toke
 import { getStatusColor } from './help';
 
 interface UseRequestsColumnsOptions {
-  onViewDetail?: (requestId: string) => void;
+  onViewDetail?: (request: Request) => void;
 }
 
 export const DEFAULT_HIDDEN_COLUMN_IDS = ['status', 'source', 'apiFormat', 'clientIP', 'tokensPerSecond'];
@@ -75,15 +75,15 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
     await updateSecuritySettings.mutateAsync({ blockedIPs: blockedIPs.filter((ip) => ip.trim() !== normalizedIP) });
   };
 
-  const openDetail = (requestId: string) => {
+  const openDetail = (request: Request) => {
     if (options?.onViewDetail) {
-      options.onViewDetail(requestId);
+      options.onViewDetail(request);
       return;
     }
 
     navigateWithSearch({
       to: '/project/requests/$requestId',
-      params: { requestId },
+      params: { requestId: request.id },
     });
   };
 
@@ -101,7 +101,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
             <div className='flex items-center gap-2'>
               <button
                 type='button'
-                onClick={() => openDetail(request.id)}
+                onClick={() => openDetail(request)}
                 className='cursor-pointer font-mono text-xs text-green-800 hover:underline dark:text-green-300'
               >
                 #{extractNumberID(request.id)}

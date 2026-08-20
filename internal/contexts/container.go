@@ -10,17 +10,18 @@ import (
 
 // contextContainer contains all values in the context.
 type contextContainer struct {
-	ProjectID     *int
-	TraceID       *string
-	RequestID     *string
-	OperationName *string
-	APIKey        *ent.APIKey
-	User          *ent.User
-	Source        *request.Source
-	Thread        *ent.Thread
-	Trace         *ent.Trace
-	Errors        []error
-	mu            sync.RWMutex
+	ProjectID           *int
+	TraceID             *string
+	RequestID           *string
+	OperationName       *string
+	APIKey              *ent.APIKey
+	User                *ent.User
+	Source              *request.Source
+	Thread              *ent.Thread
+	Trace               *ent.Trace
+	Errors              []error
+	IncludeTestRequests bool
+	mu                  sync.RWMutex
 
 	// ChannelAPIKey stores the API key used for the channel request (not the user's API key)
 	ChannelAPIKey *string

@@ -19,7 +19,7 @@ import { Header } from '@/components/layout/header';
 import { Main } from '@/components/layout/main';
 import { RequestsTable, type RequestTableFilters } from './components';
 import { RequestsProvider } from './context';
-import { useInfiniteRequests, useRequests } from './data';
+import { type Request, useInfiniteRequests, useRequests } from './data';
 
 const REQUEST_FILTER_SEARCH_KEYS = {
   status: 'status',
@@ -403,10 +403,18 @@ function RequestsContent() {
   }, [setPersistedFilters, updateRequestSearch]);
 
   const handleViewDetail = useCallback(
-    (requestId: string) => {
+    (request: Request) => {
+      if (request.source === 'test') {
+        navigate({
+          to: '/requests/$requestId',
+          params: { requestId: request.id },
+        });
+        return;
+      }
+
       navigate({
         to: '/project/requests/$requestId',
-        params: { requestId },
+        params: { requestId: request.id },
         search: currentSearch,
       });
     },

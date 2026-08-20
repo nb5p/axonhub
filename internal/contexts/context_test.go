@@ -234,6 +234,18 @@ func TestGetRequestID(t *testing.T) {
 	}
 }
 
+func TestWithIncludeTestRequests(t *testing.T) {
+	ctx := t.Context()
+	if IncludeTestRequests(ctx) {
+		t.Error("test requests should be excluded by default")
+	}
+
+	ctx = WithIncludeTestRequests(ctx)
+	if !IncludeTestRequests(ctx) {
+		t.Error("test requests should be included after enabling the context flag")
+	}
+}
+
 func TestWithOperationName(t *testing.T) {
 	ctx := t.Context()
 	operationName := "user.create"

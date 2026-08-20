@@ -69,6 +69,10 @@ var defaultListPaginationSettings = ListPaginationSettings{
 	Requests: true,
 }
 
+var defaultTestRequestListSettings = TestRequestListSettings{
+	ShowInRequestList: false,
+}
+
 var defaultAutoBackupSettings = AutoBackupSettings{
 	Enabled:              false,
 	Frequency:            BackupFrequencyDaily,

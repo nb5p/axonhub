@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"entgo.io/contrib/entgql"
+	"github.com/looplj/axonhub/internal/contexts"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/log"
 	"github.com/looplj/axonhub/internal/objects"
@@ -464,6 +465,14 @@ func (r *queryResolver) PromptProtectionRules(ctx context.Context, after *entgql
 func (r *queryResolver) Requests(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.RequestOrder, where *ent.RequestWhereInput) (*ent.RequestConnection, error) {
 	if err := validatePaginationArgs(first, last); err != nil {
 		return nil, err
+	}
+
+	testRequestSettings, err := r.systemService.TestRequestListSettings(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get test request list settings: %w", err)
+	}
+	if testRequestSettings.ShowInRequestList {
+		ctx = contexts.WithIncludeTestRequests(ctx)
 	}
 
 	if orderBy != nil && orderBy.Field.String() == "CREATED_AT" {

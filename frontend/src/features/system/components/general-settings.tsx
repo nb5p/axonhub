@@ -24,6 +24,7 @@ import {
 import { GMTTimeZoneOptions } from '../data/timezones';
 import { ListPaginationSettings } from './list-pagination-settings';
 import { SidebarNavigationSettings } from './sidebar-navigation-settings';
+import { TestRequestListSettings } from './test-request-list-settings';
 
 export function GeneralSettings() {
   const { t } = useTranslation();
@@ -222,6 +223,8 @@ export function GeneralSettings() {
       </Card>
 
       <ListPaginationSettings />
+
+      <TestRequestListSettings />
 
       <SidebarNavigationSettings />
 

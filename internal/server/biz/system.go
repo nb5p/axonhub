@@ -101,6 +101,10 @@ const (
 	// The value is JSON-encoded ListPaginationSettings.
 	SystemKeyListPaginationSettings = "system_list_pagination_settings"
 
+	// SystemKeyTestRequestListSettings stores whether channel test requests are visible in the main request list.
+	// The value is JSON-encoded TestRequestListSettings.
+	SystemKeyTestRequestListSettings = "system_test_request_list_settings"
+
 	// SystemKeyAutoBackupSettings is the key used to store auto backup configuration.
 	// The value is JSON-encoded AutoBackupSettings struct.
 	SystemKeyAutoBackupSettings = "system_auto_backup_settings"
@@ -167,6 +171,11 @@ type ListPaginationSettings struct {
 	Channels bool `json:"channels"`
 	APIKeys  bool `json:"api_keys"`
 	Requests bool `json:"requests"`
+}
+
+// TestRequestListSettings controls whether channel test requests are included in the main request list.
+type TestRequestListSettings struct {
+	ShowInRequestList bool `json:"show_in_request_list"`
 }
 
 // VideoStorageSettings represents system settings for persisting generated videos.
@@ -1750,6 +1759,42 @@ func (s *SystemService) SetListPaginationSettings(ctx context.Context, settings 
 
 	if err := s.setSystemValue(ctx, SystemKeyListPaginationSettings, string(jsonBytes)); err != nil {
 		return fmt.Errorf("failed to set list pagination settings: %w", err)
+	}
+
+	return nil
+}
+
+// TestRequestListSettings retrieves the global request-list visibility preference for channel tests.
+// Reading is available to every authenticated user because it only affects query presentation.
+func (s *SystemService) TestRequestListSettings(ctx context.Context) (*TestRequestListSettings, error) {
+	return authz.RunWithSystemBypass(ctx, "test-request-list-settings", func(bypassCtx context.Context) (*TestRequestListSettings, error) {
+		value, err := s.getSystemValue(bypassCtx, SystemKeyTestRequestListSettings)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return lo.ToPtr(defaultTestRequestListSettings), nil
+			}
+
+			return nil, fmt.Errorf("failed to get test request list settings: %w", err)
+		}
+
+		settings := defaultTestRequestListSettings
+		if err := json.Unmarshal([]byte(value), &settings); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal test request list settings: %w", err)
+		}
+
+		return &settings, nil
+	})
+}
+
+// SetTestRequestListSettings updates the global request-list visibility preference for channel tests.
+func (s *SystemService) SetTestRequestListSettings(ctx context.Context, settings TestRequestListSettings) error {
+	jsonBytes, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal test request list settings: %w", err)
+	}
+
+	if err := s.setSystemValue(ctx, SystemKeyTestRequestListSettings, string(jsonBytes)); err != nil {
+		return fmt.Errorf("failed to set test request list settings: %w", err)
 	}
 
 	return nil

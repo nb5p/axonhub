@@ -180,6 +180,15 @@ func (r *mutationResolver) UpdateListPaginationSettings(ctx context.Context, inp
 	return true, nil
 }
 
+// UpdateTestRequestListSettings is the resolver for the updateTestRequestListSettings field.
+func (r *mutationResolver) UpdateTestRequestListSettings(ctx context.Context, input biz.TestRequestListSettings) (bool, error) {
+	if err := r.systemService.SetTestRequestListSettings(ctx, input); err != nil {
+		return false, fmt.Errorf("failed to update test request list settings: %w", err)
+	}
+
+	return true, nil
+}
+
 // UpdateVideoStorageSettings is the resolver for the updateVideoStorageSettings field.
 func (r *mutationResolver) UpdateVideoStorageSettings(ctx context.Context, input biz.VideoStorageSettings) (bool, error) {
 	err := r.systemService.SetVideoStorageSettings(ctx, input)
@@ -601,6 +610,11 @@ func (r *queryResolver) SidebarNavigationSettings(ctx context.Context) (*biz.Sid
 // ListPaginationSettings is the resolver for the listPaginationSettings field.
 func (r *queryResolver) ListPaginationSettings(ctx context.Context) (*biz.ListPaginationSettings, error) {
 	return r.systemService.ListPaginationSettings(ctx)
+}
+
+// TestRequestListSettings is the resolver for the testRequestListSettings field.
+func (r *queryResolver) TestRequestListSettings(ctx context.Context) (*biz.TestRequestListSettings, error) {
+	return r.systemService.TestRequestListSettings(ctx)
 }
 
 // VideoStorageSettings is the resolver for the videoStorageSettings field.

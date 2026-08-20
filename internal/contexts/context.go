@@ -154,6 +154,19 @@ func GetProjectID(ctx context.Context) (int, bool) {
 	return 0, false
 }
 
+// WithIncludeTestRequests allows the main request list to include channel test requests.
+func WithIncludeTestRequests(ctx context.Context) context.Context {
+	container := getContainer(ctx)
+	container.IncludeTestRequests = true
+
+	return withContainer(ctx, container)
+}
+
+// IncludeTestRequests reports whether the main request list should include channel test requests.
+func IncludeTestRequests(ctx context.Context) bool {
+	return getContainer(ctx).IncludeTestRequests
+}
+
 // AddError appends an error to the context's error list.
 // Will do nothing if the context is not initialized.
 // But in real world, it should be initialized.

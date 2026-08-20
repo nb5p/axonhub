@@ -65,7 +65,7 @@ interface RequestsTableProps {
   onFiltersChange: (filters: RequestTableFilters) => void;
   onDateRangeChange: (range: DateTimeRangeValue | undefined) => void;
   onResetFilters: () => void;
-  onViewDetail: (requestId: string) => void;
+  onViewDetail: (request: Request) => void;
   onRefresh: () => void;
   showRefresh: boolean;
   autoRefresh?: boolean;
