@@ -15,13 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { checkProviderQuotas } from '@/features/system/data/quotas';
 import type { Channel } from '../data/schema';
 import {
   type ChannelUsageQueryConfigInput,
   type ChannelUsageQueryPreset,
   type ChannelUsageQueryTestResult,
   useChannelUsageQuery,
+  useRefreshAllUsageQueries,
   useSaveChannelUsageQuery,
   useTestChannelUsageQuery,
 } from '../data/usage-query';
@@ -83,8 +83,10 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
   const { data, isLoading, isError, error } = useChannelUsageQuery(currentRow.id, open);
   const saveUsageQuery = useSaveChannelUsageQuery();
   const testUsageQuery = useTestChannelUsageQuery();
+  const refreshAllUsageQueries = useRefreshAllUsageQueries();
 
   const [enabled, setEnabled] = useState(true);
+  const [showInProviderQuota, setShowInProviderQuota] = useState(true);
   const [preset, setPreset] = useState<ChannelUsageQueryPreset>('NEW_API');
   const [baseUrlOverride, setBaseUrlOverride] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -100,6 +102,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     const nextPreset = data.script ? data.preset : 'NEW_API';
     const nextScript = data.script || (nextPreset === 'NEW_API' ? NEW_API_SCRIPT : CUSTOM_SCRIPT);
     setEnabled(data.script ? data.enabled : true);
+    setShowInProviderQuota(data.showInProviderQuota);
     setPreset(nextPreset);
     setBaseUrlOverride(data.baseUrlOverride ?? '');
     setApiKey('');
@@ -120,6 +123,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
 
   const buildInput = (): ChannelUsageQueryConfigInput => ({
     enabled,
+    showInProviderQuota,
     preset,
     baseUrlOverride: baseUrlOverride.trim() || null,
     userId: preset === 'NEW_API' ? userId.trim() || null : null,
@@ -173,7 +177,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
       toast.success(t('channels.dialogs.usageQuery.saveSuccess'));
       onOpenChange(false);
       if (saved.enabled) {
-        void checkProviderQuotas();
+        refreshAllUsageQueries.mutate();
       }
     } catch (error) {
       toast.error(t('channels.dialogs.usageQuery.saveFailed'), {
@@ -224,6 +228,20 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
                 <Label htmlFor='usage-query-enabled'>{t('channels.dialogs.usageQuery.enabled')}</Label>
                 <Switch id='usage-query-enabled' checked={enabled} onCheckedChange={setEnabled} />
               </div>
+            </div>
+
+            <div className='flex items-center justify-between gap-4 rounded-md border p-3'>
+              <div className='space-y-1'>
+                <Label htmlFor='usage-query-show-in-provider-quota'>
+                  {t('channels.dialogs.usageQuery.showInProviderQuota.label')}
+                </Label>
+                <p className='text-muted-foreground text-sm'>{t('channels.dialogs.usageQuery.showInProviderQuota.description')}</p>
+              </div>
+              <Switch
+                id='usage-query-show-in-provider-quota'
+                checked={showInProviderQuota}
+                onCheckedChange={setShowInProviderQuota}
+              />
             </div>
 
             <Separator />

@@ -603,6 +603,7 @@ type ComplexityRoot struct {
 		RetryableStatusCodes     func(childComplexity int) int
 		TransformOptions         func(childComplexity int) int
 		Treat429AsNonRetryable   func(childComplexity int) int
+		UsageQuery               func(childComplexity int) int
 	}
 
 	ChannelSuccessRate struct {
@@ -632,12 +633,18 @@ type ComplexityRoot struct {
 	}
 
 	ChannelUsageQueryConfig struct {
-		APIKeyConfigured func(childComplexity int) int
-		BaseURLOverride  func(childComplexity int) int
-		Enabled          func(childComplexity int) int
-		Preset           func(childComplexity int) int
-		Script           func(childComplexity int) int
-		UserID           func(childComplexity int) int
+		APIKeyConfigured    func(childComplexity int) int
+		BaseURLOverride     func(childComplexity int) int
+		Enabled             func(childComplexity int) int
+		Preset              func(childComplexity int) int
+		Script              func(childComplexity int) int
+		ShowInProviderQuota func(childComplexity int) int
+		UserID              func(childComplexity int) int
+	}
+
+	ChannelUsageQueryListSettings struct {
+		Enabled             func(childComplexity int) int
+		ShowInProviderQuota func(childComplexity int) int
 	}
 
 	ChannelUsageQueryTestResult struct {
@@ -1060,6 +1067,8 @@ type ComplexityRoot struct {
 		EnableSelectedChannelAPIKeys          func(childComplexity int, channelID objects.GUID, keys []string) int
 		LoadAPIKeyProfileTemplate             func(childComplexity int, input LoadAPIKeyProfileTemplateInput) int
 		PreviewPromptProtectionRule           func(childComplexity int, input PromptProtectionRulePreviewInput) int
+		RefreshAllUsageQueries                func(childComplexity int) int
+		RefreshChannelUsageQuery              func(childComplexity int, channelID objects.GUID) int
 		RemoveUserFromProject                 func(childComplexity int, input RemoveUserFromProjectInput) int
 		ResetChannelQuotaNow                  func(childComplexity int, channelID objects.GUID) int
 		Restore                               func(childComplexity int, file graphql.Upload, input backup.RestoreOptions) int
@@ -2287,6 +2296,8 @@ type MutationResolver interface {
 	TestChannelAPIKey(ctx context.Context, channelID objects.GUID, key string, modelID *string) (*TestAPIKeyResult, error)
 	SaveChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryConfig, error)
 	TestChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryTestResult, error)
+	RefreshChannelUsageQuery(ctx context.Context, channelID objects.GUID) (bool, error)
+	RefreshAllUsageQueries(ctx context.Context) (bool, error)
 	BulkImportChannels(ctx context.Context, input BulkImportChannelsInput) (*biz.BulkImportChannelsResult, error)
 	BulkUpdateChannelOrdering(ctx context.Context, input BulkUpdateChannelOrderingInput) (*BulkUpdateChannelOrderingResult, error)
 	DisableChannelAPIKey(ctx context.Context, channelID objects.GUID, key string) (bool, error)
@@ -4568,6 +4579,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelSettings.Treat429AsNonRetryable(childComplexity), true
+	case "ChannelSettings.usageQuery":
+		if e.complexity.ChannelSettings.UsageQuery == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.UsageQuery(childComplexity), true
 
 	case "ChannelSuccessRate.channelDisabled":
 		if e.complexity.ChannelSuccessRate.ChannelDisabled == nil {
@@ -4687,12 +4704,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelUsageQueryConfig.Script(childComplexity), true
+	case "ChannelUsageQueryConfig.showInProviderQuota":
+		if e.complexity.ChannelUsageQueryConfig.ShowInProviderQuota == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.ShowInProviderQuota(childComplexity), true
 	case "ChannelUsageQueryConfig.userId":
 		if e.complexity.ChannelUsageQueryConfig.UserID == nil {
 			break
 		}
 
 		return e.complexity.ChannelUsageQueryConfig.UserID(childComplexity), true
+
+	case "ChannelUsageQueryListSettings.enabled":
+		if e.complexity.ChannelUsageQueryListSettings.Enabled == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryListSettings.Enabled(childComplexity), true
+	case "ChannelUsageQueryListSettings.showInProviderQuota":
+		if e.complexity.ChannelUsageQueryListSettings.ShowInProviderQuota == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryListSettings.ShowInProviderQuota(childComplexity), true
 
 	case "ChannelUsageQueryTestResult.extra":
 		if e.complexity.ChannelUsageQueryTestResult.Extra == nil {
@@ -6649,6 +6685,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.PreviewPromptProtectionRule(childComplexity, args["input"].(PromptProtectionRulePreviewInput)), true
+	case "Mutation.refreshAllUsageQueries":
+		if e.complexity.Mutation.RefreshAllUsageQueries == nil {
+			break
+		}
+
+		return e.complexity.Mutation.RefreshAllUsageQueries(childComplexity), true
+	case "Mutation.refreshChannelUsageQuery":
+		if e.complexity.Mutation.RefreshChannelUsageQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_refreshChannelUsageQuery_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RefreshChannelUsageQuery(childComplexity, args["channelID"].(objects.GUID)), true
 	case "Mutation.removeUserFromProject":
 		if e.complexity.Mutation.RemoveUserFromProject == nil {
 			break
@@ -13254,6 +13307,17 @@ func (ec *executionContext) field_Mutation_previewPromptProtectionRule_args(ctx 
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_refreshChannelUsageQuery_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "channelID", ec.unmarshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
+	if err != nil {
+		return nil, err
+	}
+	args["channelID"] = arg0
 	return args, nil
 }
 
@@ -21475,6 +21539,8 @@ func (ec *executionContext) fieldContext_Channel_settings(_ context.Context, fie
 				return ec.fieldContext_ChannelSettings_retryableErrorPatterns(ctx, field)
 			case "providerQuota":
 				return ec.fieldContext_ChannelSettings_providerQuota(ctx, field)
+			case "usageQuery":
+				return ec.fieldContext_ChannelSettings_usageQuery(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChannelSettings", field.Name)
 		},
@@ -26222,6 +26288,41 @@ func (ec *executionContext) fieldContext_ChannelSettings_providerQuota(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelSettings_usageQuery(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_usageQuery,
+		func(ctx context.Context) (any, error) {
+			return obj.UsageQuery, nil
+		},
+		nil,
+		ec.marshalOChannelUsageQueryListSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQuerySettings,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_usageQuery(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "enabled":
+				return ec.fieldContext_ChannelUsageQueryListSettings_enabled(ctx, field)
+			case "showInProviderQuota":
+				return ec.fieldContext_ChannelUsageQueryListSettings_showInProviderQuota(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryListSettings", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelSuccessRate_channelId(ctx context.Context, field graphql.CollectedField, obj *ChannelSuccessRate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26657,6 +26758,35 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_enabled(_ conte
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelUsageQueryConfig_showInProviderQuota(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_showInProviderQuota,
+		func(ctx context.Context) (any, error) {
+			return obj.ShowInProviderQuota, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_showInProviderQuota(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelUsageQueryConfig_preset(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26792,6 +26922,64 @@ func (ec *executionContext) _ChannelUsageQueryConfig_apiKeyConfigured(ctx contex
 func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_apiKeyConfigured(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryListSettings_enabled(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelUsageQuerySettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryListSettings_enabled,
+		func(ctx context.Context) (any, error) {
+			return obj.Enabled, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryListSettings_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryListSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryListSettings_showInProviderQuota(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelUsageQuerySettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryListSettings_showInProviderQuota,
+		func(ctx context.Context) (any, error) {
+			return obj.ShowInProviderQuota, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryListSettings_showInProviderQuota(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryListSettings",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -34205,6 +34393,8 @@ func (ec *executionContext) fieldContext_Mutation_saveChannelUsageQuery(ctx cont
 			switch field.Name {
 			case "enabled":
 				return ec.fieldContext_ChannelUsageQueryConfig_enabled(ctx, field)
+			case "showInProviderQuota":
+				return ec.fieldContext_ChannelUsageQueryConfig_showInProviderQuota(ctx, field)
 			case "preset":
 				return ec.fieldContext_ChannelUsageQueryConfig_preset(ctx, field)
 			case "baseUrlOverride":
@@ -34290,6 +34480,76 @@ func (ec *executionContext) fieldContext_Mutation_testChannelUsageQuery(ctx cont
 	if fc.Args, err = ec.field_Mutation_testChannelUsageQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_refreshChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_refreshChannelUsageQuery,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RefreshChannelUsageQuery(ctx, fc.Args["channelID"].(objects.GUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_refreshChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_refreshChannelUsageQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_refreshAllUsageQueries(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_refreshAllUsageQueries,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().RefreshAllUsageQueries(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_refreshAllUsageQueries(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -46602,6 +46862,8 @@ func (ec *executionContext) fieldContext_Query_channelUsageQuery(ctx context.Con
 			switch field.Name {
 			case "enabled":
 				return ec.fieldContext_ChannelUsageQueryConfig_enabled(ctx, field)
+			case "showInProviderQuota":
+				return ec.fieldContext_ChannelUsageQueryConfig_showInProviderQuota(ctx, field)
 			case "preset":
 				return ec.fieldContext_ChannelUsageQueryConfig_preset(ctx, field)
 			case "baseUrlOverride":
@@ -70554,11 +70816,14 @@ func (ec *executionContext) unmarshalInputChannelUsageQueryConfigInput(ctx conte
 		asMap[k] = v
 	}
 
+	if _, present := asMap["showInProviderQuota"]; !present {
+		asMap["showInProviderQuota"] = true
+	}
 	if _, present := asMap["clearApiKey"]; !present {
 		asMap["clearApiKey"] = false
 	}
 
-	fieldsInOrder := [...]string{"enabled", "preset", "baseUrlOverride", "userId", "script", "apiKey", "clearApiKey"}
+	fieldsInOrder := [...]string{"enabled", "showInProviderQuota", "preset", "baseUrlOverride", "userId", "script", "apiKey", "clearApiKey"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -70572,6 +70837,13 @@ func (ec *executionContext) unmarshalInputChannelUsageQueryConfigInput(ctx conte
 				return it, err
 			}
 			it.Enabled = data
+		case "showInProviderQuota":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showInProviderQuota"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowInProviderQuota = data
 		case "preset":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preset"))
 			data, err := ec.unmarshalNChannelUsageQueryPreset2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQueryPreset(ctx, v)
@@ -96940,6 +97212,8 @@ func (ec *executionContext) _ChannelSettings(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._ChannelSettings_retryableErrorPatterns(ctx, field, obj)
 		case "providerQuota":
 			out.Values[i] = ec._ChannelSettings_providerQuota(ctx, field, obj)
+		case "usageQuery":
+			out.Values[i] = ec._ChannelSettings_usageQuery(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -97185,6 +97459,11 @@ func (ec *executionContext) _ChannelUsageQueryConfig(ctx context.Context, sel as
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "showInProviderQuota":
+			out.Values[i] = ec._ChannelUsageQueryConfig_showInProviderQuota(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "preset":
 			out.Values[i] = ec._ChannelUsageQueryConfig_preset(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -97204,6 +97483,47 @@ func (ec *executionContext) _ChannelUsageQueryConfig(ctx context.Context, sel as
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var channelUsageQueryListSettingsImplementors = []string{"ChannelUsageQueryListSettings"}
+
+func (ec *executionContext) _ChannelUsageQueryListSettings(ctx context.Context, sel ast.SelectionSet, obj *objects.ChannelUsageQuerySettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, channelUsageQueryListSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChannelUsageQueryListSettings")
+		case "enabled":
+			out.Values[i] = ec._ChannelUsageQueryListSettings_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "showInProviderQuota":
+			out.Values[i] = ec._ChannelUsageQueryListSettings_showInProviderQuota(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -100126,6 +100446,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "testChannelUsageQuery":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_testChannelUsageQuery(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshChannelUsageQuery":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_refreshChannelUsageQuery(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshAllUsageQueries":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_refreshAllUsageQueries(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -121594,6 +121928,13 @@ func (ec *executionContext) marshalOChannelType2ᚖgithubᚗcomᚋloopljᚋaxonh
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOChannelUsageQueryListSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQuerySettings(ctx context.Context, sel ast.SelectionSet, v *objects.ChannelUsageQuerySettings) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ChannelUsageQueryListSettings(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOChannelWhereInput2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐChannelWhereInputᚄ(ctx context.Context, v any) ([]*ent.ChannelWhereInput, error) {

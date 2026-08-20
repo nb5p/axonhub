@@ -6,28 +6,32 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/objects"
 	providerquota "github.com/looplj/axonhub/internal/server/biz/provider_quota"
 )
 
 type ChannelUsageQueryConfig struct {
-	Enabled          bool
-	Preset           objects.ChannelUsageQueryPreset
-	BaseURLOverride  *string
-	UserID           *string
-	Script           string
-	APIKeyConfigured bool
+	Enabled             bool
+	ShowInProviderQuota bool
+	Preset              objects.ChannelUsageQueryPreset
+	BaseURLOverride     *string
+	UserID              *string
+	Script              string
+	APIKeyConfigured    bool
 }
 
 type ChannelUsageQueryConfigInput struct {
-	Enabled         bool
-	Preset          objects.ChannelUsageQueryPreset
-	BaseURLOverride *string
-	UserID          *string
-	Script          string
-	APIKey          *string
-	ClearAPIKey     bool
+	Enabled             bool
+	ShowInProviderQuota bool
+	Preset              objects.ChannelUsageQueryPreset
+	BaseURLOverride     *string
+	UserID              *string
+	Script              string
+	APIKey              *string
+	ClearAPIKey         bool
 }
 
 type ChannelUsageQueryTestResult struct {
@@ -171,9 +175,10 @@ func validateChannelUsageQueryInput(input ChannelUsageQueryConfigInput) error {
 
 func usageQuerySettingsFromInput(input ChannelUsageQueryConfigInput) *objects.ChannelUsageQuerySettings {
 	settings := &objects.ChannelUsageQuerySettings{
-		Enabled: input.Enabled,
-		Preset:  input.Preset,
-		Script:  strings.TrimSpace(input.Script),
+		Enabled:             input.Enabled,
+		ShowInProviderQuota: lo.ToPtr(input.ShowInProviderQuota),
+		Preset:              input.Preset,
+		Script:              strings.TrimSpace(input.Script),
 	}
 	if input.BaseURLOverride != nil {
 		settings.BaseURLOverride = strings.TrimSpace(*input.BaseURLOverride)
@@ -186,8 +191,9 @@ func usageQuerySettingsFromInput(input ChannelUsageQueryConfigInput) *objects.Ch
 
 func channelUsageQueryConfigFromEntity(ch *ent.Channel) *ChannelUsageQueryConfig {
 	result := &ChannelUsageQueryConfig{
-		Preset:           objects.ChannelUsageQueryPresetNewAPI,
-		APIKeyConfigured: strings.TrimSpace(ch.Credentials.UsageQueryAPIKey) != "",
+		Preset:              objects.ChannelUsageQueryPresetNewAPI,
+		ShowInProviderQuota: true,
+		APIKeyConfigured:    strings.TrimSpace(ch.Credentials.UsageQueryAPIKey) != "",
 	}
 	if ch.Settings == nil || ch.Settings.UsageQuery == nil {
 		return result
@@ -195,6 +201,9 @@ func channelUsageQueryConfigFromEntity(ch *ent.Channel) *ChannelUsageQueryConfig
 
 	settings := ch.Settings.UsageQuery
 	result.Enabled = settings.Enabled
+	if settings.ShowInProviderQuota != nil {
+		result.ShowInProviderQuota = *settings.ShowInProviderQuota
+	}
 	result.Preset = settings.Preset
 	result.Script = settings.Script
 	if settings.BaseURLOverride != "" {

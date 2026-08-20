@@ -239,11 +239,12 @@ type OpenCodeGoQuotaSettings struct {
 }
 
 type ChannelUsageQuerySettings struct {
-	Enabled         bool                    `json:"enabled"`
-	Preset          ChannelUsageQueryPreset `json:"preset"`
-	BaseURLOverride string                  `json:"baseUrlOverride,omitempty"`
-	UserID          string                  `json:"userId,omitempty"`
-	Script          string                  `json:"script"`
+	Enabled             bool                    `json:"enabled"`
+	ShowInProviderQuota *bool                   `json:"showInProviderQuota,omitempty"`
+	Preset              ChannelUsageQueryPreset `json:"preset"`
+	BaseURLOverride     string                  `json:"baseUrlOverride,omitempty"`
+	UserID              string                  `json:"userId,omitempty"`
+	Script              string                  `json:"script"`
 }
 
 type ChannelUsageQueryPreset string

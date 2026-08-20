@@ -11,6 +11,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/enttest"
+	"github.com/looplj/axonhub/internal/ent/providerquotastatus"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcache"
 	"github.com/looplj/axonhub/internal/server/biz/provider_quota"
@@ -172,4 +173,42 @@ func TestProviderQuotaService_ResetChannelQuotaNow_CollectionDisabledForCodex(t 
 
 	require.ErrorContains(t, err, "provider quota collection is disabled for codex")
 	require.Zero(t, codexChecker.calls.Load())
+}
+
+func TestProviderQuotaService_RefreshUsageQueries_RefreshesEnabledScriptsWhenCollectionIsDisabled(t *testing.T) {
+	service, systemService, ctx, client := setupProviderQuotaCollectionService(t)
+	defer client.Close()
+
+	checker := &countingQuotaChecker{providerType: "usage_query"}
+	service.checkers["usage_query"] = checker
+	channelEntity := createProviderQuotaCollectionChannel(t, ctx, client, "Usage query", channel.TypeOpenai)
+	require.NoError(t, client.Channel.UpdateOne(channelEntity).
+		SetSettings(&objects.ChannelSettings{UsageQuery: &objects.ChannelUsageQuerySettings{
+			Enabled: true,
+			Preset:  objects.ChannelUsageQueryPresetCustom,
+			Script:  "({ request: { url: 'https://example.com' }, extractor: function() { return {}; } })",
+		}}).
+		Exec(ctx))
+	disabledChannel := createProviderQuotaCollectionChannel(t, ctx, client, "Disabled usage query", channel.TypeOpenai)
+	require.NoError(t, client.Channel.UpdateOne(disabledChannel).
+		SetStatus(channel.StatusDisabled).
+		SetSettings(&objects.ChannelSettings{UsageQuery: &objects.ChannelUsageQuerySettings{
+			Enabled: true,
+			Preset:  objects.ChannelUsageQueryPresetCustom,
+			Script:  "({ request: { url: 'https://example.com' }, extractor: function() { return {}; } })",
+		}}).
+		Exec(ctx))
+
+	disabled := false
+	require.NoError(t, systemService.UpdateProviderQuotaCollectionSettings(ctx, &disabled, nil))
+
+	require.NoError(t, service.RefreshUsageQueries(ctx))
+	require.EqualValues(t, 2, checker.calls.Load())
+
+	status, err := client.ProviderQuotaStatus.Query().Where(providerquotastatus.ChannelIDEQ(channelEntity.ID)).Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, providerquotastatus.ProviderTypeUsageQuery, status.ProviderType)
+
+	require.NoError(t, service.RefreshUsageQueryChannel(ctx, channelEntity.ID))
+	require.EqualValues(t, 3, checker.calls.Load())
 }

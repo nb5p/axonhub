@@ -343,6 +343,34 @@ func (r *mutationResolver) TestChannelUsageQuery(ctx context.Context, channelID 
 	return r.channelService.TestChannelUsageQuery(ctx, channelID.ID, input)
 }
 
+// RefreshChannelUsageQuery is the resolver for the refreshChannelUsageQuery field.
+func (r *mutationResolver) RefreshChannelUsageQuery(ctx context.Context, channelID objects.GUID) (bool, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeWriteChannels); err != nil {
+		return false, err
+	}
+	if r.providerQuotaService == nil {
+		return false, fmt.Errorf("provider quota service is not available")
+	}
+	if err := r.providerQuotaService.RefreshUsageQueryChannel(ctx, channelID.ID); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// RefreshAllUsageQueries is the resolver for the refreshAllUsageQueries field.
+func (r *mutationResolver) RefreshAllUsageQueries(ctx context.Context) (bool, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeWriteChannels); err != nil {
+		return false, err
+	}
+	if r.providerQuotaService == nil {
+		return false, fmt.Errorf("provider quota service is not available")
+	}
+	if err := r.providerQuotaService.RefreshUsageQueries(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // BulkImportChannels is the resolver for the bulkImportChannels field.
 func (r *mutationResolver) BulkImportChannels(ctx context.Context, input BulkImportChannelsInput) (*biz.BulkImportChannelsResult, error) {
 	result, err := r.channelService.BulkImportChannels(ctx, input.Channels)

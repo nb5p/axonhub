@@ -884,5 +884,15 @@
   "channels.dialogs.usageQuery.actions.save": "保存配置",
   "channels.dialogs.usageQuery.saveSuccess": "用量查询配置已保存",
   "channels.dialogs.usageQuery.saveFailed": "保存用量查询配置失败",
-  "channels.dialogs.usageQuery.loadFailed": "加载用量查询配置失败"
+  "channels.dialogs.usageQuery.loadFailed": "加载用量查询配置失败",
+  "channels.dialogs.usageQuery.showInProviderQuota.label": "显示在提供商配额中",
+  "channels.dialogs.usageQuery.showInProviderQuota.description": "关闭后仍会在渠道列表的用量查询列显示，右上角提供商配额将不再显示此渠道。",
+  "channels.columns.usageQuery": "用量查询",
+  "channels.usageQuery.invalid": "查询到的套餐无效",
+  "channels.usageQuery.remaining": "剩余：",
+  "channels.usageQuery.refresh.channel": "刷新此渠道的用量查询",
+  "channels.usageQuery.refresh.all": "刷新所有已启用用量查询的渠道",
+  "channels.usageQuery.refresh.success": "用量查询已刷新",
+  "channels.usageQuery.refresh.allSuccess": "所有用量查询已刷新",
+  "channels.usageQuery.refresh.failed": "刷新用量查询失败"
 }

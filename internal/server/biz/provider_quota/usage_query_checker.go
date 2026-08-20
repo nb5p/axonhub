@@ -96,7 +96,14 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 		return QuotaData{}, fmt.Errorf("failed to extract usage query response: %w", err)
 	}
 
-	return normalizeUsageQueryResult(result), nil
+	quotaData := normalizeUsageQueryResult(result)
+	quotaData.RawData["showInProviderQuota"] = usageQueryShowsInProviderQuota(ch)
+	return quotaData, nil
+}
+
+func usageQueryShowsInProviderQuota(ch *ent.Channel) bool {
+	return ch != nil && ch.Settings != nil && ch.Settings.UsageQuery != nil &&
+		(ch.Settings.UsageQuery.ShowInProviderQuota == nil || *ch.Settings.UsageQuery.ShowInProviderQuota)
 }
 
 func (c *UsageQueryChecker) executeRequest(

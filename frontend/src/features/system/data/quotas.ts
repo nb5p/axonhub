@@ -34,6 +34,9 @@ const PROVIDER_QUOTA_STATUSES_QUERY = `
                 workspaceId
               }
             }
+            usageQuery {
+              showInProviderQuota
+            }
           }
         }
       }
@@ -513,6 +516,9 @@ type QueryChannelNode = {
         workspaceId?: string | null;
       } | null;
     } | null;
+    usageQuery?: {
+      showInProviderQuota?: boolean | null;
+    } | null;
   } | null;
 };
 
@@ -694,6 +700,7 @@ export function useProviderQuotaStatuses() {
   const channels = (query.data?.queryChannels?.edges ?? [])
     .map((edge) => edge?.node ?? null)
     .filter(hasProviderQuotaStatus)
+    .filter((c) => c.providerQuotaStatus.providerType !== 'usage_query' || c.settings?.usageQuery?.showInProviderQuota !== false)
     .filter((c) => {
       // Skip channels that have no credentials configured, since they cannot be
       // checked and only add noise to the quota popover. Other errors are still

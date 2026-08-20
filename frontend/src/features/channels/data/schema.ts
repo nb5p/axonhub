@@ -310,6 +310,12 @@ export const channelProviderQuotaSettingsSchema = z.object({
 });
 export type ChannelProviderQuotaSettings = z.infer<typeof channelProviderQuotaSettingsSchema>;
 
+export const channelUsageQueryListSettingsSchema = z.object({
+  enabled: z.boolean(),
+  showInProviderQuota: z.boolean().optional().nullable(),
+});
+export type ChannelUsageQueryListSettings = z.infer<typeof channelUsageQueryListSettingsSchema>;
+
 // Channel Settings
 export const channelSettingsSchema = z.object({
   extraModelPrefix: z.string().optional(),
@@ -329,6 +335,7 @@ export const channelSettingsSchema = z.object({
   retryableStatusCodes: z.array(z.number().int().min(400).max(599)).optional().nullable(),
   retryableErrorPatterns: z.array(retryableErrorPatternSchema).optional().nullable(),
   providerQuota: channelProviderQuotaSettingsSchema.optional().nullable(),
+  usageQuery: channelUsageQueryListSettingsSchema.optional().nullable(),
 });
 
 export type ChannelSettings = z.infer<typeof channelSettingsSchema>;
@@ -405,6 +412,14 @@ export const channelSchema = z.object({
   orderingWeight: z.number().optional().default(0),
   errorMessage: z.string().optional().nullable(),
   remark: z.string().optional().nullable(),
+  providerQuotaStatus: z
+    .object({
+      providerType: z.string(),
+      status: z.enum(['available', 'warning', 'exhausted', 'unknown']),
+      quotaData: z.unknown().nullable(),
+    })
+    .optional()
+    .nullable(),
   allModelEntries: z.array(channelModelEntrySchema).optional(),
   liveLimiterStats: channelLimiterStatsSchema.optional().nullable(),
   endpoints: z.array(channelEndpointSchema).optional().default([]).nullable(),

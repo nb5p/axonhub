@@ -47,18 +47,21 @@ func TestChannelUsageQueryConfig_SaveAndRegularUpdatePreserveSecret(t *testing.T
 	require.NoError(t, err)
 
 	config, err := svc.SaveChannelUsageQueryConfig(ctx, ch.ID, ChannelUsageQueryConfigInput{
-		Enabled: true,
-		Preset:  objects.ChannelUsageQueryPresetCustom,
-		Script:  channelUsageQueryTestScript,
+		Enabled:             true,
+		ShowInProviderQuota: false,
+		Preset:              objects.ChannelUsageQueryPresetCustom,
+		Script:              channelUsageQueryTestScript,
 	})
 	require.NoError(t, err)
 	require.True(t, config.Enabled)
+	require.False(t, config.ShowInProviderQuota)
 	require.True(t, config.APIKeyConfigured)
 	require.Equal(t, channelUsageQueryTestScript, config.Script)
 
 	config, err = svc.ChannelUsageQueryConfig(ctx, ch.ID)
 	require.NoError(t, err)
 	require.True(t, config.APIKeyConfigured)
+	require.False(t, config.ShowInProviderQuota)
 	require.NotContains(t, config.Script, "query-key")
 
 	updated, err := svc.UpdateChannel(ctx, ch.ID, &ent.UpdateChannelInput{
@@ -70,6 +73,8 @@ func TestChannelUsageQueryConfig_SaveAndRegularUpdatePreserveSecret(t *testing.T
 	require.Equal(t, "query-key", updated.Credentials.UsageQueryAPIKey)
 	require.NotNil(t, updated.Settings.UsageQuery)
 	require.Equal(t, channelUsageQueryTestScript, updated.Settings.UsageQuery.Script)
+	require.NotNil(t, updated.Settings.UsageQuery.ShowInProviderQuota)
+	require.False(t, *updated.Settings.UsageQuery.ShowInProviderQuota)
 	require.Equal(t, "new-prefix", updated.Settings.ExtraModelPrefix)
 }
 

@@ -565,6 +565,83 @@ func (svc *ProviderQuotaService) ManualCheck(ctx context.Context) {
 	svc.runQuotaCheckForce(ctx)
 }
 
+// RefreshUsageQueryChannel runs the configured script for one channel without
+// requiring the background provider-quota collector to be enabled.
+func (svc *ProviderQuotaService) RefreshUsageQueryChannel(ctx context.Context, channelID int) error {
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+
+	ctx = ent.NewContext(ctx, svc.db)
+	ch, err := svc.db.Channel.Query().
+		Where(channel.IDEQ(channelID)).
+		WithProviderQuotaStatus().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load channel for usage query refresh: %w", err)
+	}
+	if !hasEnabledUsageQuery(ch) {
+		return fmt.Errorf("usage query is not enabled for channel %d", channelID)
+	}
+
+	return svc.refreshUsageQueryChannel(ctx, ch, time.Now())
+}
+
+// RefreshUsageQueries runs every enabled channel's configured usage query.
+// It shares the normal quota-check concurrency limit, but intentionally does
+// not depend on the background collection toggle because this is a manual
+// administrator action.
+func (svc *ProviderQuotaService) RefreshUsageQueries(ctx context.Context) error {
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+
+	ctx = ent.NewContext(ctx, svc.db)
+	channels, err := svc.db.Channel.Query().
+		WithProviderQuotaStatus().
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load channels for usage query refresh: %w", err)
+	}
+	channels = lo.Filter(channels, func(ch *ent.Channel, _ int) bool {
+		return hasEnabledUsageQuery(ch)
+	})
+	if len(channels) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(min(maxConcurrentQuotaChecks, len(channels)))
+	for _, ch := range channels {
+		ch := ch
+		eg.Go(func() error {
+			if err := svc.refreshUsageQueryChannel(egCtx, ch, now); err != nil {
+				log.Warn(egCtx, "Usage query refresh failed",
+					log.Int("channel_id", ch.ID),
+					log.String("channel_name", ch.Name),
+					log.Cause(err))
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
+}
+
+func (svc *ProviderQuotaService) refreshUsageQueryChannel(ctx context.Context, ch *ent.Channel, now time.Time) error {
+	checker, ok := svc.checkers["usage_query"]
+	if !ok {
+		return fmt.Errorf("no quota checker registered for usage_query")
+	}
+
+	quotaData, err := checker.CheckQuota(ctx, ch)
+	if err != nil {
+		svc.saveQuotaError(ctx, ch, "usage_query", err, now)
+		return fmt.Errorf("failed to refresh usage query: %w", err)
+	}
+
+	svc.saveQuotaStatus(ctx, ch.ID, "usage_query", quotaData, now)
+	return nil
+}
+
 // ResetChannelQuotaNow attempts to redeem a banked reset credit for the given codex channel.
 func (svc *ProviderQuotaService) ResetChannelQuotaNow(ctx context.Context, channelID int) error {
 	ch, err := svc.db.Channel.Query().Where(channel.IDEQ(channelID)).Only(ctx)

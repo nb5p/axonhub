@@ -935,6 +935,10 @@ const QUERY_CHANNELS_QUERY = `
                 authCookie
               }
             }
+            usageQuery {
+              enabled
+              showInProviderQuota
+            }
           }
           orderingWeight
           errorMessage
@@ -957,6 +961,11 @@ const QUERY_CHANNELS_QUERY = `
             errorCode
             reason
             expiresAt
+          }
+          providerQuotaStatus {
+            providerType
+            status
+            quotaData
           }
           liveLimiterStats {
             inFlight

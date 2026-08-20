@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/ent"
@@ -38,10 +39,11 @@ func TestUsageQueryChecker_CheckQuota(t *testing.T) {
 		},
 		Settings: &objects.ChannelSettings{
 			UsageQuery: &objects.ChannelUsageQuerySettings{
-				Enabled: true,
-				Preset:  objects.ChannelUsageQueryPresetNewAPI,
-				UserID:  "42",
-				Script:  script,
+				Enabled:             true,
+				ShowInProviderQuota: lo.ToPtr(false),
+				Preset:              objects.ChannelUsageQueryPresetNewAPI,
+				UserID:              "42",
+				Script:              script,
 			},
 		},
 	}
@@ -55,6 +57,7 @@ func TestUsageQueryChecker_CheckQuota(t *testing.T) {
 	require.Equal(t, 2.0, result.RawData["remaining"])
 	require.Equal(t, 8.0, result.RawData["used"])
 	require.Equal(t, 10.0, result.RawData["total"])
+	require.Equal(t, false, result.RawData["showInProviderQuota"])
 }
 
 func TestUsageQueryChecker_RejectsCrossOriginScriptURL(t *testing.T) {

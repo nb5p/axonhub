@@ -166,6 +166,9 @@ models:
   ChannelProviderQuotaSettingsInput:
     model:
       - github.com/looplj/axonhub/internal/objects.ChannelProviderQuotaSettings
+  ChannelUsageQueryListSettings:
+    model:
+      - github.com/looplj/axonhub/internal/objects.ChannelUsageQuerySettings
   ChannelRateLimit:
     model:
       - github.com/looplj/axonhub/internal/objects.ChannelRateLimit

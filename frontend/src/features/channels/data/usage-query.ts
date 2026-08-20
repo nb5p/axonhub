@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
+import { invalidateChannelDependentQueries } from './channel-query-invalidation';
 
 export type ChannelUsageQueryPreset = 'NEW_API' | 'CUSTOM';
 
 export interface ChannelUsageQueryConfig {
   enabled: boolean;
+  showInProviderQuota: boolean;
   preset: ChannelUsageQueryPreset;
   baseUrlOverride?: string | null;
   userId?: string | null;
@@ -14,6 +16,7 @@ export interface ChannelUsageQueryConfig {
 
 export interface ChannelUsageQueryConfigInput {
   enabled: boolean;
+  showInProviderQuota: boolean;
   preset: ChannelUsageQueryPreset;
   baseUrlOverride?: string | null;
   userId?: string | null;
@@ -38,6 +41,7 @@ const CHANNEL_USAGE_QUERY = `
   query ChannelUsageQuery($channelID: ID!) {
     channelUsageQuery(channelID: $channelID) {
       enabled
+      showInProviderQuota
       preset
       baseUrlOverride
       userId
@@ -51,6 +55,7 @@ const SAVE_CHANNEL_USAGE_QUERY = `
   mutation SaveChannelUsageQuery($channelID: ID!, $input: ChannelUsageQueryConfigInput!) {
     saveChannelUsageQuery(channelID: $channelID, input: $input) {
       enabled
+      showInProviderQuota
       preset
       baseUrlOverride
       userId
@@ -76,6 +81,23 @@ const TEST_CHANNEL_USAGE_QUERY = `
   }
 `;
 
+const REFRESH_CHANNEL_USAGE_QUERY = `
+  mutation RefreshChannelUsageQuery($channelID: ID!) {
+    refreshChannelUsageQuery(channelID: $channelID)
+  }
+`;
+
+const REFRESH_ALL_USAGE_QUERIES = `
+  mutation RefreshAllUsageQueries {
+    refreshAllUsageQueries
+  }
+`;
+
+function invalidateUsageQueryResults(queryClient: ReturnType<typeof useQueryClient>) {
+  invalidateChannelDependentQueries(queryClient);
+  void queryClient.invalidateQueries({ queryKey: ['provider-quotas'] });
+}
+
 export function useChannelUsageQuery(channelID: string, enabled: boolean) {
   return useQuery({
     queryKey: ['channel-usage-query', channelID],
@@ -99,7 +121,7 @@ export function useSaveChannelUsageQuery() {
     },
     onSuccess: (data, variables) => {
       queryClient.setQueryData(['channel-usage-query', variables.channelID], data);
-      queryClient.invalidateQueries({ queryKey: ['provider-quotas'] });
+      invalidateUsageQueryResults(queryClient);
     },
   });
 }
@@ -113,5 +135,27 @@ export function useTestChannelUsageQuery() {
       });
       return data.testChannelUsageQuery;
     },
+  });
+}
+
+export function useRefreshChannelUsageQuery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ channelID }: { channelID: string }) => {
+      const data = await graphqlRequest<{ refreshChannelUsageQuery: boolean }>(REFRESH_CHANNEL_USAGE_QUERY, { channelID });
+      return data.refreshChannelUsageQuery;
+    },
+    onSuccess: () => invalidateUsageQueryResults(queryClient),
+  });
+}
+
+export function useRefreshAllUsageQueries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const data = await graphqlRequest<{ refreshAllUsageQueries: boolean }>(REFRESH_ALL_USAGE_QUERIES);
+      return data.refreshAllUsageQueries;
+    },
+    onSuccess: () => invalidateUsageQueryResults(queryClient),
   });
 }

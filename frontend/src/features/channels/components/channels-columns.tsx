@@ -26,8 +26,10 @@ import {
   IconPlugConnected,
   IconClockPlay,
   IconSearch,
+  IconRefresh,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { cn, extractNumberID } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
@@ -46,8 +48,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
 import { useChannels } from '../context/channels-context';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
+import { useRefreshAllUsageQueries, useRefreshChannelUsageQuery } from '../data/usage-query';
 import { CHANNEL_CONFIGS, getProvider } from '../data/config_channels';
 import { Channel } from '../data/schema';
+import type { ProviderUsageQueryQuotaData } from '@/features/system/data/quotas';
 import { ChannelEndpointsCell } from './channel-endpoints-cell';
 import { ChannelHealthCell } from './channel-health-cell';
 import { ChannelLimiterCell } from './channel-limiter-cell';
@@ -740,6 +744,134 @@ const CreatedAtCell = memo(({ row }: { row: Row<Channel> }) => {
 
 CreatedAtCell.displayName = 'CreatedAtCell';
 
+function normalizeUsageQueryText(value: string): string {
+  return value.replace(/\r\n?/g, '\n').replace(/\n+/g, '\n').split('\n').slice(0, 2).join('\n');
+}
+
+const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: boolean }) => {
+  const { t, i18n } = useTranslation();
+  const refreshUsageQuery = useRefreshChannelUsageQuery();
+  const channel = row.original;
+  const configured = channel.settings?.usageQuery?.enabled === true;
+  const quotaStatus = channel.providerQuotaStatus?.providerType === 'usage_query' ? channel.providerQuotaStatus : null;
+  const quotaData = quotaStatus?.quotaData as ProviderUsageQueryQuotaData | null | undefined;
+
+  const formatValue = (value: number | undefined, unit?: string): string => {
+    if (value == null) return '-';
+    if (unit && /^[A-Z]{3}$/.test(unit)) {
+      return t('currencies.format', {
+        val: value,
+        currency: unit,
+        locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 6,
+      });
+    }
+    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 6 }).format(value);
+    return unit ? `${formatted} ${unit}` : formatted;
+  };
+
+  let text = '-';
+  if (quotaData?.error) {
+    text = quotaData.error;
+  } else if (quotaData?.isValid === false) {
+    text = quotaData.invalidMessage || t('channels.usageQuery.invalid');
+  } else if (quotaData) {
+    const details: string[] = [];
+    if (quotaData.extra) details.push(quotaData.extra);
+    if (quotaData.planName) details.push(quotaData.planName);
+    if (quotaData.remaining != null) {
+      details.push(`${t('channels.usageQuery.remaining')}${formatValue(quotaData.remaining, quotaData.unit)}`);
+    } else if (quotaData.used != null && quotaData.total != null) {
+      details.push(`${formatValue(quotaData.used, quotaData.unit)} / ${formatValue(quotaData.total, quotaData.unit)}`);
+    }
+    if (details.length > 0) text = details.join('\n');
+  }
+  text = normalizeUsageQueryText(text);
+
+  const refresh = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    try {
+      await refreshUsageQuery.mutateAsync({ channelID: channel.id });
+      toast.success(t('channels.usageQuery.refresh.success'));
+    } catch (error) {
+      toast.error(t('channels.usageQuery.refresh.failed'), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  return (
+    <div className='flex min-w-0 items-center justify-center gap-1'>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className='line-clamp-2 min-w-0 flex-1 whitespace-pre-line break-words text-left text-sm leading-5'>{text}</span>
+        </TooltipTrigger>
+        <TooltipContent className='max-w-96 whitespace-pre-line break-words'>{text}</TooltipContent>
+      </Tooltip>
+      {canWrite && configured && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-7 w-7 shrink-0'
+              disabled={refreshUsageQuery.isPending}
+              onClick={refresh}
+              aria-label={t('channels.usageQuery.refresh.channel')}
+            >
+              <IconRefresh className={cn('h-4 w-4', refreshUsageQuery.isPending && 'animate-spin')} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('channels.usageQuery.refresh.channel')}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
+});
+
+UsageQueryCell.displayName = 'UsageQueryCell';
+
+const UsageQueryHeader = ({ column, canWrite }: { column: any; canWrite: boolean }) => {
+  const { t } = useTranslation();
+  const refreshAllUsageQueries = useRefreshAllUsageQueries();
+
+  const refresh = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    try {
+      await refreshAllUsageQueries.mutateAsync();
+      toast.success(t('channels.usageQuery.refresh.allSuccess'));
+    } catch (error) {
+      toast.error(t('channels.usageQuery.refresh.failed'), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  return (
+    <div className='flex items-center gap-1'>
+      <DataTableColumnHeader column={column} title={t('channels.columns.usageQuery')} className='min-w-0 flex-1 justify-center' />
+      {canWrite && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-7 w-7 shrink-0'
+              disabled={refreshAllUsageQueries.isPending}
+              onClick={refresh}
+              aria-label={t('channels.usageQuery.refresh.all')}
+            >
+              <IconRefresh className={cn('h-4 w-4', refreshAllUsageQueries.isPending && 'animate-spin')} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('channels.usageQuery.refresh.all')}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
+};
+
 interface ChannelSortingOptions {
   enabledFirst: boolean;
   onEnabledFirstChange: (enabled: boolean) => void;
@@ -963,6 +1095,20 @@ export const createColumns = (
       size: 144,
       minSize: 112,
       maxSize: 240,
+      enableSorting: false,
+      enableHiding: true,
+    },
+    {
+      id: 'usageQuery',
+      accessorFn: (row) => row.providerQuotaStatus?.quotaData ?? null,
+      header: ({ column }) => <UsageQueryHeader column={column} canWrite={canWrite} />,
+      cell: ({ row }: { row: Row<Channel> }) => <UsageQueryCell row={row} canWrite={canWrite} />,
+      meta: {
+        className: 'text-center',
+      },
+      size: 240,
+      minSize: 160,
+      maxSize: 360,
       enableSorting: false,
       enableHiding: true,
     },

@@ -884,5 +884,15 @@
   "channels.dialogs.usageQuery.actions.save": "Save configuration",
   "channels.dialogs.usageQuery.saveSuccess": "Usage query configuration saved",
   "channels.dialogs.usageQuery.saveFailed": "Failed to save usage query configuration",
-  "channels.dialogs.usageQuery.loadFailed": "Failed to load usage query configuration"
+  "channels.dialogs.usageQuery.loadFailed": "Failed to load usage query configuration",
+  "channels.dialogs.usageQuery.showInProviderQuota.label": "Show in provider quotas",
+  "channels.dialogs.usageQuery.showInProviderQuota.description": "When disabled, this channel remains visible in the Usage Query column but is hidden from the provider quota menu.",
+  "channels.columns.usageQuery": "Usage Query",
+  "channels.usageQuery.invalid": "The queried plan is invalid",
+  "channels.usageQuery.remaining": "Remaining: ",
+  "channels.usageQuery.refresh.channel": "Refresh this channel's usage query",
+  "channels.usageQuery.refresh.all": "Refresh all enabled usage queries",
+  "channels.usageQuery.refresh.success": "Usage query refreshed",
+  "channels.usageQuery.refresh.allSuccess": "All usage queries refreshed",
+  "channels.usageQuery.refresh.failed": "Failed to refresh usage query"
 }
