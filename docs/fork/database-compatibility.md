@@ -65,6 +65,8 @@
 | `playground-api-key-testing` | `none` | 是 | 无 | 复用现有 API Key 鉴权、配置和路由上下文，不修改持久化结构。 |
 | `table-column-visibility` | `none` | 是 | 无 | 仅调整前端列定义、翻译和浏览器本地偏好。 |
 | `list-pagination-settings` | `none` | 是 | 无 | 复用现有系统键值表保存独立 JSON 配置，不修改 Ent Schema；旧版本会忽略新增键。 |
+| `channel-model-test-api-formats` | `none` | 是 | 无 | 仅扩展 GraphQL 测试输入和运行时请求构造，不修改渠道配置或 Ent Schema。 |
+| `test-request-list-visibility` | `none` | 是 | 无 | 使用现有系统键值表保存独立 JSON 配置；旧版本忽略该键，缺失时默认关闭。 |
 
 截至上游比较基线 `9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`，`channel-usage-query` 是当前有效私有差异中登记的增量 Ent Schema 变化；不需要数据回填。
 
@@ -88,6 +90,28 @@
 - 备份与恢复：本次未创建备份。部署前按既有数据库的一致性快照流程执行；本地 SQLite 使用 `.backup` 并执行 `PRAGMA quick_check`。
 - 回滚能力：回退旧代码不影响核心渠道数据，但旧版本编辑已开启该开关的渠道可能重写并丢弃未知 JSON 字段；如需保留该配置，回滚前恢复升级前快照或避免使用旧版本编辑该渠道。
 - 最低升级版本：`621b04052ab69434df631119de7e604635389da0`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-21 — channel-model-test-api-formats
+
+- 兼容等级：`none`
+- 本地 commit：`a683e9122d639c5a1273cc28d509d7019f2a6c35`。
+- 影响结构：无；只新增 GraphQL 测试枚举与运行时请求格式选择。
+- 旧数据库验证样本：不适用；不读取或写入新的持久化字段。
+- 备份与恢复：本次未创建备份；不需要数据库迁移。
+- 回滚能力：回退代码不会影响任何数据库结构或数据。
+- 最低升级版本：`a683e9122d639c5a1273cc28d509d7019f2a6c35`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-21 — test-request-list-visibility
+
+- 兼容等级：`none`
+- 本地 commit：`b570bc11a3daf067a0b7f6c09e97fb5b6d3cfd41`。
+- 影响结构：现有系统键值表新增独立 JSON 键 `system_test_request_list_settings`；不修改 Ent Schema、表、索引或既有请求数据。
+- 旧数据库验证样本：缺失键返回默认关闭；业务层默认值与写后读取测试通过。
+- 备份与恢复：本次未创建备份；不需要数据库迁移。
+- 回滚能力：旧代码会忽略新增键，请求记录不被修改或复制。
+- 最低升级版本：`b570bc11a3daf067a0b7f6c09e97fb5b6d3cfd41`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
