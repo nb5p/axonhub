@@ -2,6 +2,8 @@ package orchestrator
 
 import (
 	"context"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/looplj/axonhub/internal/authz"
@@ -16,6 +18,7 @@ import (
 	"github.com/looplj/axonhub/llm/pipeline/stream"
 	"github.com/looplj/axonhub/llm/streams"
 	"github.com/looplj/axonhub/llm/transformer"
+	"github.com/looplj/axonhub/llm/transformer/openai/codex"
 )
 
 func NewChatCompletionOrchestrator(
@@ -97,6 +100,7 @@ func NewChatCompletionOrchestrator(
 		roundRobinLoadBalancer:     roundRobinLoadBalancer,
 		modelCircuitBreaker:        modelCircuitBreaker,
 		quotaProvider:              quotaProvider,
+		codexTurnStateOrigins:      newCodexTurnStateOriginStore(),
 		proxy:                      nil,
 	}
 }
@@ -137,6 +141,11 @@ type ChatCompletionOrchestrator struct {
 	// The provider quota status provider for quota-aware load balancing and selection.
 	quotaProvider ProviderQuotaStatusProvider
 
+	// codexTurnStateOrigins tracks, per downstream Codex session, which channel
+	// credential minted the last X-Codex-Turn-State blob so the outbound guard
+	// can strip cross-credential echoes during failover.
+	codexTurnStateOrigins *codexTurnStateOriginStore
+
 	// proxy is the proxy configuration for testing
 	// If set, it will override the channel's default proxy configuration
 	proxy *httpclient.ProxyConfig
@@ -166,6 +175,7 @@ func (processor *ChatCompletionOrchestrator) WithProxy(proxy *httpclient.ProxyCo
 type ChatCompletionResult struct {
 	ChatCompletion       *httpclient.Response
 	ChatCompletionStream streams.Stream[*httpclient.StreamEvent]
+	ResponseHeaders      http.Header
 }
 
 func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, request *httpclient.Request) (ChatCompletionResult, error) {
@@ -211,6 +221,7 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 		Proxy:                 processor.proxy,
 		CurrentCandidateIndex: 0,
 	}
+	state.CodexTurnStateSeed = codexTurnStateSeed(apiKey, request.Headers)
 
 	var pipelineOpts []pipeline.Option
 
@@ -262,6 +273,9 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 		// Codex Responses metadata must travel with a pass-through body so compatible
 		// upstreams preserve the client's protocol behavior.
 		applyPassThroughRequestHeaders(outbound),
+		// The turn-state guard runs after pass-through headers so a re-added
+		// client echo cannot undo a cross-credential strip.
+		withCodexTurnStateGuard(outbound, processor.codexTurnStateOrigins),
 		applyOverrideRequestBody(outbound),
 		// applyUserAgentPassThrough runs before header overrides to set the initial
 		// User-Agent value (either from client pass-through or default "axonhub/1.0").
@@ -336,17 +350,31 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 		return ChatCompletionResult{}, err
 	}
 
+	// Commit turn-state provenance only when the final upstream response
+	// actually carried the blob. Attempts that failed and were retried never
+	// reach this point, so they cannot pollute the provenance map.
+	if state.CodexTurnStateSeed != "" && state.CodexTurnStateMintedIdentity != "" &&
+		strings.TrimSpace(result.ResponseHeaders.Get(codex.TurnStateHeader)) != "" {
+		processor.codexTurnStateOrigins.note(
+			state.CodexTurnStateSeed,
+			state.CodexTurnStateMintedIdentity,
+			codexTurnStateProvenanceTTL,
+		)
+	}
+
 	// Return result based on stream type
 	if result.Stream {
 		return ChatCompletionResult{
 			ChatCompletion:       nil,
 			ChatCompletionStream: result.EventStream,
+			ResponseHeaders:      result.ResponseHeaders,
 		}, nil
 	}
 
 	return ChatCompletionResult{
 		ChatCompletion:       result.Response,
 		ChatCompletionStream: nil,
+		ResponseHeaders:      result.ResponseHeaders,
 	}, nil
 }
 

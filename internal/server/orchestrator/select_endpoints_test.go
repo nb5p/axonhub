@@ -32,6 +32,27 @@ func TestSelectAPIFormat(t *testing.T) {
 	require.Equal(t, llm.APIFormatGeminiContents.String(), SelectAPIFormat(geminiEndpoints, &llm.Request{RequestType: llm.RequestTypeImage}))
 }
 
+func TestSelectAPIFormat_RemoteCompactionForcesResponses(t *testing.T) {
+	endpoints := []objects.ChannelEndpoint{
+		{APIFormat: llm.APIFormatOpenAIChatCompletion.String()},
+		{APIFormat: llm.APIFormatOpenAIResponse.String()},
+	}
+
+	req := &llm.Request{
+		RequestType: llm.RequestTypeChat,
+		APIFormat:   llm.APIFormatOpenAIResponse,
+		ProviderExtensions: &llm.ProviderExtensions{
+			OpenAIResponses: &llm.OpenAIResponsesProviderExtensions{
+				Request: &llm.OpenAIResponsesRequestExtensions{
+					RawInputItems: []llm.OpenAIResponsesRawFragment{{Type: "compaction_trigger"}},
+				},
+			},
+		},
+	}
+
+	require.Equal(t, llm.APIFormatOpenAIResponse.String(), SelectAPIFormat(endpoints, req))
+}
+
 func TestSelectAPIFormat_PrefersMatchingFormat(t *testing.T) {
 	endpoints := []objects.ChannelEndpoint{
 		{APIFormat: "openai/responses"},

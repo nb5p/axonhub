@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -37,6 +38,7 @@ type OutboundTransformer struct {
 	transport       string
 	baseURL         string
 	alphaSearchPath string
+	isOfficialOAuth bool
 
 	// reuse existing Responses outbound for payload building.
 	responsesOutbound *responses.OutboundTransformer
@@ -55,6 +57,10 @@ type Params struct {
 	BaseURL         string
 	Transport       string
 	AlphaSearchPath string
+
+	// IsOfficialOAuth marks ChatGPT Codex OAuth channels. Only those channels
+	// should advertise the default Codex beta feature set when a client omits it.
+	IsOfficialOAuth bool
 }
 
 func NewOutboundTransformer(params Params) (*OutboundTransformer, error) {
@@ -84,6 +90,7 @@ func NewOutboundTransformer(params Params) (*OutboundTransformer, error) {
 		transport:         params.Transport,
 		baseURL:           baseURL,
 		alphaSearchPath:   params.AlphaSearchPath,
+		isOfficialOAuth:   params.IsOfficialOAuth,
 		responsesOutbound: ro,
 	}, nil
 }
@@ -222,10 +229,15 @@ func (t *OutboundTransformer) TransformRequest(ctx context.Context, llmReq *llm.
 	}
 
 	for _, header := range PassthroughHeaders {
-		if value := rawHeaders.Get(header); value != "" {
-			hreq.Headers.Set(header, value)
+		if values := rawHeaders.Values(header); len(values) > 0 {
+			hreq.Headers.Del(header)
+			for _, value := range values {
+				hreq.Headers.Add(header, value)
+			}
 		}
 	}
+
+	applyBetaFeatures(hreq.Headers, rawHeaders, isRemoteCompaction(llmReq), t.isOfficialOAuth)
 
 	if rawSessionID != "" {
 		hreq.Headers.Set(SessionHeaderHyphen, rawSessionID)
@@ -254,6 +266,45 @@ func (t *OutboundTransformer) TransformRequest(ctx context.Context, llmReq *llm.
 	}
 
 	return hreq, nil
+}
+
+// applyBetaFeatures mirrors the session-level beta negotiation used by the
+// official Codex client. A native remote-compaction request always advertises
+// v2; official OAuth requests without a client declaration get the default
+// feature set. A non-empty client declaration is preserved verbatim so a user
+// can explicitly disable the feature on a compatible client.
+func applyBetaFeatures(outbound, inbound http.Header, remoteCompaction, officialOAuth bool) {
+	switch {
+	case remoteCompaction:
+		EnsureBetaFeature(outbound, RemoteCompactionV2)
+	case officialOAuth && !hasBetaFeaturesHeader(inbound):
+		outbound.Set(BetaFeaturesHeader, RemoteCompactionV2)
+	}
+}
+
+func hasBetaFeaturesHeader(headers http.Header) bool {
+	if headers == nil {
+		return false
+	}
+
+	for _, value := range headers.Values(BetaFeaturesHeader) {
+		if strings.TrimSpace(value) != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isRemoteCompaction(req *llm.Request) bool {
+	if req == nil || req.APIFormat != llm.APIFormatOpenAIResponse || req.ProviderExtensions == nil ||
+		req.ProviderExtensions.OpenAIResponses == nil || req.ProviderExtensions.OpenAIResponses.Request == nil {
+		return false
+	}
+
+	return lo.ContainsBy(req.ProviderExtensions.OpenAIResponses.Request.RawInputItems, func(item llm.OpenAIResponsesRawFragment) bool {
+		return item.Type == "compaction_trigger"
+	})
 }
 
 func (t *OutboundTransformer) TransformResponse(ctx context.Context, httpResp *httpclient.Response) (*llm.Response, error) {

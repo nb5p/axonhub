@@ -277,6 +277,10 @@ func (hc *HttpClient) Do(ctx context.Context, request *Request) (*Response, erro
 	}
 
 	// Build generic response
+	if request != nil {
+		request.ResponseHeaders = rawResp.Header
+	}
+
 	response := &Response{
 		StatusCode:  rawResp.StatusCode,
 		Headers:     rawResp.Header,
@@ -347,6 +351,10 @@ func (hc *HttpClient) DoStream(ctx context.Context, request *Request) (streams.S
 			Body:       body,
 			Headers:    rawResp.Header,
 		}
+	}
+
+	if request != nil {
+		request.ResponseHeaders = rawResp.Header
 	}
 
 	// Determine content type and select appropriate decoder

@@ -80,6 +80,16 @@ type PersistenceState struct {
 	// abandoned goroutine exits promptly and releases its upstream HTTP connection.
 	RawStreamCancel context.CancelFunc
 
+	// CodexTurnStateSeed is the provenance cache key (downstream API key + Codex
+	// session) for the current request's X-Codex-Turn-State echo.
+	CodexTurnStateSeed string
+
+	// CodexTurnStateMintedIdentity identifies the channel credential of the
+	// current outbound attempt. The orchestrator commits it as the blob's
+	// provenance only when the final upstream response actually carries
+	// X-Codex-Turn-State.
+	CodexTurnStateMintedIdentity string
+
 	// PassThroughApplied records whether the inbound request body was substituted during pass-through.
 	PassThroughApplied bool
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/looplj/axonhub/llm"
@@ -136,6 +137,10 @@ type Result struct {
 
 	// EventStream is the stream of events, if Stream is true
 	EventStream streams.Stream[*httpclient.StreamEvent]
+
+	// ResponseHeaders carries headers received from the upstream response. For
+	// streams these headers are captured when the connection is established.
+	ResponseHeaders http.Header
 }
 
 func (p *pipeline) applyBeforeRequestMiddlewares(ctx context.Context, request *llm.Request) (*llm.Request, error) {
@@ -398,6 +403,7 @@ func (p *pipeline) processRequest(ctx context.Context, request *llm.Request) (*R
 		}
 
 		result.EventStream = stream
+		result.ResponseHeaders = httpReq.ResponseHeaders
 	case effectiveWantStream:
 		result = &Result{
 			Stream: false,
@@ -433,6 +439,8 @@ func (p *pipeline) processRequest(ctx context.Context, request *llm.Request) (*R
 
 		result.Response = response
 	}
+
+	result.ResponseHeaders = httpReq.ResponseHeaders
 
 	return result, nil
 }

@@ -13,6 +13,7 @@ const (
 	WindowIDHeader        = "X-Codex-Window-Id"
 	ClientRequestIDHeader = "X-Client-Request-Id"
 	BetaFeaturesHeader    = "X-Codex-Beta-Features"
+	TurnStateHeader       = "X-Codex-Turn-State"
 	RemoteCompactionV2    = "remote_compaction_v2"
 )
 
@@ -25,6 +26,7 @@ var PassthroughHeaders = []string{
 	WindowIDHeader,
 	ClientRequestIDHeader,
 	BetaFeaturesHeader,
+	TurnStateHeader,
 }
 
 func ExtractSessionIDFromTurnMetadata(raw string) string {
@@ -72,4 +74,20 @@ func HasBetaFeature(headers http.Header, feature string) bool {
 	}
 
 	return false
+}
+
+// EnsureBetaFeature appends an exact feature token to a non-empty beta feature
+// header without duplicating it. Feature names are case-sensitive on the wire.
+func EnsureBetaFeature(headers http.Header, feature string) {
+	if headers == nil || feature == "" || HasBetaFeature(headers, feature) {
+		return
+	}
+
+	value := strings.TrimSpace(headers.Get(BetaFeaturesHeader))
+	if value == "" {
+		headers.Set(BetaFeaturesHeader, feature)
+		return
+	}
+
+	headers.Set(BetaFeaturesHeader, value+", "+feature)
 }

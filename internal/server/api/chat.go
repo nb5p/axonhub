@@ -18,6 +18,7 @@ import (
 	"github.com/looplj/axonhub/llm"
 	"github.com/looplj/axonhub/llm/httpclient"
 	"github.com/looplj/axonhub/llm/streams"
+	"github.com/looplj/axonhub/llm/transformer/openai/codex"
 )
 
 const (
@@ -149,6 +150,8 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 		return
 	}
 
+	forwardCodexTurnState(c, result.ResponseHeaders)
+
 	if result.ChatCompletion != nil {
 		if c.Writer.Written() {
 			writeNonStreamingResultAsSSE(c, genericReq, result.ChatCompletion)
@@ -180,6 +183,20 @@ func (handlers *ChatCompletionHandlers) ChatCompletionWithRequest(c *gin.Context
 
 		writeSSEStream(c, stream, FormatStreamError, handlers.sseKeepAlive, handlers.sseHeartbeatFormat)
 	}
+}
+
+func forwardCodexTurnState(c *gin.Context, headers http.Header) {
+	if c == nil || c.Writer == nil {
+		return
+	}
+
+	canonical := http.CanonicalHeaderKey(codex.TurnStateHeader)
+	if value := strings.TrimSpace(headers.Get(codex.TurnStateHeader)); value != "" {
+		c.Writer.Header().Set(canonical, value)
+		return
+	}
+
+	c.Writer.Header().Del(canonical)
 }
 
 func (handlers *ChatCompletionHandlers) shouldStartSSEHeartbeat(request *httpclient.Request) bool {

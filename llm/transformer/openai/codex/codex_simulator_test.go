@@ -197,6 +197,7 @@ func newCodexSimulatorWithToken(t *testing.T, accessToken string) *simulator.Sim
 
 	inbound := openai.NewInboundTransformer()
 	outbound, err := NewOutboundTransformer(Params{
+		IsOfficialOAuth: true,
 		TokenProvider: staticTokenGetter{
 			creds: &oauth.OAuthCredentials{
 				AccessToken: accessToken,

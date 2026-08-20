@@ -120,6 +120,51 @@ func TestCodexOutbound_StreamAllowsDownstreamIdentityOverrides(t *testing.T) {
 	assert.Equal(t, "Bearer "+accessToken, headers.Get("Authorization"))
 }
 
+func TestCodexOutbound_OfficialOAuthDefaultsBetaFeature(t *testing.T) {
+	ctx := context.Background()
+	sim := newCodexSimulator(t)
+	req := newCodexChatCompletionRequest(t)
+
+	finalReq, err := sim.Simulate(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, RemoteCompactionV2, finalReq.Header.Get(BetaFeaturesHeader))
+
+	req = newCodexChatCompletionRequest(t)
+	req.Header.Set(BetaFeaturesHeader, "js_repl")
+	finalReq, err = sim.Simulate(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, "js_repl", finalReq.Header.Get(BetaFeaturesHeader))
+}
+
+func TestCodexOutbound_RemoteCompactionEnsuresBetaFeature(t *testing.T) {
+	ctx := context.Background()
+	inbound, err := responses.NewInboundTransformer().TransformRequest(ctx, &httpclient.Request{
+		Headers: http.Header{BetaFeaturesHeader: []string{"js_repl"}},
+		Body:    []byte(`{"model":"gpt-5.5","input":[{"type":"compaction_trigger"}],"stream":true}`),
+	})
+	require.NoError(t, err)
+
+	rawRequest := &httpclient.Request{
+		Headers: http.Header{BetaFeaturesHeader: []string{"js_repl"}},
+		Body:    []byte(`{"model":"gpt-5.5","input":[{"type":"compaction_trigger"}],"stream":true}`),
+	}
+	inbound, err = responses.NewInboundTransformer().TransformRequest(ctx, rawRequest)
+	require.NoError(t, err)
+	inbound.RawRequest = rawRequest
+
+	outbound, err := NewOutboundTransformer(Params{
+		BaseURL: "https://chatgpt.com/backend-api/codex#",
+		TokenProvider: staticTokenGetter{
+			creds: &oauth.OAuthCredentials{AccessToken: testAccessTokenWithAccountID(t)},
+		},
+	})
+	require.NoError(t, err)
+
+	req, err := outbound.TransformRequest(ctx, inbound)
+	require.NoError(t, err)
+	require.Equal(t, "js_repl, "+RemoteCompactionV2, req.Headers.Get(BetaFeaturesHeader))
+}
+
 func TestCodexOutbound_ImageGenerationRequestUsesResponsesImageTool(t *testing.T) {
 	ctx := context.Background()
 	accessToken := testAccessTokenWithAccountID(t)

@@ -46,6 +46,10 @@ type Request struct {
 	// Raw HTTP request for advanced use cases
 	RawRequest *http.Request `json:"-"`
 
+	// ResponseHeaders records headers received while establishing a streaming
+	// upstream request. Unlike Response, a stream itself has no header carrier.
+	ResponseHeaders http.Header `json:"-"`
+
 	// Metadata for advanced use cases
 	Metadata map[string]string `json:"-"`
 
@@ -101,6 +105,10 @@ type Response struct {
 
 	// Raw HTTP request for advanced use cases
 	RawRequest *http.Request `json:"-"`
+
+	// ResponseHeaders records headers received while establishing a streaming
+	// upstream request. Unlike Response, a stream itself has no header carrier.
+	ResponseHeaders http.Header `json:"-"`
 }
 
 type StreamEvent struct {

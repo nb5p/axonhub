@@ -19,6 +19,14 @@ var compactCapableAPIFormats = map[string]struct{}{
 	"openai/responses_compact": {},
 }
 
+// remoteCompactionCapableAPIFormats contains the only outbound format that can
+// replay Codex native remote compaction v2 requests with their original
+// protocol semantics. Generic chat conversion cannot represent the opaque
+// compaction trigger and encrypted context.
+var remoteCompactionCapableAPIFormats = map[string]struct{}{
+	"openai/responses": {},
+}
+
 var alphaSearchCapableAPIFormats = map[string]struct{}{
 	"openai/codex_alpha_search": {},
 }
@@ -205,6 +213,10 @@ func SelectAPIFormat(endpoints []objects.ChannelEndpoint, req *llm.Request) stri
 	switch requestType {
 	case llm.RequestTypeChat:
 		allowed = chatCapableAPIFormats
+		if isOpenAIResponsesRemoteCompaction(req) {
+			allowed = remoteCompactionCapableAPIFormats
+			preferredFormat = llm.APIFormatOpenAIResponse.String()
+		}
 	case llm.RequestTypeCompact:
 		allowed = compactCapableAPIFormats
 	case llm.RequestTypeAlphaSearch:

@@ -751,6 +751,15 @@ func (s *LoadBalancedSelector) Select(ctx context.Context, req *llm.Request) ([]
 	}
 	remoteCompaction := isOpenAIResponsesRemoteCompaction(req)
 	if remoteCompaction {
+		// Native remote compaction must not be converted to a generic chat or
+		// legacy compact request when the originating account is unavailable.
+		candidates = lo.Filter(candidates, func(candidate *ChannelModelsCandidate, _ int) bool {
+			return candidate != nil && candidate.APIFormat == llm.APIFormatOpenAIResponse.String()
+		})
+		if len(candidates) == 0 {
+			return nil, fmt.Errorf("no channels support OpenAI Responses for native remote compaction")
+		}
+
 		// Remote compaction may carry response IDs and opaque encrypted content
 		// produced by the account used for earlier turns. Treat affinity as a
 		// protocol correctness requirement even when ordinary trace sticky routing

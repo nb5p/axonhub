@@ -18,3 +18,16 @@ func TestHasBetaFeature(t *testing.T) {
 	require.False(t, HasBetaFeature(headers, "remote_compaction"))
 	require.False(t, HasBetaFeature(nil, RemoteCompactionV2))
 }
+
+func TestEnsureBetaFeature(t *testing.T) {
+	headers := http.Header{}
+	EnsureBetaFeature(headers, RemoteCompactionV2)
+	require.Equal(t, RemoteCompactionV2, headers.Get(BetaFeaturesHeader))
+
+	EnsureBetaFeature(headers, RemoteCompactionV2)
+	require.Equal(t, RemoteCompactionV2, headers.Get(BetaFeaturesHeader))
+
+	headers = http.Header{BetaFeaturesHeader: []string{"js_repl"}}
+	EnsureBetaFeature(headers, RemoteCompactionV2)
+	require.Equal(t, "js_repl, "+RemoteCompactionV2, headers.Get(BetaFeaturesHeader))
+}

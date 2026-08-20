@@ -194,6 +194,9 @@ func TestLoadBalancedSelector_TraceStickySelection(t *testing.T) {
 			MaxChannelRetries: 2,
 			TraceStickyMode:   biz.TraceStickyDisabled,
 		}}
+		candidates[0].APIFormat = llm.APIFormatOpenAIResponse.String()
+		candidates[1].APIFormat = llm.APIFormatOpenAIChatCompletion.String()
+		candidates[2].APIFormat = llm.APIFormatOpenAIResponse.String()
 		selector := WithTraceStickyLoadBalancedSelector(
 			&staticChannelSelector{candidates: candidates},
 			NewLoadBalancer(policy, nil),
@@ -209,7 +212,7 @@ func TestLoadBalancedSelector_TraceStickySelection(t *testing.T) {
 
 		result, err := selector.Select(ctx, request)
 		require.NoError(t, err)
-		require.Equal(t, []int{1, 3, 2}, []int{result[0].Channel.ID, result[1].Channel.ID, result[2].Channel.ID})
+		require.Equal(t, []int{1, 3}, []int{result[0].Channel.ID, result[1].Channel.ID})
 		require.False(t, result[0].TraceSticky)
 	})
 

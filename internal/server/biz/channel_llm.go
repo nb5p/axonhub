@@ -285,6 +285,7 @@ func (svc *ChannelService) buildCodexOutbound(
 						BaseURL:         baseURL,
 						Transport:       transport,
 						AlphaSearchPath: alphaSearchPath,
+						IsOfficialOAuth: true,
 					})
 				}
 			}
@@ -329,6 +330,7 @@ func (svc *ChannelService) buildCodexOutbound(
 			BaseURL:         baseURL,
 			Transport:       transport,
 			AlphaSearchPath: alphaSearchPath,
+			IsOfficialOAuth: true,
 		})
 	}
 
