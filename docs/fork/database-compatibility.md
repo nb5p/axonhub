@@ -51,6 +51,7 @@
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
+| `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
 | `channel-endpoint-summary-column` | `none` | 是 | 无 | 仅新增渠道列表端点摘要展示。 |
 | `channel-endpoint-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和运行时最终端点筛选，不修改持久化结构。 |
 | `channel-provider-tabs-default-hidden` | `none` | 是 | 无 | 仅调整浏览器本地偏好的默认值。 |
@@ -64,7 +65,18 @@
 | `table-column-visibility` | `none` | 是 | 无 | 仅调整前端列定义、翻译和浏览器本地偏好。 |
 | `list-pagination-settings` | `none` | 是 | 无 | 复用现有系统键值表保存独立 JSON 配置，不修改 Ent Schema；旧版本会忽略新增键。 |
 
-截至最后一次合入的上游基线 `9dfd6ac0c21bbc5abe55827fa634e22826287d67`，`ai-slop` 的有效私有差异不包含 Ent Schema 或数据迁移文件。
+截至上游比较基线 `9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`，`channel-usage-query` 是当前有效私有差异中登记的增量 Ent Schema 变化；不需要数据回填。
+
+### 2026-08-20 — channel-usage-query
+
+- 兼容等级：`additive`
+- 本地 commit：`089da0d1df9757294abeb24f304d5fda9c9adced`
+- 影响结构：`provider_quota_status.provider_type` 增加 `usage_query`；`channels.settings` 和 `channels.credentials` 的既有 JSON 列增加可选字段。
+- 旧数据库验证样本：本次未连接部署数据库；内存 SQLite 上的 Ent、业务层和配额持久化测试通过。部署前仍需在真实旧版数据库副本上执行自动迁移、完整启动和数据校验。
+- 备份与恢复：本次未创建备份。部署前使用对应数据库的一致性快照流程；本地 SQLite 按蓝绿规则使用 `.backup` 并执行 `PRAGMA quick_check`。
+- 回滚能力：核心旧数据兼容；如需保留新增脚本配置，回滚旧版本前恢复升级前快照。旧版本编辑已配置渠道可能丢失其无法识别的 JSON 字段。
+- 最低升级版本：`089da0d1df9757294abeb24f304d5fda9c9adced`。
+- 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
 

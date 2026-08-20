@@ -20,7 +20,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `mobile-touch-hover-overlays` | 本地原创 | `active` | `1334dc0d` | `none` | [`features/mobile-touch-hover-overlays.md`](features/mobile-touch-hover-overlays.md) |
 | `mobile-ui-improvements` | 本地原创、已贡献上游 | `upstreamed` | 上游 `4971cbe4` / PR `#1896` | `none` | [`features/mobile-ui-improvements.md`](features/mobile-ui-improvements.md) |
 | `mobile-compact-management-layout` | 本地原创 | `active` | `5f4935b7`, `621c1de3`, `b2ba30c7`, `f6dc4e81` | `none` | [`features/mobile-compact-management-layout.md`](features/mobile-compact-management-layout.md) |
-| `list-pagination-settings` | 本地原创 | `active` | `621c1de3`, `739619f6`, `f6af276d`, `6ded56c8` | `none` | [`features/list-pagination-settings.md`](features/list-pagination-settings.md) |
+| `list-pagination-settings` | 本地原创 | `active` | `621c1de3`, `739619f6`, `f6af276d`, `6ded56c8`, `ce97d187` | `none` | [`features/list-pagination-settings.md`](features/list-pagination-settings.md) |
 | `responses-reasoning-item-ids` | 本地原创、已撤回 | `retired` | `5571aa81` / `0e066896`（历史重写已移除） | `none` | [`features/responses-reasoning-item-ids.md`](features/responses-reasoning-item-ids.md) |
 | `responses-prestream-keepalive` | 上游方案适配 | `active` | 上游 PR `#2157` 早期 `4c35e6ca` / `7ba87aa0` | `none` | [`features/responses-prestream-keepalive.md`](features/responses-prestream-keepalive.md) |
 | `codex-remote-compaction-affinity` | 外部方案重新实现 | `active` | Sub2API `c204d33b` / `600717a4` | `none` | [`features/codex-remote-compaction-affinity.md`](features/codex-remote-compaction-affinity.md) |
@@ -32,6 +32,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
 | `filter-state-persistence` | 本地原创 | `active` | `36b9e737`, `41098593` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
 | `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a`, `ab88ca26`, `e20024a6` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
+| `channel-usage-query` | 本地原创 | `active` | `089da0d1` | `additive` | [`features/channel-usage-query.md`](features/channel-usage-query.md) |
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-endpoint-filter` | 本地原创 | `active` | `437344f0` | `none` | [`features/channel-endpoint-filter.md`](features/channel-endpoint-filter.md) |
 | `channel-provider-tabs-default-hidden` | 本地原创 | `active` | `7f84e474` | `none` | [`features/channel-provider-tabs-default-hidden.md`](features/channel-provider-tabs-default-hidden.md) |
