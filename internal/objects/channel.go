@@ -199,6 +199,11 @@ type ChannelSettings struct {
 	// When configured, the load balancer will skip channels that have exceeded their rate limits.
 	RateLimit *ChannelRateLimit `json:"rateLimit,omitempty"`
 
+	// Treat429AsNonRetryable causes an upstream HTTP 429 to be returned to the
+	// caller immediately. It skips both same-channel retries and cross-channel
+	// failover, without disabling or cooling down the channel.
+	Treat429AsNonRetryable bool `json:"treat429AsNonRetryable,omitempty"`
+
 	// RetryableStatusCodes configures additional HTTP status codes that should
 	// trigger retry for this channel. Default retryable codes (429 and 5xx) are
 	// always handled by the retry policy even when this list is empty.

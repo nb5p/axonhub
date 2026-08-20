@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/ent"
+	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm"
 	"github.com/looplj/axonhub/llm/httpclient"
@@ -286,6 +287,26 @@ func TestRateLimitTracking_OnOutboundRawError_429(t *testing.T) {
 
 	// Verify channel is in cooldown
 	assert.True(t, tracker.IsCoolingDown(channel.ID))
+}
+
+func TestRateLimitTracking_OnOutboundRawError_ConfiguredNonRetryable429DoesNotCoolDown(t *testing.T) {
+	tracker := NewChannelRequestTracker()
+	channel := &biz.Channel{Channel: &ent.Channel{
+		ID:       1,
+		Name:     "no-retry-429",
+		Settings: &objects.ChannelSettings{Treat429AsNonRetryable: true},
+	}}
+	outbound := &PersistentOutboundTransformer{state: &PersistenceState{
+		CurrentCandidate: &ChannelModelsCandidate{Channel: channel},
+	}}
+	middleware := &rateLimitTracking{outbound: outbound, tracker: tracker}
+
+	middleware.OnOutboundRawError(context.Background(), &httpclient.Error{
+		StatusCode: http.StatusTooManyRequests,
+		Headers:    http.Header{"Retry-After": []string{"30"}},
+	})
+
+	assert.False(t, tracker.IsCoolingDown(channel.ID))
 }
 
 func TestRateLimitTracking_OnOutboundRawError_QueueErrorIgnored(t *testing.T) {

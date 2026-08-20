@@ -1349,3 +1349,22 @@ func TestPersistentOutboundTransformer_CanRetry_429_WithMultipleModels(t *testin
 		require.False(t, outbound.CanRetry(httpErr))
 	})
 }
+
+func TestPersistentOutboundTransformer_ShouldStopRetry_OnConfigured429(t *testing.T) {
+	channel := &biz.Channel{
+		Channel: &ent.Channel{
+			ID:       1,
+			Name:     "no-retry-429",
+			Settings: &objects.ChannelSettings{Treat429AsNonRetryable: true},
+		},
+	}
+	outbound := &PersistentOutboundTransformer{
+		state: &PersistenceState{
+			CurrentCandidate: &ChannelModelsCandidate{Channel: channel},
+		},
+	}
+
+	require.True(t, outbound.ShouldStopRetry(&httpclient.Error{StatusCode: http.StatusTooManyRequests}))
+	require.False(t, outbound.ShouldStopRetry(&httpclient.Error{StatusCode: http.StatusInternalServerError}))
+	require.False(t, outbound.ShouldStopRetry(asChannelQueueError(channel, ErrChannelQueueFull)))
+}

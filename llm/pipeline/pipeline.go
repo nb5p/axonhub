@@ -36,6 +36,12 @@ type ChannelRetryable interface {
 	PrepareForRetry(ctx context.Context) error
 }
 
+// RetryTerminator is implemented by outbounds that need to stop all retry
+// handling for a specific error, including cross-channel failover.
+type RetryTerminator interface {
+	ShouldStopRetry(err error) bool
+}
+
 // ChannelCustomizedExecutor interface for channel need custom the process of request.
 // The customized executor will be used to execute the request.
 // e.g. the aws bedrock process need a custom executor to handle the request.
@@ -294,6 +300,12 @@ func (p *pipeline) Process(ctx context.Context, request *httpclient.Request) (*R
 
 		// Stop retrying if the context is canceled or the deadline is exceeded.
 		if ctx.Err() != nil {
+			return nil, lastErr
+		}
+
+		if retryTerminator, ok := p.Outbound.(RetryTerminator); ok && retryTerminator.ShouldStopRetry(lastErr) {
+			slog.DebugContext(ctx, "request retry terminated by outbound", slog.Any("error", lastErr))
+
 			return nil, lastErr
 		}
 

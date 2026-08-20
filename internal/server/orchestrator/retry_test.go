@@ -349,6 +349,11 @@ func TestIsRetryableErrorForChannel(t *testing.T) {
 			},
 		},
 	}
+	nonRetryable429Channel := &biz.Channel{
+		Channel: &ent.Channel{
+			Settings: &objects.ChannelSettings{Treat429AsNonRetryable: true},
+		},
+	}
 
 	tests := []struct {
 		name     string
@@ -369,6 +374,14 @@ func TestIsRetryableErrorForChannel(t *testing.T) {
 			},
 			channel:  nil,
 			expected: true,
+		},
+		{
+			name: "channel can override the default 429 retry behavior",
+			err: &httpclient.Error{
+				StatusCode: http.StatusTooManyRequests,
+			},
+			channel:  nonRetryable429Channel,
+			expected: false,
 		},
 		{
 			name:     "wrapped upstream EOF is retryable without channel settings",

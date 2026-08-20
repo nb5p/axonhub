@@ -111,6 +111,7 @@ export function mergeChannelSettingsForUpdate(
     passThroughUserAgent: pick('passThroughUserAgent', existing?.passThroughUserAgent ?? null),
     passThroughBody: pick('passThroughBody', existing?.passThroughBody ?? null),
     rateLimit: pick('rateLimit', existing?.rateLimit ?? null),
+    treat429AsNonRetryable: pick('treat429AsNonRetryable', existing?.treat429AsNonRetryable ?? false),
     retryableStatusCodes: pick('retryableStatusCodes', existing?.retryableStatusCodes ?? []),
     retryableErrorPatterns: pick('retryableErrorPatterns', existing?.retryableErrorPatterns ?? []),
     providerQuota: pick('providerQuota', existing?.providerQuota ?? null),

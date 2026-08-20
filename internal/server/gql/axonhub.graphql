@@ -164,6 +164,7 @@ type ChannelSettings {
   passThroughUserAgent: Boolean
   passThroughBody: Boolean
   rateLimit: ChannelRateLimit
+  treat429AsNonRetryable: Boolean
   retryableStatusCodes: [Int!]
   retryableErrorPatterns: [RetryableErrorPattern!]
   providerQuota: ChannelProviderQuotaSettings
@@ -231,6 +232,7 @@ input ChannelSettingsInput {
   passThroughUserAgent: Boolean
   passThroughBody: Boolean
   rateLimit: ChannelRateLimitInput
+  treat429AsNonRetryable: Boolean
   retryableStatusCodes: [Int!]
   retryableErrorPatterns: [RetryableErrorPatternInput!]
   providerQuota: ChannelProviderQuotaSettingsInput

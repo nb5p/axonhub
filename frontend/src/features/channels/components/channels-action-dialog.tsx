@@ -391,6 +391,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const [passThroughBody, setPassThroughBody] = useState<boolean | null>(() => {
     return initialRow?.settings?.passThroughBody ?? null;
   });
+  const [treat429AsNonRetryable, setTreat429AsNonRetryable] = useState(() => initialRow?.settings?.treat429AsNonRetryable ?? false);
   const [retryableStatusCodesText, setRetryableStatusCodesText] = useState(() =>
     formatRetryableStatusCodes(initialRow?.settings?.retryableStatusCodes)
   );
@@ -1233,6 +1234,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         const nextSettings = mergeChannelSettingsForUpdate(settingsForSubmit, {
           passThroughUserAgent,
           passThroughBody,
+          treat429AsNonRetryable,
           retryableStatusCodes,
           retryableErrorPatterns,
         });
@@ -1277,6 +1279,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
           proxy: proxyConfig,
           passThroughUserAgent,
           passThroughBody,
+          treat429AsNonRetryable,
           retryableStatusCodes,
           retryableErrorPatterns,
         });
@@ -1720,6 +1723,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
             setProxyPassword(initialRow?.settings?.proxy?.password || '');
             setPassThroughUserAgent(initialRow?.settings?.passThroughUserAgent ?? null);
             setPassThroughBody(initialRow?.settings?.passThroughBody ?? null);
+            setTreat429AsNonRetryable(initialRow?.settings?.treat429AsNonRetryable ?? false);
             setRetryableStatusCodesText(formatRetryableStatusCodes(initialRow?.settings?.retryableStatusCodes));
             setRetryableErrorPatternsText(formatRetryableErrorPatterns(initialRow?.settings?.retryableErrorPatterns));
             // Reset provider and API format state
@@ -2724,6 +2728,22 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                           {passThroughBody === true && (
                             <p className='text-xs text-amber-600 dark:text-amber-400'>{t('channels.dialogs.bodyPassThrough.warning')}</p>
                           )}
+                        </div>
+                      </FormItem>
+
+                      <FormItem className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
+                        <div className='pt-2 md:col-span-2 md:text-right'>
+                          <span className='font-medium'>{t('channels.dialogs.treat429AsNonRetryable.label')}</span>
+                        </div>
+                        <div className='md:col-span-6'>
+                          <label className='flex cursor-pointer items-start gap-2 text-sm'>
+                            <Checkbox
+                              checked={treat429AsNonRetryable}
+                              onCheckedChange={(checked) => setTreat429AsNonRetryable(checked === true)}
+                              aria-label={t('channels.dialogs.treat429AsNonRetryable.label')}
+                            />
+                            <span className='text-muted-foreground leading-5'>{t('channels.dialogs.treat429AsNonRetryable.description')}</span>
+                          </label>
                         </div>
                       </FormItem>
 

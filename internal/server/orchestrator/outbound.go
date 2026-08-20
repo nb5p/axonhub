@@ -648,6 +648,16 @@ func (p *PersistentOutboundTransformer) CanRetry(err error) bool {
 	return isRetryableErrorForChannel(err, p.state.CurrentCandidate.Channel)
 }
 
+// ShouldStopRetry reports errors for which the current channel explicitly
+// requires the pipeline to return immediately instead of trying another model
+// or channel.
+func (p *PersistentOutboundTransformer) ShouldStopRetry(err error) bool {
+	return !isChannelQueueError(err) &&
+		!isLocalRPMExhaustedError(err) &&
+		httpclient.IsRateLimitErr(err) &&
+		treats429AsNonRetryable(p.GetCurrentChannel())
+}
+
 // PrepareForRetry implements the pipeline.ChannelRetryable interface.
 // This will reset the request execution for the same channel, so that the same request can be retried.
 // It will try the next model in the same channel if available.

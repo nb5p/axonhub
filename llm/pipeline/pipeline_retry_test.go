@@ -62,6 +62,7 @@ type mockOutbound struct {
 	nextChannel           func(context.Context) error
 	canRetry              func(error) bool
 	prepareForRetry       func(context.Context) error
+	shouldStopRetry       func(error) bool
 	transformRequest      func(context.Context, *llm.Request) (*httpclient.Request, error)
 	transformResponse     func(context.Context, *httpclient.Response) (*llm.Response, error)
 	transformStream       func(context.Context, *httpclient.Request, streams.Stream[*httpclient.StreamEvent]) (streams.Stream[*llm.Response], error)
@@ -132,6 +133,10 @@ func (m *mockOutbound) PrepareForRetry(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (m *mockOutbound) ShouldStopRetry(err error) bool {
+	return m.shouldStopRetry != nil && m.shouldStopRetry(err)
 }
 
 type mockExecutor struct {
@@ -305,6 +310,52 @@ func TestPipeline_Process_RetryLogic(t *testing.T) {
 		require.NotNil(t, res)
 		require.Equal(t, 2, execCalls)
 		require.Equal(t, 1, switchCalls)
+	})
+
+	t.Run("RetryTerminatorStopsSameChannelAndCrossChannelRetries", func(t *testing.T) {
+		upstreamErr := errors.New("upstream 429")
+		execCalls := 0
+		executor := &mockExecutor{
+			do: func(ctx context.Context, req *httpclient.Request) (*httpclient.Response, error) {
+				execCalls++
+
+				return nil, upstreamErr
+			},
+		}
+
+		canRetryCalls := 0
+		switchCalls := 0
+		outbound := &mockOutbound{
+			canRetry: func(err error) bool {
+				canRetryCalls++
+
+				return true
+			},
+			shouldStopRetry: func(err error) bool {
+				return errors.Is(err, upstreamErr)
+			},
+			hasMoreChannels: func() bool { return true },
+			nextChannel: func(ctx context.Context) error {
+				switchCalls++
+
+				return nil
+			},
+		}
+
+		p := &pipeline{
+			Executor:              executor,
+			Inbound:               inbound,
+			Outbound:              outbound,
+			maxSameChannelRetries: 2,
+			maxChannelRetries:     2,
+		}
+
+		res, err := p.Process(ctx, &httpclient.Request{})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, upstreamErr)
+		require.Equal(t, 1, execCalls)
+		require.Zero(t, canRetryCalls)
+		require.Zero(t, switchCalls)
 	})
 
 	t.Run("MixedRetrySuccess", func(t *testing.T) {

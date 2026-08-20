@@ -602,6 +602,7 @@ type ComplexityRoot struct {
 		RetryableErrorPatterns   func(childComplexity int) int
 		RetryableStatusCodes     func(childComplexity int) int
 		TransformOptions         func(childComplexity int) int
+		Treat429AsNonRetryable   func(childComplexity int) int
 	}
 
 	ChannelSuccessRate struct {
@@ -4553,6 +4554,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelSettings.TransformOptions(childComplexity), true
+	case "ChannelSettings.treat429AsNonRetryable":
+		if e.complexity.ChannelSettings.Treat429AsNonRetryable == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.Treat429AsNonRetryable(childComplexity), true
 
 	case "ChannelSuccessRate.channelDisabled":
 		if e.complexity.ChannelSuccessRate.ChannelDisabled == nil {
@@ -21416,6 +21423,8 @@ func (ec *executionContext) fieldContext_Channel_settings(_ context.Context, fie
 				return ec.fieldContext_ChannelSettings_passThroughBody(ctx, field)
 			case "rateLimit":
 				return ec.fieldContext_ChannelSettings_rateLimit(ctx, field)
+			case "treat429AsNonRetryable":
+				return ec.fieldContext_ChannelSettings_treat429AsNonRetryable(ctx, field)
 			case "retryableStatusCodes":
 				return ec.fieldContext_ChannelSettings_retryableStatusCodes(ctx, field)
 			case "retryableErrorPatterns":
@@ -26038,6 +26047,35 @@ func (ec *executionContext) fieldContext_ChannelSettings_rateLimit(_ context.Con
 				return ec.fieldContext_ChannelRateLimit_queueTimeoutMs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChannelRateLimit", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelSettings_treat429AsNonRetryable(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_treat429AsNonRetryable,
+		func(ctx context.Context) (any, error) {
+			return obj.Treat429AsNonRetryable, nil
+		},
+		nil,
+		ec.marshalOBoolean2bool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_treat429AsNonRetryable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -70162,7 +70200,7 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "retryableStatusCodes", "retryableErrorPatterns", "providerQuota"}
+	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns", "providerQuota"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -70260,6 +70298,13 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 				return it, err
 			}
 			it.RateLimit = data
+		case "treat429AsNonRetryable":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("treat429AsNonRetryable"))
+			data, err := ec.unmarshalOBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Treat429AsNonRetryable = data
 		case "retryableStatusCodes":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("retryableStatusCodes"))
 			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
@@ -96706,6 +96751,8 @@ func (ec *executionContext) _ChannelSettings(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._ChannelSettings_passThroughBody(ctx, field, obj)
 		case "rateLimit":
 			out.Values[i] = ec._ChannelSettings_rateLimit(ctx, field, obj)
+		case "treat429AsNonRetryable":
+			out.Values[i] = ec._ChannelSettings_treat429AsNonRetryable(ctx, field, obj)
 		case "retryableStatusCodes":
 			out.Values[i] = ec._ChannelSettings_retryableStatusCodes(ctx, field, obj)
 		case "retryableErrorPatterns":

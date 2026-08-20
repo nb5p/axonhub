@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"net/http"
 	"regexp"
 	"slices"
 	"strings"
@@ -33,6 +34,10 @@ func isRetryableErrorForChannel(err error, ch *biz.Channel) bool {
 	}
 
 	statusCode := ExtractStatusCodeFromError(err)
+	if statusCode == http.StatusTooManyRequests && treats429AsNonRetryable(ch) {
+		return false
+	}
+
 	if httpclient.IsHTTPStatusCodeRetryable(statusCode) {
 		return true
 	}
@@ -43,6 +48,10 @@ func isRetryableErrorForChannel(err error, ch *biz.Channel) bool {
 
 	return slices.Contains(ch.Settings.RetryableStatusCodes, statusCode) ||
 		matchesRetryableErrorPattern(err, ch.Settings.RetryableErrorPatterns)
+}
+
+func treats429AsNonRetryable(ch *biz.Channel) bool {
+	return ch != nil && ch.Channel != nil && ch.Settings != nil && ch.Settings.Treat429AsNonRetryable
 }
 
 // isRetryableTransportError identifies failures where the upstream connection
