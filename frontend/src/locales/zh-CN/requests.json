@@ -80,7 +80,6 @@
   "requests.infiniteScroll.loading": "正在加载更多请求…",
   "requests.infiniteScroll.more": "继续向下滚动以加载更多",
   "requests.infiniteScroll.end": "已加载全部 {{count}} 条请求",
-  "requests.infiniteScroll.autoRefreshUnavailable": "无限滚动模式下无法使用自动刷新",
   "requests.duration.firstToken": "首字 {{duration}}",
   "requests.duration.total": "总耗时 {{duration}}",
   "requests.tooltips.inputTokens": "输入 Token",

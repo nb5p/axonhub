@@ -30,7 +30,6 @@ interface DataTableToolbarProps<TData> {
   showRefresh?: boolean;
   autoRefresh?: boolean;
   onAutoRefreshChange?: (enabled: boolean) => void;
-  autoRefreshDisabled?: boolean;
 }
 
 interface RequestFilterControlsProps {
@@ -188,7 +187,6 @@ export function DataTableToolbar<TData>({
   showRefresh = false,
   autoRefresh = false,
   onAutoRefreshChange,
-  autoRefreshDisabled = false,
 }: DataTableToolbarProps<TData>) {
   const { t } = useTranslation();
   const [showArchivedApiKeys, setShowArchivedApiKeys] = useState(false);
@@ -409,25 +407,14 @@ export function DataTableToolbar<TData>({
       <div className='hidden flex-1 sm:block' />
       <div className='flex shrink-0 flex-wrap items-center gap-2'>
         {showRefresh && onAutoRefreshChange && (
-          <div
-            className='flex shrink-0 items-center gap-2'
-            title={autoRefreshDisabled ? t('requests.infiniteScroll.autoRefreshUnavailable') : undefined}
-          >
+          <div className='flex shrink-0 items-center gap-2'>
             <Switch
               checked={autoRefresh}
               onCheckedChange={onAutoRefreshChange}
               id='auto-refresh-switch'
-              aria-label={
-                autoRefreshDisabled ? t('requests.infiniteScroll.autoRefreshUnavailable') : t('common.autoRefresh')
-              }
-              disabled={autoRefreshDisabled}
+              aria-label={t('common.autoRefresh')}
             />
-            <label
-              htmlFor='auto-refresh-switch'
-              className={`text-muted-foreground text-sm whitespace-nowrap ${
-                autoRefreshDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-              }`}
-            >
+            <label htmlFor='auto-refresh-switch' className='text-muted-foreground cursor-pointer text-sm whitespace-nowrap'>
               {t('common.autoRefresh')}
             </label>
           </div>

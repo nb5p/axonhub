@@ -80,7 +80,6 @@
   "requests.infiniteScroll.loading": "Loading more requests...",
   "requests.infiniteScroll.more": "Scroll down to load more",
   "requests.infiniteScroll.end": "All {{count}} requests loaded",
-  "requests.infiniteScroll.autoRefreshUnavailable": "Auto refresh is unavailable while infinite scrolling is enabled",
   "requests.duration.firstToken": "First token {{duration}}",
   "requests.duration.total": "Total {{duration}}",
   "requests.tooltips.inputTokens": "Input tokens",

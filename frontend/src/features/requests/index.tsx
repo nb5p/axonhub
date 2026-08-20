@@ -201,7 +201,6 @@ function RequestsContent() {
   useEffect(() => {
     if (!paginationEnabled) {
       resetCursor();
-      setAutoRefresh(false);
     }
   }, [paginationEnabled, resetCursor]);
 
@@ -440,7 +439,6 @@ function RequestsContent() {
         showRefresh={isFirstPage}
         autoRefresh={autoRefresh}
         onAutoRefreshChange={setAutoRefresh}
-        autoRefreshDisabled={!paginationEnabled}
         infiniteScroll={!paginationEnabled}
         hasMore={infiniteQuery.hasNextPage}
         loadingMore={infiniteQuery.isFetchingNextPage}

@@ -70,7 +70,6 @@ interface RequestsTableProps {
   showRefresh: boolean;
   autoRefresh?: boolean;
   onAutoRefreshChange?: (enabled: boolean) => void;
-  autoRefreshDisabled?: boolean;
   infiniteScroll?: boolean;
   hasMore?: boolean;
   loadingMore?: boolean;
@@ -119,7 +118,6 @@ export function RequestsTable({
   showRefresh,
   autoRefresh = false,
   onAutoRefreshChange,
-  autoRefreshDisabled = false,
   infiniteScroll = false,
   hasMore = false,
   loadingMore = false,
@@ -215,7 +213,7 @@ export function RequestsTable({
     });
   }, [isMobile, visibilityReady]);
 
-  const displayedData = useAnimatedList(data, autoRefresh && !autoRefreshDisabled, paginationEnabled ? pageSize : data.length || pageSize);
+  const displayedData = useAnimatedList(data, autoRefresh, paginationEnabled ? pageSize : data.length || pageSize);
 
   useEffect(() => {
     if (!infiniteScroll || !hasMore || loadingMore || !onLoadMore) return;
@@ -328,7 +326,6 @@ export function RequestsTable({
         showRefresh={showRefresh}
         autoRefresh={autoRefresh}
         onAutoRefreshChange={onAutoRefreshChange}
-        autoRefreshDisabled={autoRefreshDisabled}
       />
       <div
         ref={scrollContainerRef}
