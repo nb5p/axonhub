@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { clampQuotaPercentage, getQuotaDisplayPercentage } from '@/lib/quota-display';
+import { getQuotaWindowDurationPercent, getQuotaWindowResetAfterSeconds } from '@/lib/quota-window-time';
 import {
   useProviderQuotaStatuses,
   ProviderQuotaChannel,
@@ -458,7 +459,7 @@ function QuotaRow({
   };
 
   const formatTimeToReset = (resetAtOrSeconds?: string | number | null, usedPercent?: number, regenerates?: boolean | number) => {
-    if (!resetAtOrSeconds) return '';
+    if (resetAtOrSeconds == null || resetAtOrSeconds === '') return '';
 
     let resetTimeMs: number;
     if (typeof resetAtOrSeconds === 'number') {
@@ -795,12 +796,11 @@ function QuotaRow({
             if (!qd) return null;
             const primaryWindow = qd.rate_limit?.primary_window;
             const secondaryWindow = qd.rate_limit?.secondary_window;
-            const primaryDurationPct = primaryWindow?.limit_window_seconds
-              ? calcDurationPercent(primaryWindow.limit_window_seconds, primaryWindow.reset_after_seconds)
-              : undefined;
-            const secondaryDurationPct = secondaryWindow?.limit_window_seconds
-              ? calcDurationPercent(secondaryWindow.limit_window_seconds, secondaryWindow.reset_after_seconds)
-              : undefined;
+            const nowMs = Date.now();
+            const primaryResetAfter = primaryWindow ? getQuotaWindowResetAfterSeconds(primaryWindow, nowMs) : undefined;
+            const secondaryResetAfter = secondaryWindow ? getQuotaWindowResetAfterSeconds(secondaryWindow, nowMs) : undefined;
+            const primaryDurationPct = primaryWindow ? getQuotaWindowDurationPercent(primaryWindow, nowMs) : undefined;
+            const secondaryDurationPct = secondaryWindow ? getQuotaWindowDurationPercent(secondaryWindow, nowMs) : undefined;
 
             return (
               <>
@@ -826,18 +826,20 @@ function QuotaRow({
                               {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(primaryDurationPct))}%
                             </div>
                           )}
-                          {primaryWindow.reset_at && (
+                          {primaryResetAfter !== undefined && (
                             <div>
-                              {formatTimeToReset(primaryWindow.reset_after_seconds)} ({formatDate(primaryWindow.reset_at)})
+                              {formatTimeToReset(primaryResetAfter)}
+                              {primaryWindow.reset_at != null && <> ({formatDate(primaryWindow.reset_at)})</>}
                             </div>
                           )}
                         </div>
                       }
                     />
 
-                    {primaryWindow.reset_at && (
+                    {primaryResetAfter !== undefined && (
                       <div className='text-muted-foreground pt-0.5 text-right text-[11px]'>
-                        {formatTimeToReset(primaryWindow.reset_after_seconds)} ({formatDate(primaryWindow.reset_at)})
+                        {formatTimeToReset(primaryResetAfter)}
+                        {primaryWindow.reset_at != null && <> ({formatDate(primaryWindow.reset_at)})</>}
                       </div>
                     )}
                   </div>
@@ -865,18 +867,20 @@ function QuotaRow({
                               {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(secondaryDurationPct))}%
                             </div>
                           )}
-                          {secondaryWindow.reset_at && (
+                          {secondaryResetAfter !== undefined && (
                             <div>
-                              {formatTimeToReset(secondaryWindow.reset_after_seconds)} ({formatDate(secondaryWindow.reset_at)})
+                              {formatTimeToReset(secondaryResetAfter)}
+                              {secondaryWindow.reset_at != null && <> ({formatDate(secondaryWindow.reset_at)})</>}
                             </div>
                           )}
                         </div>
                       }
                     />
 
-                    {secondaryWindow.reset_at && (
+                    {secondaryResetAfter !== undefined && (
                       <div className='text-muted-foreground pt-0.5 text-right text-[11px]'>
-                        {formatTimeToReset(secondaryWindow.reset_after_seconds)} ({formatDate(secondaryWindow.reset_at)})
+                        {formatTimeToReset(secondaryResetAfter)}
+                        {secondaryWindow.reset_at != null && <> ({formatDate(secondaryWindow.reset_at)})</>}
                       </div>
                     )}
                   </div>
