@@ -10,13 +10,14 @@ source:
   baseline_commit: b2148eda3f0d68967398287857ff35d27ff5485b
   adopted_commits: []
   last_checked_commit: 9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca
-  last_checked_at: 2026-08-20
+  last_checked_at: 2026-08-21
   license: Apache-2.0
 local:
   branch: ai-slop
   commit_marker: "🧩"
   commits:
     - 089da0d1df9757294abeb24f304d5fda9c9adced
+    - 466f201927f231eb1b164176bf667fc21c76eb1d
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -27,6 +28,7 @@ local:
     - internal/ent/schema/provider_quota_status.go
     - internal/server/gql/axonhub.graphql
     - internal/server/gql/axonhub.resolvers.go
+    - frontend/src/features/channels/components/channels-columns.tsx
     - frontend/src/features/channels/components/channels-usage-query-dialog.tsx
     - frontend/src/features/channels/data/usage-query.ts
     - frontend/src/features/system/data/quotas.ts
@@ -36,7 +38,7 @@ upstream:
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-20
+  last_compared_at: 2026-08-21
 reconciliations: []
 history_rewrites: []
 database:
@@ -66,6 +68,9 @@ database:
 - 启用自定义查询后，它优先于渠道原有的内置配额 checker；关闭后恢复原 provider checker。保存配置会清除旧配额状态并触发后续刷新。
 - extractor 支持可选字段 `isValid`、`invalidMessage`、`remaining`、`unit`、`planName`、`total`、`used`、`extra`；前端显示套餐、额度明细、使用比例和扩展文本。
 - 普通渠道编辑会保留隐藏的用量查询设置和专用 Key，避免整段 JSON 更新时误删配置。
+- 渠道列表新增默认可见、可在列设置中隐藏的“用量查询”列；脚本返回文本会把连续换行规整为最多一个换行，因此最多显示两行。
+- 列内可以刷新单个渠道，列头右侧可以刷新所有已启用用量查询的渠道；手动刷新不受后台配额采集总开关或渠道启用状态限制，并继续使用最多 8 路并发、现有状态持久化和错误退避。
+- 用量查询配置新增“显示在提供商配额中”开关。关闭时仅隐藏右上角的提供商配额条目，列表列始终保留；旧配置缺少该字段时按开启处理，保持既有展示行为。
 
 ## 安全与资源边界
 
@@ -93,6 +98,7 @@ database:
 兼容等级为 `additive`：
 
 - 渠道配置写入现有 `channels.settings` JSON 的可选 `usageQuery` 字段，专用 Key 写入现有 `channels.credentials` JSON 的可选 `usageQueryApiKey` 字段；旧数据无需回填。
+- `usageQuery.showInProviderQuota` 是可选布尔字段，缺失时默认显示在提供商配额中；不新增 Ent 字段、表或迁移。
 - `provider_quota_status.provider_type` 的 Ent 枚举增加 `usage_query`。SQLite/PostgreSQL 使用字符串存储；MySQL/TiDB 由 Ent 自动迁移扩展枚举取值。
 - 新版本可直接读取旧数据库。旧版本会忽略新 JSON 字段和配额类型；如果回退后用旧版本编辑已配置渠道，未知 JSON 字段可能被重新序列化丢失，因此需要保留配置时应恢复升级前快照。
 - 本次开发没有创建或修改部署数据库，也没有创建备份。部署前按现有数据库流程制作一致性快照并执行 `PRAGMA quick_check`；回滚可恢复快照，或接受只丢失该新增功能配置而保留核心渠道数据。
@@ -102,12 +108,14 @@ database:
 - 功能关闭时不会执行 JavaScript 或发出额外 HTTP 请求。
 - 配额调度查询会读取所有启用渠道，再在内存中筛选内置 provider 或已启用脚本的渠道；这是支持任意渠道类型的固定查询开销。
 - 实际查询复用现有配额轮询周期和并发上限，不新增独立常驻 goroutine 或调度器。
+- 手动刷新仅在管理员点击时执行，并与普通轮询共用服务互斥锁和 8 路并发上限，不会并行叠加同一渠道的脚本请求。
 
 ## 验证
 
 - `make generate`：Ent 与 GraphQL 代码生成成功。
 - `go test ./internal/server/biz/provider_quota -count=1`：通过，覆盖现代 JavaScript 语法、变量替换、extractor、缺失 extractor、未知变量、死循环中断、New API 请求、专用 Key 优先、同源限制和状态归一化。
-- `go test ./internal/server/biz -count=1`：通过，覆盖专用 Key 不回显、普通渠道编辑保留隐藏配置，以及测试临时 Key 不落库。
+- `go test ./internal/server/biz -count=1`：通过，覆盖专用 Key 不回显、普通渠道编辑保留隐藏配置、右上角显示开关，以及测试临时 Key 不落库。
+- `go test ./internal/server/biz/provider_quota ./internal/server/biz ./internal/server/gql -count=1`：通过，覆盖单渠道和全量手动刷新、全局采集关闭时仍可手动查询，以及 GraphQL 生成链路。
 - `go test ./internal/server/gql -count=1`：通过。
 - `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：通过。
 - locale JSON 解析与 `git diff --check`：通过。
@@ -118,3 +126,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-20 | 本地需求；上游比较至 `9fb6f1af` | `089da0d1df9757294abeb24f304d5fda9c9adced` | original：以 Goja 实现可替换脚本运行时，并接入渠道配置、配额轮询、持久化和通用额度展示。 |
+| 2026-08-21 | 本地交互扩展；上游比较至 `9fb6f1af` | `466f2019` | original：增加列表结果列、单渠道／全量手动刷新，以及右上角提供商配额展示开关；旧 JSON 配置默认保持显示。 |

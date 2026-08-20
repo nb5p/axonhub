@@ -51,7 +51,7 @@
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
-| `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
+| `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；`usageQuery.showInProviderQuota` 缺失时默认显示；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
 | `channel-429-non-retryable` | `additive` | 是 | 在 `channels.settings` JSON 中增加可选 `treat429AsNonRetryable` 布尔字段 | 旧数据无需回填；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
 | `channel-endpoint-summary-column` | `none` | 是 | 无 | 仅新增渠道列表端点摘要展示。 |
 | `channel-endpoint-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和运行时最终端点筛选，不修改持久化结构。 |
@@ -73,12 +73,12 @@
 ### 2026-08-20 — channel-usage-query
 
 - 兼容等级：`additive`
-- 本地 commit：`089da0d1df9757294abeb24f304d5fda9c9adced`
-- 影响结构：`provider_quota_status.provider_type` 增加 `usage_query`；`channels.settings` 和 `channels.credentials` 的既有 JSON 列增加可选字段。
+- 本地 commit：`089da0d1df9757294abeb24f304d5fda9c9adced`、`466f2019`。
+- 影响结构：`provider_quota_status.provider_type` 增加 `usage_query`；`channels.settings` 和 `channels.credentials` 的既有 JSON 列增加可选字段；本次新增可选 `usageQuery.showInProviderQuota`，缺失时按 `true` 读取。
 - 旧数据库验证样本：本次未连接部署数据库；内存 SQLite 上的 Ent、业务层和配额持久化测试通过。部署前仍需在真实旧版数据库副本上执行自动迁移、完整启动和数据校验。
 - 备份与恢复：本次未创建备份。部署前使用对应数据库的一致性快照流程；本地 SQLite 按蓝绿规则使用 `.backup` 并执行 `PRAGMA quick_check`。
 - 回滚能力：核心旧数据兼容；如需保留新增脚本配置，回滚旧版本前恢复升级前快照。旧版本编辑已配置渠道可能丢失其无法识别的 JSON 字段。
-- 最低升级版本：`089da0d1df9757294abeb24f304d5fda9c9adced`。
+- 最低升级版本：`466f2019`。
 - 用户批准（仅 breaking）：不适用。
 
 ### 2026-08-20 — channel-429-non-retryable

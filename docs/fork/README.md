@@ -36,7 +36,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
 | `filter-state-persistence` | 本地原创 | `active` | `36b9e737`, `41098593` | `none` | [`features/filter-state-persistence.md`](features/filter-state-persistence.md) |
 | `provider-quota-display` | 本地原创 | `active` | `e7205275`, `ab06121a`, `ab88ca26`, `e20024a6`, `287c77a5` | `none` | [`features/provider-quota-display.md`](features/provider-quota-display.md) |
-| `channel-usage-query` | 本地原创 | `active` | `089da0d1` | `additive` | [`features/channel-usage-query.md`](features/channel-usage-query.md) |
+| `channel-usage-query` | 本地原创 | `active` | `089da0d1`, `466f2019` | `additive` | [`features/channel-usage-query.md`](features/channel-usage-query.md) |
 | `channel-429-non-retryable` | 本地原创 | `active` | `621b0405` | `additive` | [`features/channel-429-non-retryable.md`](features/channel-429-non-retryable.md) |
 | `channel-endpoint-summary-column` | 本地原创 | `active` | `ba6c2fca`, `d04464ee` | `none` | [`features/channel-endpoint-summary-column.md`](features/channel-endpoint-summary-column.md) |
 | `channel-endpoint-filter` | 本地原创 | `active` | `437344f0` | `none` | [`features/channel-endpoint-filter.md`](features/channel-endpoint-filter.md) |
