@@ -52,6 +52,7 @@
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
 | `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
+| `channel-429-non-retryable` | `additive` | 是 | 在 `channels.settings` JSON 中增加可选 `treat429AsNonRetryable` 布尔字段 | 旧数据无需回填；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
 | `channel-endpoint-summary-column` | `none` | 是 | 无 | 仅新增渠道列表端点摘要展示。 |
 | `channel-endpoint-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和运行时最终端点筛选，不修改持久化结构。 |
 | `channel-provider-tabs-default-hidden` | `none` | 是 | 无 | 仅调整浏览器本地偏好的默认值。 |
@@ -76,6 +77,17 @@
 - 备份与恢复：本次未创建备份。部署前使用对应数据库的一致性快照流程；本地 SQLite 按蓝绿规则使用 `.backup` 并执行 `PRAGMA quick_check`。
 - 回滚能力：核心旧数据兼容；如需保留新增脚本配置，回滚旧版本前恢复升级前快照。旧版本编辑已配置渠道可能丢失其无法识别的 JSON 字段。
 - 最低升级版本：`089da0d1df9757294abeb24f304d5fda9c9adced`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-20 — channel-429-non-retryable
+
+- 兼容等级：`additive`
+- 本地 commit：`621b04052ab69434df631119de7e604635389da0`。
+- 影响结构：`channels.settings` JSON 增加可选布尔字段 `treat429AsNonRetryable`；不修改 Ent Schema、表、索引或既有数据。
+- 旧数据库验证样本：本次未连接部署数据库；已有渠道设置缺失该字段时默认 `false`，保持现有 429 重试、切换渠道和 Retry-After 冷却行为。自动迁移不需要回填。
+- 备份与恢复：本次未创建备份。部署前按既有数据库的一致性快照流程执行；本地 SQLite 使用 `.backup` 并执行 `PRAGMA quick_check`。
+- 回滚能力：回退旧代码不影响核心渠道数据，但旧版本编辑已开启该开关的渠道可能重写并丢弃未知 JSON 字段；如需保留该配置，回滚前恢复升级前快照或避免使用旧版本编辑该渠道。
+- 最低升级版本：`621b04052ab69434df631119de7e604635389da0`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
