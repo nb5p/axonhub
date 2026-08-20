@@ -11,6 +11,10 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 - 已登记功能：下表对应的功能文档
 - 新功能：[`features/_template.md`](features/_template.md)
 
+## 架构规划
+
+- [Rust + deno_core 插件优先网关架构计划](plans/rust-deno-plugin-gateway.md)
+
 ## 当前功能索引
 
 | 功能 ID | 类型 | 状态 | 核心来源或提交 | 数据库影响 | 记录 |
