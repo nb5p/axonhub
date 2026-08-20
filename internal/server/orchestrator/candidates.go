@@ -1124,6 +1124,9 @@ type SpecifiedChannelSelector struct {
 	// SelectedAPIKey, if non-empty, forces the outbound to use this specific API key.
 	// Used by the channel key test flow to test a single key.
 	SelectedAPIKey string
+	// SelectedAPIFormat, if non-empty, forces the outbound to use this exact endpoint format.
+	// Used by the channel test flow to keep the selected inbound API contract intact.
+	SelectedAPIFormat string
 }
 
 func NewSpecifiedChannelSelector(channelService *biz.ChannelService, channelID objects.GUID) *SpecifiedChannelSelector {
@@ -1154,6 +1157,22 @@ func (s *SpecifiedChannelSelector) Select(ctx context.Context, req *llm.Request)
 
 	endpoints := channel.ResolveEndpoints()
 	apiFormat := SelectAPIFormat(endpoints, req)
+	if s.SelectedAPIFormat != "" {
+		if !IsChatCapableAPIFormat(s.SelectedAPIFormat) {
+			return nil, fmt.Errorf("API format %s does not support chat requests", s.SelectedAPIFormat)
+		}
+
+		for _, endpoint := range endpoints {
+			if endpoint.APIFormat == s.SelectedAPIFormat {
+				apiFormat = endpoint.APIFormat
+				break
+			}
+		}
+
+		if apiFormat != s.SelectedAPIFormat {
+			return nil, fmt.Errorf("channel %s does not provide API format %s", channel.Name, s.SelectedAPIFormat)
+		}
+	}
 
 	candidate := &ChannelModelsCandidate{
 		Channel:   channel,

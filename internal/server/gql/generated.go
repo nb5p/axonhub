@@ -84661,7 +84661,7 @@ func (ec *executionContext) unmarshalInputTestChannelInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"channelID", "modelID", "proxy"}
+	fieldsInOrder := [...]string{"channelID", "modelID", "proxy", "apiFormat"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -84689,6 +84689,13 @@ func (ec *executionContext) unmarshalInputTestChannelInput(ctx context.Context, 
 				return it, err
 			}
 			it.Proxy = data
+		case "apiFormat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("apiFormat"))
+			data, err := ec.unmarshalOChannelTestAPIFormat2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐChannelTestAPIFormat(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.APIFormat = data
 		}
 	}
 
@@ -121229,6 +121236,22 @@ func (ec *executionContext) unmarshalOChannelTagsRegexAssociationInput2ᚖgithub
 	}
 	res, err := ec.unmarshalInputChannelTagsRegexAssociationInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOChannelTestAPIFormat2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐChannelTestAPIFormat(ctx context.Context, v any) (*ChannelTestAPIFormat, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(ChannelTestAPIFormat)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOChannelTestAPIFormat2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐChannelTestAPIFormat(ctx context.Context, sel ast.SelectionSet, v *ChannelTestAPIFormat) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOChannelType2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋchannelᚐTypeᚄ(ctx context.Context, v any) ([]channel.Type, error) {

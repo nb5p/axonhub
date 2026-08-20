@@ -21,7 +21,10 @@ import (
 	"github.com/looplj/axonhub/llm/pipeline"
 	"github.com/looplj/axonhub/llm/pipeline/stream"
 	"github.com/looplj/axonhub/llm/streams"
+	"github.com/looplj/axonhub/llm/transformer"
+	"github.com/looplj/axonhub/llm/transformer/anthropic"
 	"github.com/looplj/axonhub/llm/transformer/openai"
+	"github.com/looplj/axonhub/llm/transformer/openai/responses"
 )
 
 const testChannelAPIKeysMaxConcurrency = 8
@@ -70,6 +73,28 @@ type TestChannelRequest struct {
 	ModelID   *string
 }
 
+// ChannelTestAPIFormat is one of the client contracts supported by a channel model test.
+type ChannelTestAPIFormat string
+
+const (
+	ChannelTestAPIFormatOpenAIChatCompletion ChannelTestAPIFormat = "openai/chat_completions"
+	ChannelTestAPIFormatOpenAIResponse       ChannelTestAPIFormat = "openai/responses"
+	ChannelTestAPIFormatAnthropicMessages    ChannelTestAPIFormat = "anthropic/messages"
+)
+
+func (format ChannelTestAPIFormat) llmAPIFormat() (llm.APIFormat, error) {
+	switch format {
+	case "", ChannelTestAPIFormatOpenAIChatCompletion:
+		return llm.APIFormatOpenAIChatCompletion, nil
+	case ChannelTestAPIFormatOpenAIResponse:
+		return llm.APIFormatOpenAIResponse, nil
+	case ChannelTestAPIFormatAnthropicMessages:
+		return llm.APIFormatAnthropicMessage, nil
+	default:
+		return "", fmt.Errorf("unsupported channel test API format %q", format)
+	}
+}
+
 func buildChannelTestRequest(model string, useStream bool, systemPrompt string, userPrompt string) *llm.Request {
 	return &llm.Request{
 		Model: model,
@@ -88,6 +113,70 @@ func buildChannelTestRequest(model string, useStream bool, systemPrompt string, 
 	}
 }
 
+func buildChannelTestHTTPRequest(
+	apiFormat llm.APIFormat,
+	model string,
+	useStream bool,
+	systemPrompt string,
+	userPrompt string,
+) (transformer.Inbound, *httpclient.Request, error) {
+	inbound, err := newChannelTestInbound(apiFormat)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var payload any
+
+	switch apiFormat {
+	case llm.APIFormatOpenAIChatCompletion:
+		payload = buildChannelTestRequest(model, useStream, systemPrompt, userPrompt)
+	case llm.APIFormatOpenAIResponse:
+		payload = map[string]any{
+			"model":             model,
+			"instructions":      systemPrompt,
+			"input":             userPrompt,
+			"max_output_tokens": 256,
+			"stream":            useStream,
+		}
+	case llm.APIFormatAnthropicMessage:
+		payload = map[string]any{
+			"model":      model,
+			"max_tokens": 256,
+			"system":     systemPrompt,
+			"messages": []map[string]any{{
+				"role":    "user",
+				"content": userPrompt,
+			}},
+			"stream": useStream,
+		}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return inbound, &httpclient.Request{
+		Headers: http.Header{
+			"Content-Type": []string{"application/json"},
+		},
+		Body: body,
+	}, nil
+}
+
+func newChannelTestInbound(apiFormat llm.APIFormat) (transformer.Inbound, error) {
+	switch apiFormat {
+	case llm.APIFormatOpenAIChatCompletion:
+		return openai.NewInboundTransformer(), nil
+	case llm.APIFormatOpenAIResponse:
+		return responses.NewInboundTransformer(), nil
+	case llm.APIFormatAnthropicMessage:
+		return anthropic.NewInboundTransformer(), nil
+	default:
+		return nil, fmt.Errorf("unsupported channel test API format %q", apiFormat)
+	}
+}
+
 // TestChannelResult represents the result of a channel test.
 type TestChannelResult struct {
 	Latency float64
@@ -102,11 +191,22 @@ func (processor *TestChannelOrchestrator) TestChannel(
 	channelID objects.GUID,
 	modelID *string,
 	proxy *httpclient.ProxyConfig,
+	selectedFormat *ChannelTestAPIFormat,
 ) (*TestChannelResult, error) {
-	inbound := openai.NewInboundTransformer()
+	apiFormat, err := ChannelTestAPIFormat(lo.FromPtr(selectedFormat)).llmAPIFormat()
+	if err != nil {
+		return nil, err
+	}
+	inbound, err := newChannelTestInbound(apiFormat)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create ChatCompletionOrchestrator for this test request
+	selector := NewSpecifiedChannelSelector(processor.channelService, channelID)
+	selector.SelectedAPIFormat = apiFormat.String()
 	chatProcessor := &ChatCompletionOrchestrator{
-		channelSelector: NewSpecifiedChannelSelector(processor.channelService, channelID),
+		channelSelector: selector,
 		RequestService:  processor.requestService,
 		ChannelService:  processor.channelService,
 		PromptProvider:  &stubPromptProvider{},
@@ -144,21 +244,14 @@ func (processor *TestChannelOrchestrator) TestChannel(
 	// Check if the channel requires streaming
 	useStream := channel != nil && channel.Policies.Stream == objects.CapabilityPolicyRequire
 
-	llmRequest := buildChannelTestRequest(testModel, useStream, systemPrompt, userPrompt)
-
-	body, err := json.Marshal(llmRequest)
+	inbound, httpRequest, err := buildChannelTestHTTPRequest(apiFormat, testModel, useStream, systemPrompt, userPrompt)
 	if err != nil {
 		return nil, err
 	}
 
 	// Measure latency
 	startTime := time.Now()
-	rawResponse, err := chatProcessor.Process(ctx, &httpclient.Request{
-		Headers: http.Header{
-			"Content-Type": []string{"application/json"},
-		},
-		Body: body,
-	})
+	rawResponse, err := chatProcessor.Process(ctx, httpRequest)
 
 	rawErr := inbound.TransformError(ctx, err)
 	message := gjson.GetBytes(rawErr.Body, "error.message").String()
@@ -174,12 +267,30 @@ func (processor *TestChannelOrchestrator) TestChannel(
 
 	// Handle streaming response
 	if rawResponse.ChatCompletionStream != nil {
-		return processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime)
+		return processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, apiFormat)
 	}
 
 	latency := time.Since(startTime).Seconds()
 
-	// Handle non-streaming response
+	if rawResponse.ChatCompletion == nil || len(rawResponse.ChatCompletion.Body) == 0 {
+		return &TestChannelResult{
+			Latency: latency,
+			Success: false,
+			Message: new(""),
+			Error:   new("No response body"),
+		}, nil
+	}
+
+	if apiFormat != llm.APIFormatOpenAIChatCompletion {
+		return &TestChannelResult{
+			Latency: latency,
+			Success: true,
+			Message: new(""),
+			Error:   nil,
+		}, nil
+	}
+
+	// Handle non-streaming OpenAI Chat Completions response.
 	response, err := xjson.To[llm.Response](rawResponse.ChatCompletion.Body)
 	if err != nil {
 		return &TestChannelResult{
@@ -212,13 +323,17 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 	ctx context.Context,
 	stream streams.Stream[*httpclient.StreamEvent],
 	startTime time.Time,
+	apiFormat llm.APIFormat,
 ) (*TestChannelResult, error) {
 	defer func() {
 		_ = stream.Close()
 	}()
 
 	// Accumulate stream chunks
-	var accumulatedContent string
+	var (
+		accumulatedContent string
+		receivedEvent      bool
+	)
 
 	for stream.Next() {
 		select {
@@ -239,6 +354,12 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 
 		// The stream may end with a "[DONE]" message which is not valid JSON.
 		if string(event.Data) == "[DONE]" {
+			continue
+		}
+
+		receivedEvent = true
+
+		if apiFormat != llm.APIFormatOpenAIChatCompletion {
 			continue
 		}
 
@@ -276,7 +397,7 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 		}, nil
 	}
 
-	if accumulatedContent == "" {
+	if !receivedEvent || (apiFormat == llm.APIFormatOpenAIChatCompletion && accumulatedContent == "") {
 		return &TestChannelResult{
 			Latency: latency,
 			Success: false,
@@ -528,7 +649,7 @@ func (processor *TestChannelOrchestrator) testSingleKey(
 
 	// Handle streaming response
 	if rawResponse.ChatCompletionStream != nil {
-		streamResult, _ := processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime)
+		streamResult, _ := processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, llm.APIFormatOpenAIChatCompletion)
 
 		return &TestAPIKeyResult{
 			KeyPrefix: keyPrefix,

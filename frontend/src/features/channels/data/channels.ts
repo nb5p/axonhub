@@ -1469,10 +1469,12 @@ export function useTestChannel(options?: { silent?: boolean }) {
       channelID,
       modelID,
       proxy,
+      apiFormat,
     }: {
       channelID: string;
       modelID?: string;
       proxy?: ProxyConfig;
+      apiFormat?: 'OPENAI_CHAT_COMPLETION' | 'OPENAI_RESPONSE' | 'ANTHROPIC_MESSAGES';
     }) => {
       try {
         const data = await graphqlRequest<{
@@ -1482,7 +1484,7 @@ export function useTestChannel(options?: { silent?: boolean }) {
             message?: string | null;
             error?: string | null;
           };
-        }>(TEST_CHANNEL_MUTATION, { input: { channelID, modelID, proxy } });
+        }>(TEST_CHANNEL_MUTATION, { input: { channelID, modelID, proxy, apiFormat } });
         return data.testChannel;
       } catch (error) {
         if (!silent) {

@@ -14,6 +14,13 @@ var chatCapableAPIFormats = map[string]struct{}{
 	"ollama/chat":             {},
 }
 
+// IsChatCapableAPIFormat reports whether an API format can handle chat requests.
+func IsChatCapableAPIFormat(apiFormat string) bool {
+	_, ok := chatCapableAPIFormats[apiFormat]
+
+	return ok
+}
+
 // compactCapableAPIFormats lists API formats for compact requests.
 var compactCapableAPIFormats = map[string]struct{}{
 	"openai/responses_compact": {},

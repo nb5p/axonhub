@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import LongText from '@/components/long-text';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
@@ -30,19 +31,32 @@ interface Props {
   channel: Channel;
 }
 
+const testAPIFormats = [
+  { value: 'OPENAI_CHAT_COMPLETION', endpointFormat: 'openai/chat_completions', label: 'OpenAI Chat Completion' },
+  { value: 'OPENAI_RESPONSE', endpointFormat: 'openai/responses', label: 'OpenAI Response' },
+  { value: 'ANTHROPIC_MESSAGES', endpointFormat: 'anthropic/messages', label: 'Anthropic Messages' },
+] as const;
+
+type TestAPIFormat = (typeof testAPIFormats)[number]['value'];
+
 export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<Record<string, ModelTestResult>>({});
   const [localSupportedModels, setLocalSupportedModels] = useState<string[]>(channel.supportedModels);
+  const [selectedAPIFormat, setSelectedAPIFormat] = useState<TestAPIFormat>();
   const [isTesting, setIsTesting] = useState(false);
   const [isRemovePopoverOpen, setIsRemovePopoverOpen] = useState(false);
   const testChannel = useTestChannel();
   const updateChannel = useUpdateChannel();
 
   // Filter models based on search query
-  const filteredModels = localSupportedModels.filter((model) => model.toLowerCase().includes(searchQuery.toLowerCase()));
+  const availableEndpointFormats = new Set([...(channel.defaultEndpoints ?? []), ...(channel.endpoints ?? [])].map((endpoint) => endpoint.apiFormat));
+  const selectedFormatIsAvailable = !!selectedAPIFormat && testAPIFormats.some(
+    (format) => format.value === selectedAPIFormat && availableEndpointFormats.has(format.endpointFormat)
+  );
+  const filteredModels = (selectedFormatIsAvailable ? localSupportedModels : []).filter((model) => model.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Initialize test results when dialog opens
   useEffect(() => {
@@ -57,9 +71,21 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       setTestResults(initialResults);
       setLocalSupportedModels(channel.supportedModels);
       setSelectedModels([]);
+      setSelectedAPIFormat(undefined);
       setSearchQuery('');
     }
   }, [open, channel.supportedModels]);
+
+  const handleAPIFormatChange = (value: TestAPIFormat) => {
+    const initialResults: Record<string, ModelTestResult> = {};
+    localSupportedModels.forEach((model) => {
+      initialResults[model] = { modelName: model, status: 'not_started' };
+    });
+    setSelectedAPIFormat(value);
+    setSelectedModels([]);
+    setSearchQuery('');
+    setTestResults(initialResults);
+  };
 
   // Handle model selection
   const handleModelSelect = (modelName: string, checked: boolean) => {
@@ -91,6 +117,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       const result = await testChannel.mutateAsync({
         channelID: channel.id,
         modelID: modelName,
+        apiFormat: selectedAPIFormat,
       });
       const latency = (Date.now() - startTime) / 1000;
 
@@ -174,7 +201,21 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       <DialogContent className='flex max-h-[90vh] flex-col w-full max-w-full sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle className='text-lg sm:text-xl'>{t('channels.dialogs.test.title')}</DialogTitle>
-          <DialogDescription className='text-sm sm:text-base'>{t('channels.dialogs.test.description', { name: channel.name })}</DialogDescription>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <DialogDescription className='text-sm sm:text-base'>{t('channels.dialogs.test.description', { name: channel.name })}</DialogDescription>
+            <Select value={selectedAPIFormat} onValueChange={(value) => handleAPIFormatChange(value as TestAPIFormat)}>
+              <SelectTrigger className='w-full sm:w-60'>
+                <SelectValue placeholder={t('channels.dialogs.test.apiFormatPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {testAPIFormats.map((format) => (
+                  <SelectItem key={format.value} value={format.value} disabled={!availableEndpointFormats.has(format.endpointFormat)}>
+                    {format.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </DialogHeader>
 
         <div className='min-h-0 flex-1 space-y-4'>
@@ -216,6 +257,13 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {!selectedAPIFormat && (
+                    <TableRow>
+                      <TableCell colSpan={4} className='text-muted-foreground py-8 text-center'>
+                        {t('channels.dialogs.test.selectAPIFormatFirst')}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {filteredModels.map((model) => {
                     const result = testResults[model];
                     return (

@@ -513,6 +513,7 @@ type TestChannelInput struct {
 	ChannelID objects.GUID            `json:"channelID"`
 	ModelID   *string                 `json:"modelID,omitempty"`
 	Proxy     *httpclient.ProxyConfig `json:"proxy,omitempty"`
+	APIFormat *ChannelTestAPIFormat   `json:"apiFormat,omitempty"`
 }
 
 type TestChannelPayload struct {
@@ -676,6 +677,63 @@ type VersionCheck struct {
 	LatestVersion  string `json:"latestVersion"`
 	HasUpdate      bool   `json:"hasUpdate"`
 	ReleaseURL     string `json:"releaseUrl"`
+}
+
+type ChannelTestAPIFormat string
+
+const (
+	ChannelTestAPIFormatOpenaiChatCompletion ChannelTestAPIFormat = "OPENAI_CHAT_COMPLETION"
+	ChannelTestAPIFormatOpenaiResponse       ChannelTestAPIFormat = "OPENAI_RESPONSE"
+	ChannelTestAPIFormatAnthropicMessages    ChannelTestAPIFormat = "ANTHROPIC_MESSAGES"
+)
+
+var AllChannelTestAPIFormat = []ChannelTestAPIFormat{
+	ChannelTestAPIFormatOpenaiChatCompletion,
+	ChannelTestAPIFormatOpenaiResponse,
+	ChannelTestAPIFormatAnthropicMessages,
+}
+
+func (e ChannelTestAPIFormat) IsValid() bool {
+	switch e {
+	case ChannelTestAPIFormatOpenaiChatCompletion, ChannelTestAPIFormatOpenaiResponse, ChannelTestAPIFormatAnthropicMessages:
+		return true
+	}
+	return false
+}
+
+func (e ChannelTestAPIFormat) String() string {
+	return string(e)
+}
+
+func (e *ChannelTestAPIFormat) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ChannelTestAPIFormat(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ChannelTestAPIFormat", str)
+	}
+	return nil
+}
+
+func (e ChannelTestAPIFormat) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ChannelTestAPIFormat) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ChannelTestAPIFormat) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type DiagnosticsTarget string

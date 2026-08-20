@@ -320,6 +320,13 @@ input TestChannelInput {
   channelID: ID!
   modelID: String
   proxy: ProxyConfigInput
+  apiFormat: ChannelTestAPIFormat
+}
+
+enum ChannelTestAPIFormat {
+  OPENAI_CHAT_COMPLETION
+  OPENAI_RESPONSE
+  ANTHROPIC_MESSAGES
 }
 
 type TestChannelPayload {
