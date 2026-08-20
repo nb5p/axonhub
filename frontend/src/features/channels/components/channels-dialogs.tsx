@@ -26,6 +26,7 @@ import { ChannelsRateLimitDialog } from './channels-rate-limit-dialog';
 import { ChannelsTransformOptionsDialog } from './channels-transform-options-dialog';
 import { ChannelsEndpointsDialog } from './channels-endpoints-dialog';
 import { ChannelsSystemSettingsDialog } from './channels-system-settings-dialog';
+import { ChannelsUsageQueryDialog } from './channels-usage-query-dialog';
 
 export function ChannelsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow, selectedChannels } = useChannels();
@@ -337,6 +338,20 @@ export function ChannelsDialogs() {
                 }, 500);
               }
             }}
+          />
+
+          <ChannelsUsageQueryDialog
+            key={`channel-usage-query-${currentRow.id}`}
+            open={open === 'usageQuery'}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setOpen(null);
+                setTimeout(() => {
+                  setCurrentRow(null);
+                }, 500);
+              }
+            }}
+            currentRow={currentRow}
           />
         </>
       )}

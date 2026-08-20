@@ -335,6 +335,46 @@ type TestAPIKeyResult {
   disabled: Boolean!
 }
 
+enum ChannelUsageQueryPreset {
+  NEW_API
+  CUSTOM
+}
+
+type ChannelUsageQueryConfig {
+  enabled: Boolean!
+  preset: ChannelUsageQueryPreset!
+  baseUrlOverride: String
+  userId: String
+  script: String!
+  apiKeyConfigured: Boolean!
+}
+
+input ChannelUsageQueryConfigInput {
+  enabled: Boolean!
+  preset: ChannelUsageQueryPreset!
+  baseUrlOverride: String
+  userId: String
+  script: String!
+  """
+  Replaces the saved query-only API key when non-empty. Null or an empty
+  string preserves the existing secret.
+  """
+  apiKey: String
+  clearApiKey: Boolean! = false
+}
+
+type ChannelUsageQueryTestResult {
+  status: String!
+  isValid: Boolean
+  invalidMessage: String
+  remaining: Float
+  unit: String
+  planName: String
+  total: Float
+  used: Float
+  extra: String
+}
+
 type TestChannelAPIKeysPayload {
   channelID: ID!
   total: Int!
@@ -889,6 +929,8 @@ type Mutation {
   testChannel(input: TestChannelInput!): TestChannelPayload!
   testChannelAPIKeys(channelID: ID!, modelID: String): TestChannelAPIKeysPayload!
   testChannelAPIKey(channelID: ID!, key: String!, modelID: String): TestAPIKeyResult!
+  saveChannelUsageQuery(channelID: ID!, input: ChannelUsageQueryConfigInput!): ChannelUsageQueryConfig!
+  testChannelUsageQuery(channelID: ID!, input: ChannelUsageQueryConfigInput!): ChannelUsageQueryTestResult!
   bulkImportChannels(input: BulkImportChannelsInput!): BulkImportChannelsResult!
   bulkUpdateChannelOrdering(
     input: BulkUpdateChannelOrderingInput!
@@ -1075,4 +1117,7 @@ extend type Query {
   Returns quota usage for profiles that have quota enabled for an API key.
   """
   apiKeyQuotaUsages(apiKeyId: ID!): [APIKeyProfileQuotaUsage!]!
+
+  """Returns usage-query configuration without exposing its saved API key."""
+  channelUsageQuery(channelID: ID!): ChannelUsageQueryConfig!
 }

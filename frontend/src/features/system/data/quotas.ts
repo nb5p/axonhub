@@ -54,6 +54,18 @@ type ProviderQuotaDataCommon = {
   error?: string;
 };
 
+export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
+  kind?: 'usage_query';
+  isValid?: boolean;
+  invalidMessage?: string;
+  remaining?: number;
+  unit?: string;
+  planName?: string;
+  total?: number;
+  used?: number;
+  extra?: string;
+};
+
 type ProviderClaudeQuotaData = ProviderQuotaDataCommon & {
   windows?: {
     '5h'?: { utilization?: number; reset?: number; status?: string };
@@ -377,6 +389,14 @@ export type ProviderQuotaChannel = {
   };
 } & (
   | {
+      type: 'usage_query';
+      sourceType: string;
+      providerType: 'usage_query';
+      quotaStatus: {
+        quotaData: ProviderUsageQueryQuotaData;
+      };
+    }
+  | {
       type: 'claudecode';
       quotaStatus: {
         quotaData: ProviderClaudeQuotaData;
@@ -525,6 +545,16 @@ function parseChannelNode(node: QueryChannelNodeWithQuota): ProviderQuotaChannel
       ready: quotaStatus.ready,
     },
   };
+
+  if (providerType === 'usage_query') {
+    return {
+      ...base,
+      type: 'usage_query' as const,
+      sourceType: node.type,
+      providerType: 'usage_query' as const,
+      quotaStatus: { ...base.quotaStatus, quotaData: quotaStatus.quotaData as ProviderUsageQueryQuotaData },
+    };
+  }
 
   if (node.type === 'claudecode') {
     return {

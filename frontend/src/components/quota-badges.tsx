@@ -18,6 +18,7 @@ import {
   ProviderSyntheticQuotaData,
   ProviderNeuralWattQuotaData,
   ProviderApertisQuotaData,
+  ProviderUsageQueryQuotaData,
   ProviderOpenCodeGoQuotaData,
   OpenCodeGoQuotaWindow,
   ProviderKimiCodeQuotaData,
@@ -103,7 +104,16 @@ function getClineUsagePercent(window?: ClineQuotaWindow): number {
 
 function getChannelPercentage(channel: ProviderQuotaChannel): number {
   let percentage = 0;
-  if (channel.type === 'claudecode') {
+  if (channel.type === 'usage_query') {
+    const qd = channel.quotaStatus.quotaData;
+    if (qd.total != null && qd.total > 0) {
+      if (qd.used != null) {
+        percentage = (qd.used / qd.total) * 100;
+      } else if (qd.remaining != null) {
+        percentage = ((qd.total - qd.remaining) / qd.total) * 100;
+      }
+    }
+  } else if (channel.type === 'claudecode') {
     const qd = channel.quotaStatus.quotaData;
     const util5h = qd.windows?.['5h']?.utilization || 0;
     const util7d = qd.windows?.['7d']?.utilization || 0;
@@ -431,6 +441,22 @@ function QuotaRow({
     });
   };
 
+  const formatUsageQueryValue = (value: number, unit?: string) => {
+    if (unit && /^[A-Z]{3}$/.test(unit)) {
+      return t('currencies.format', {
+        val: value,
+        currency: unit,
+        locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 6,
+      });
+    }
+    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
+      maximumFractionDigits: 6,
+    }).format(value);
+    return unit ? `${formatted} ${unit}` : formatted;
+  };
+
   const formatTimeToReset = (resetAtOrSeconds?: string | number | null, usedPercent?: number, regenerates?: boolean | number) => {
     if (!resetAtOrSeconds) return '';
 
@@ -513,6 +539,67 @@ function QuotaRow({
       {quotaData.error && (
         <div className='ml-6 rounded bg-red-500/10 p-2 text-xs break-words text-red-500'>
           <span className='font-medium'>{t('quota.label.error')}:</span> {quotaData.error}
+        </div>
+      )}
+
+      {channel.type === 'usage_query' && (
+        <div className='mt-3 space-y-3'>
+          {(() => {
+            const qd = channel.quotaStatus.quotaData as ProviderUsageQueryQuotaData;
+            const usedPercent =
+              qd.total != null && qd.total > 0
+                ? qd.used != null
+                  ? (qd.used / qd.total) * 100
+                  : qd.remaining != null
+                    ? ((qd.total - qd.remaining) / qd.total) * 100
+                    : null
+                : null;
+
+            return (
+              <>
+                {qd.isValid === false && (
+                  <div className='rounded bg-red-500/10 p-2 text-xs break-words text-red-500'>
+                    {qd.invalidMessage || t('quota.usageQuery.invalid')}
+                  </div>
+                )}
+                {qd.planName && (
+                  <div className='flex items-center justify-between gap-4 text-xs'>
+                    <span className='text-muted-foreground font-medium'>{t('quota.usageQuery.plan')}</span>
+                    <span className='text-foreground text-right font-medium break-words'>{qd.planName}</span>
+                  </div>
+                )}
+                {(qd.remaining != null || qd.used != null || qd.total != null) && (
+                  <div className='grid grid-cols-2 gap-x-5 gap-y-2 text-xs'>
+                    {qd.remaining != null && (
+                      <div>
+                        <div className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</div>
+                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.remaining, qd.unit)}</div>
+                      </div>
+                    )}
+                    {qd.used != null && (
+                      <div>
+                        <div className='text-muted-foreground'>{t('quota.usageQuery.used')}</div>
+                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.used, qd.unit)}</div>
+                      </div>
+                    )}
+                    {qd.total != null && (
+                      <div>
+                        <div className='text-muted-foreground'>{t('quota.usageQuery.total')}</div>
+                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.total, qd.unit)}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {usedPercent != null && (
+                  <div className='space-y-1'>
+                    <div className='text-foreground text-right text-xs font-medium'>{formatQuotaUsage(usedPercent)}</div>
+                    <ProgressBar percentage={usedPercent} />
+                  </div>
+                )}
+                {qd.extra && <div className='text-muted-foreground border-border/60 border-t border-dashed pt-2 text-xs break-words'>{qd.extra}</div>}
+              </>
+            );
+          })()}
         </div>
       )}
 

@@ -25,6 +25,7 @@ import {
   IconHistory,
   IconPlugConnected,
   IconClockPlay,
+  IconSearch,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { cn, extractNumberID } from '@/lib/utils';
@@ -221,6 +222,17 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
             <IconPlugConnected size={16} className='mr-2' />
             {t('channels.endpoints.title')}
           </DropdownMenuItem>
+          {channelPermissions.canWrite && (
+            <DropdownMenuItem
+              onClick={() => {
+                setCurrentRow(channel);
+                setOpen('usageQuery');
+              }}
+            >
+              <IconSearch size={16} className='mr-2' />
+              {t('channels.dialogs.usageQuery.action')}
+            </DropdownMenuItem>
+          )}
           {channelPermissions.canWrite && (
             <DropdownMenuItem
               onClick={() => {

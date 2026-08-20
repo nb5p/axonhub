@@ -364,6 +364,7 @@ func (svc *ProviderQuotaService) registerProviderQuotaSupport() {
 	svc.registerKimiCodeSupport()
 	svc.registerMinimaxSupport()
 	svc.registerZhipuSupport()
+	svc.registerUsageQuerySupport()
 }
 
 func (svc *ProviderQuotaService) RegisterScheduledTasks(ctx context.Context, s *scheduler.Scheduler) error {
@@ -426,6 +427,10 @@ func (svc *ProviderQuotaService) registerMinimaxSupport() {
 
 func (svc *ProviderQuotaService) registerZhipuSupport() {
 	svc.checkers["zhipu"] = provider_quota.NewZhipuQuotaChecker(svc.httpClient)
+}
+
+func (svc *ProviderQuotaService) registerUsageQuerySupport() {
+	svc.checkers["usage_query"] = provider_quota.NewUsageQueryChecker(svc.httpClient)
 }
 
 func (svc *ProviderQuotaService) intervalToCronExpr(interval time.Duration) string {
@@ -627,10 +632,7 @@ func (svc *ProviderQuotaService) runQuotaCheck(ctx context.Context, force bool) 
 	)
 
 	q := svc.db.Channel.Query().
-		Where(
-			channel.StatusEQ(channel.StatusEnabled),
-			channel.TypeIn(channel.TypeClaudecode, channel.TypeCodex, channel.TypeGithubCopilot, channel.TypeNanogpt, channel.TypeNanogptResponses, channel.TypeCline, channel.TypeOpenai, channel.TypeOpenaiResponses, channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic, channel.TypeMoonshotCoding, channel.TypeMinimax, channel.TypeMinimaxAnthropic, channel.TypeZhipu, channel.TypeZhipuAnthropic),
-		)
+		Where(channel.StatusEQ(channel.StatusEnabled))
 
 	if !force {
 		q = q.Where(
@@ -868,6 +870,10 @@ func (svc *ProviderQuotaService) saveQuotaError(
 }
 
 func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
+	if hasEnabledUsageQuery(ch) {
+		return "usage_query"
+	}
+
 	switch ch.Type { //nolint:exhaustive
 	case channel.TypeClaudecode:
 		return "claudecode"
@@ -895,6 +901,12 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 }
 
 func hasCredentialsForProvider(ch *ent.Channel) bool {
+	if hasEnabledUsageQuery(ch) {
+		// A custom query may be unauthenticated. If its script references an
+		// unavailable key, the checker will persist a useful extraction error.
+		return true
+	}
+
 	if ch.Type == channel.TypeOpenai || ch.Type == channel.TypeOpenaiResponses {
 		providerType := provider_quota.DetectProviderFromURL(ch.BaseURL)
 		if _, ok := provider_quota.URLDetectedProviders()[providerType]; ok {

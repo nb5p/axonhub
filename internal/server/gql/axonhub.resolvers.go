@@ -322,6 +322,22 @@ func (r *mutationResolver) TestChannelAPIKey(ctx context.Context, channelID obje
 	}, nil
 }
 
+// SaveChannelUsageQuery is the resolver for the saveChannelUsageQuery field.
+func (r *mutationResolver) SaveChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryConfig, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeWriteChannels); err != nil {
+		return nil, err
+	}
+	return r.channelService.SaveChannelUsageQueryConfig(ctx, channelID.ID, input)
+}
+
+// TestChannelUsageQuery is the resolver for the testChannelUsageQuery field.
+func (r *mutationResolver) TestChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryTestResult, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeWriteChannels); err != nil {
+		return nil, err
+	}
+	return r.channelService.TestChannelUsageQuery(ctx, channelID.ID, input)
+}
+
 // BulkImportChannels is the resolver for the bulkImportChannels field.
 func (r *mutationResolver) BulkImportChannels(ctx context.Context, input BulkImportChannelsInput) (*biz.BulkImportChannelsResult, error) {
 	result, err := r.channelService.BulkImportChannels(ctx, input.Channels)
@@ -928,6 +944,14 @@ func (r *queryResolver) APIKeyQuotaUsages(ctx context.Context, apiKeyID objects.
 	}
 
 	return result, nil
+}
+
+// ChannelUsageQuery is the resolver for the channelUsageQuery field.
+func (r *queryResolver) ChannelUsageQuery(ctx context.Context, channelID objects.GUID) (*biz.ChannelUsageQueryConfig, error) {
+	if err := authz.RequireScope(ctx, scopes.ScopeWriteChannels); err != nil {
+		return nil, err
+	}
+	return r.channelService.ChannelUsageQueryConfig(ctx, channelID.ID)
 }
 
 // ID is the resolver for the id field.

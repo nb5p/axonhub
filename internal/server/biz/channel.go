@@ -849,6 +849,33 @@ func (svc *ChannelService) UpdateChannel(ctx context.Context, id int, input *ent
 			}
 		}
 
+		// UsageQueryAPIKey is intentionally absent from the general GraphQL
+		// credential input. Preserve it when the regular channel editor replaces
+		// request credentials; the dedicated usage-query mutation owns changes
+		// to this secret.
+		if input.Credentials != nil {
+			existingCredentials, err := db.Channel.Query().
+				Where(channel.IDEQ(id)).
+				Select(channel.FieldCredentials).
+				Only(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to preserve channel usage query credentials: %w", err)
+			}
+			input.Credentials.UsageQueryAPIKey = existingCredentials.Credentials.UsageQueryAPIKey
+		}
+		if input.Settings != nil {
+			existingSettings, err := db.Channel.Query().
+				Where(channel.IDEQ(id)).
+				Select(channel.FieldSettings).
+				Only(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to preserve channel usage query settings: %w", err)
+			}
+			if existingSettings.Settings != nil {
+				input.Settings.UsageQuery = existingSettings.Settings.UsageQuery
+			}
+		}
+
 		mut := db.Channel.UpdateOneID(id).
 			SetNillableType(input.Type).
 			SetNillableBaseURL(input.BaseURL).

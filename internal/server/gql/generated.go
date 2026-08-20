@@ -630,6 +630,27 @@ type ComplexityRoot struct {
 		Type  func(childComplexity int) int
 	}
 
+	ChannelUsageQueryConfig struct {
+		APIKeyConfigured func(childComplexity int) int
+		BaseURLOverride  func(childComplexity int) int
+		Enabled          func(childComplexity int) int
+		Preset           func(childComplexity int) int
+		Script           func(childComplexity int) int
+		UserID           func(childComplexity int) int
+	}
+
+	ChannelUsageQueryTestResult struct {
+		Extra          func(childComplexity int) int
+		InvalidMessage func(childComplexity int) int
+		IsValid        func(childComplexity int) int
+		PlanName       func(childComplexity int) int
+		Remaining      func(childComplexity int) int
+		Status         func(childComplexity int) int
+		Total          func(childComplexity int) int
+		Unit           func(childComplexity int) int
+		Used           func(childComplexity int) int
+	}
+
 	CleanupOption struct {
 		CleanupDays  func(childComplexity int) int
 		Enabled      func(childComplexity int) int
@@ -1046,11 +1067,13 @@ type ComplexityRoot struct {
 		RotateAPIKey                          func(childComplexity int, id objects.GUID) int
 		SaveChannelEndpoints                  func(childComplexity int, input biz.SaveChannelEndpointsInput) int
 		SaveChannelModelPrices                func(childComplexity int, channelID objects.GUID, input []*biz.SaveChannelModelPriceInput) int
+		SaveChannelUsageQuery                 func(childComplexity int, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) int
 		SaveProxyPreset                       func(childComplexity int, input biz.ProxyPreset) int
 		SyncChannelModels                     func(childComplexity int, channelID objects.GUID, pattern *string) int
 		TestChannel                           func(childComplexity int, input TestChannelInput) int
 		TestChannelAPIKey                     func(childComplexity int, channelID objects.GUID, key string, modelID *string) int
 		TestChannelAPIKeys                    func(childComplexity int, channelID objects.GUID, modelID *string) int
+		TestChannelUsageQuery                 func(childComplexity int, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) int
 		TriggerAutoBackup                     func(childComplexity int) int
 		TriggerGcCleanup                      func(childComplexity int, input gc.TriggerGcCleanupInput) int
 		UnarchiveThread                       func(childComplexity int, id objects.GUID) int
@@ -1407,6 +1430,7 @@ type ComplexityRoot struct {
 		ChannelPerformanceStats         func(childComplexity int) int
 		ChannelProbeData                func(childComplexity int, input biz.GetChannelProbeDataInput) int
 		ChannelSuccessRates             func(childComplexity int, timeWindow *string, limit *int) int
+		ChannelUsageQuery               func(childComplexity int, channelID objects.GUID) int
 		Channels                        func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.ChannelOrder, where *ent.ChannelWhereInput) int
 		CheckForUpdate                  func(childComplexity int, includeBeta bool) int
 		CostStatsByAPIKey               func(childComplexity int, timeWindow *string) int
@@ -2254,6 +2278,8 @@ type MutationResolver interface {
 	TestChannel(ctx context.Context, input TestChannelInput) (*TestChannelPayload, error)
 	TestChannelAPIKeys(ctx context.Context, channelID objects.GUID, modelID *string) (*TestChannelAPIKeysPayload, error)
 	TestChannelAPIKey(ctx context.Context, channelID objects.GUID, key string, modelID *string) (*TestAPIKeyResult, error)
+	SaveChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryConfig, error)
+	TestChannelUsageQuery(ctx context.Context, channelID objects.GUID, input biz.ChannelUsageQueryConfigInput) (*biz.ChannelUsageQueryTestResult, error)
 	BulkImportChannels(ctx context.Context, input BulkImportChannelsInput) (*biz.BulkImportChannelsResult, error)
 	BulkUpdateChannelOrdering(ctx context.Context, input BulkUpdateChannelOrderingInput) (*BulkUpdateChannelOrderingResult, error)
 	DisableChannelAPIKey(ctx context.Context, channelID objects.GUID, key string) (bool, error)
@@ -2416,6 +2442,7 @@ type QueryResolver interface {
 	QueryChannels(ctx context.Context, input biz.QueryChannelsInput) (*ent.ChannelConnection, error)
 	PreviewAPIKeyProfile(ctx context.Context, apiKeyID objects.GUID, profile objects.APIKeyProfile) (*biz.APIKeyProfilePreview, error)
 	APIKeyQuotaUsages(ctx context.Context, apiKeyID objects.GUID) ([]*APIKeyProfileQuotaUsage, error)
+	ChannelUsageQuery(ctx context.Context, channelID objects.GUID) (*biz.ChannelUsageQueryConfig, error)
 	DashboardOverview(ctx context.Context) (*DashboardOverview, error)
 	RequestStats(ctx context.Context) (*RequestStats, error)
 	RequestStatsByChannel(ctx context.Context, timeWindow *string) ([]*RequestStatsByChannel, error)
@@ -4615,6 +4642,98 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ChannelTypeCount.Type(childComplexity), true
 
+	case "ChannelUsageQueryConfig.apiKeyConfigured":
+		if e.complexity.ChannelUsageQueryConfig.APIKeyConfigured == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.APIKeyConfigured(childComplexity), true
+	case "ChannelUsageQueryConfig.baseUrlOverride":
+		if e.complexity.ChannelUsageQueryConfig.BaseURLOverride == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.BaseURLOverride(childComplexity), true
+	case "ChannelUsageQueryConfig.enabled":
+		if e.complexity.ChannelUsageQueryConfig.Enabled == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.Enabled(childComplexity), true
+	case "ChannelUsageQueryConfig.preset":
+		if e.complexity.ChannelUsageQueryConfig.Preset == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.Preset(childComplexity), true
+	case "ChannelUsageQueryConfig.script":
+		if e.complexity.ChannelUsageQueryConfig.Script == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.Script(childComplexity), true
+	case "ChannelUsageQueryConfig.userId":
+		if e.complexity.ChannelUsageQueryConfig.UserID == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryConfig.UserID(childComplexity), true
+
+	case "ChannelUsageQueryTestResult.extra":
+		if e.complexity.ChannelUsageQueryTestResult.Extra == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Extra(childComplexity), true
+	case "ChannelUsageQueryTestResult.invalidMessage":
+		if e.complexity.ChannelUsageQueryTestResult.InvalidMessage == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.InvalidMessage(childComplexity), true
+	case "ChannelUsageQueryTestResult.isValid":
+		if e.complexity.ChannelUsageQueryTestResult.IsValid == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.IsValid(childComplexity), true
+	case "ChannelUsageQueryTestResult.planName":
+		if e.complexity.ChannelUsageQueryTestResult.PlanName == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.PlanName(childComplexity), true
+	case "ChannelUsageQueryTestResult.remaining":
+		if e.complexity.ChannelUsageQueryTestResult.Remaining == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Remaining(childComplexity), true
+	case "ChannelUsageQueryTestResult.status":
+		if e.complexity.ChannelUsageQueryTestResult.Status == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Status(childComplexity), true
+	case "ChannelUsageQueryTestResult.total":
+		if e.complexity.ChannelUsageQueryTestResult.Total == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Total(childComplexity), true
+	case "ChannelUsageQueryTestResult.unit":
+		if e.complexity.ChannelUsageQueryTestResult.Unit == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Unit(childComplexity), true
+	case "ChannelUsageQueryTestResult.used":
+		if e.complexity.ChannelUsageQueryTestResult.Used == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Used(childComplexity), true
+
 	case "CleanupOption.cleanupDays":
 		if e.complexity.CleanupOption.CleanupDays == nil {
 			break
@@ -6603,6 +6722,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SaveChannelModelPrices(childComplexity, args["channelId"].(objects.GUID), args["input"].([]*biz.SaveChannelModelPriceInput)), true
+	case "Mutation.saveChannelUsageQuery":
+		if e.complexity.Mutation.SaveChannelUsageQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_saveChannelUsageQuery_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SaveChannelUsageQuery(childComplexity, args["channelID"].(objects.GUID), args["input"].(biz.ChannelUsageQueryConfigInput)), true
 	case "Mutation.saveProxyPreset":
 		if e.complexity.Mutation.SaveProxyPreset == nil {
 			break
@@ -6658,6 +6788,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.TestChannelAPIKeys(childComplexity, args["channelID"].(objects.GUID), args["modelID"].(*string)), true
+	case "Mutation.testChannelUsageQuery":
+		if e.complexity.Mutation.TestChannelUsageQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_testChannelUsageQuery_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TestChannelUsageQuery(childComplexity, args["channelID"].(objects.GUID), args["input"].(biz.ChannelUsageQueryConfigInput)), true
 	case "Mutation.triggerAutoBackup":
 		if e.complexity.Mutation.TriggerAutoBackup == nil {
 			break
@@ -8437,6 +8578,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ChannelSuccessRates(childComplexity, args["timeWindow"].(*string), args["limit"].(*int)), true
+	case "Query.channelUsageQuery":
+		if e.complexity.Query.ChannelUsageQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Query_channelUsageQuery_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ChannelUsageQuery(childComplexity, args["channelID"].(objects.GUID)), true
 	case "Query.channels":
 		if e.complexity.Query.Channels == nil {
 			break
@@ -11821,6 +11973,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputChannelSettingsInput,
 		ec.unmarshalInputChannelTagsModelAssociationInput,
 		ec.unmarshalInputChannelTagsRegexAssociationInput,
+		ec.unmarshalInputChannelUsageQueryConfigInput,
 		ec.unmarshalInputChannelWhereInput,
 		ec.unmarshalInputCleanupOptionInput,
 		ec.unmarshalInputClearCacheInput,
@@ -13162,6 +13315,22 @@ func (ec *executionContext) field_Mutation_saveChannelModelPrices_args(ctx conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_saveChannelUsageQuery_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "channelID", ec.unmarshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
+	if err != nil {
+		return nil, err
+	}
+	args["channelID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNChannelUsageQueryConfigInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfigInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_saveProxyPreset_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13223,6 +13392,22 @@ func (ec *executionContext) field_Mutation_testChannelAPIKeys_args(ctx context.C
 		return nil, err
 	}
 	args["modelID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_testChannelUsageQuery_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "channelID", ec.unmarshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
+	if err != nil {
+		return nil, err
+	}
+	args["channelID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNChannelUsageQueryConfigInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfigInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -14408,6 +14593,17 @@ func (ec *executionContext) field_Query_channelSuccessRates_args(ctx context.Con
 		return nil, err
 	}
 	args["limit"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_channelUsageQuery_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "channelID", ec.unmarshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID)
+	if err != nil {
+		return nil, err
+	}
+	args["channelID"] = arg0
 	return args, nil
 }
 
@@ -26350,6 +26546,441 @@ func (ec *executionContext) fieldContext_ChannelTypeCount_count(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelUsageQueryConfig_enabled(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_enabled,
+		func(ctx context.Context) (any, error) {
+			return obj.Enabled, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryConfig_preset(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_preset,
+		func(ctx context.Context) (any, error) {
+			return obj.Preset, nil
+		},
+		nil,
+		ec.marshalNChannelUsageQueryPreset2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQueryPreset,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_preset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChannelUsageQueryPreset does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryConfig_baseUrlOverride(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_baseUrlOverride,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseURLOverride, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_baseUrlOverride(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryConfig_userId(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryConfig_script(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_script,
+		func(ctx context.Context) (any, error) {
+			return obj.Script, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_script(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryConfig_apiKeyConfigured(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryConfig_apiKeyConfigured,
+		func(ctx context.Context) (any, error) {
+			return obj.APIKeyConfigured, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryConfig_apiKeyConfigured(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_status(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_isValid(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_isValid,
+		func(ctx context.Context) (any, error) {
+			return obj.IsValid, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_isValid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_invalidMessage(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_invalidMessage,
+		func(ctx context.Context) (any, error) {
+			return obj.InvalidMessage, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_invalidMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_remaining(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_remaining,
+		func(ctx context.Context) (any, error) {
+			return obj.Remaining, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_remaining(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_unit(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_unit,
+		func(ctx context.Context) (any, error) {
+			return obj.Unit, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_planName(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_planName,
+		func(ctx context.Context) (any, error) {
+			return obj.PlanName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_planName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_total(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_used(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_used,
+		func(ctx context.Context) (any, error) {
+			return obj.Used, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_used(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult_extra(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_extra,
+		func(ctx context.Context) (any, error) {
+			return obj.Extra, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_extra(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CleanupOption_resourceType(ctx context.Context, field graphql.CollectedField, obj *biz.CleanupOption) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -33459,6 +34090,122 @@ func (ec *executionContext) fieldContext_Mutation_testChannelAPIKey(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_testChannelAPIKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_saveChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_saveChannelUsageQuery,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SaveChannelUsageQuery(ctx, fc.Args["channelID"].(objects.GUID), fc.Args["input"].(biz.ChannelUsageQueryConfigInput))
+		},
+		nil,
+		ec.marshalNChannelUsageQueryConfig2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfig,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_saveChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "enabled":
+				return ec.fieldContext_ChannelUsageQueryConfig_enabled(ctx, field)
+			case "preset":
+				return ec.fieldContext_ChannelUsageQueryConfig_preset(ctx, field)
+			case "baseUrlOverride":
+				return ec.fieldContext_ChannelUsageQueryConfig_baseUrlOverride(ctx, field)
+			case "userId":
+				return ec.fieldContext_ChannelUsageQueryConfig_userId(ctx, field)
+			case "script":
+				return ec.fieldContext_ChannelUsageQueryConfig_script(ctx, field)
+			case "apiKeyConfigured":
+				return ec.fieldContext_ChannelUsageQueryConfig_apiKeyConfigured(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryConfig", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_saveChannelUsageQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_testChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_testChannelUsageQuery,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TestChannelUsageQuery(ctx, fc.Args["channelID"].(objects.GUID), fc.Args["input"].(biz.ChannelUsageQueryConfigInput))
+		},
+		nil,
+		ec.marshalNChannelUsageQueryTestResult2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryTestResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_testChannelUsageQuery(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "status":
+				return ec.fieldContext_ChannelUsageQueryTestResult_status(ctx, field)
+			case "isValid":
+				return ec.fieldContext_ChannelUsageQueryTestResult_isValid(ctx, field)
+			case "invalidMessage":
+				return ec.fieldContext_ChannelUsageQueryTestResult_invalidMessage(ctx, field)
+			case "remaining":
+				return ec.fieldContext_ChannelUsageQueryTestResult_remaining(ctx, field)
+			case "unit":
+				return ec.fieldContext_ChannelUsageQueryTestResult_unit(ctx, field)
+			case "planName":
+				return ec.fieldContext_ChannelUsageQueryTestResult_planName(ctx, field)
+			case "total":
+				return ec.fieldContext_ChannelUsageQueryTestResult_total(ctx, field)
+			case "used":
+				return ec.fieldContext_ChannelUsageQueryTestResult_used(ctx, field)
+			case "extra":
+				return ec.fieldContext_ChannelUsageQueryTestResult_extra(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryTestResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_testChannelUsageQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -45699,6 +46446,61 @@ func (ec *executionContext) fieldContext_Query_apiKeyQuotaUsages(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_apiKeyQuotaUsages_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_channelUsageQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_channelUsageQuery,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ChannelUsageQuery(ctx, fc.Args["channelID"].(objects.GUID))
+		},
+		nil,
+		ec.marshalNChannelUsageQueryConfig2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfig,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_channelUsageQuery(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "enabled":
+				return ec.fieldContext_ChannelUsageQueryConfig_enabled(ctx, field)
+			case "preset":
+				return ec.fieldContext_ChannelUsageQueryConfig_preset(ctx, field)
+			case "baseUrlOverride":
+				return ec.fieldContext_ChannelUsageQueryConfig_baseUrlOverride(ctx, field)
+			case "userId":
+				return ec.fieldContext_ChannelUsageQueryConfig_userId(ctx, field)
+			case "script":
+				return ec.fieldContext_ChannelUsageQueryConfig_script(ctx, field)
+			case "apiKeyConfigured":
+				return ec.fieldContext_ChannelUsageQueryConfig_apiKeyConfigured(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryConfig", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_channelUsageQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -69547,6 +70349,79 @@ func (ec *executionContext) unmarshalInputChannelTagsRegexAssociationInput(ctx c
 				return it, err
 			}
 			it.Pattern = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputChannelUsageQueryConfigInput(ctx context.Context, obj any) (biz.ChannelUsageQueryConfigInput, error) {
+	var it biz.ChannelUsageQueryConfigInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["clearApiKey"]; !present {
+		asMap["clearApiKey"] = false
+	}
+
+	fieldsInOrder := [...]string{"enabled", "preset", "baseUrlOverride", "userId", "script", "apiKey", "clearApiKey"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "enabled":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabled"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Enabled = data
+		case "preset":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preset"))
+			data, err := ec.unmarshalNChannelUsageQueryPreset2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQueryPreset(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Preset = data
+		case "baseUrlOverride":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseUrlOverride"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BaseURLOverride = data
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "script":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("script"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Script = data
+		case "apiKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("apiKey"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.APIKey = data
+		case "clearApiKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clearApiKey"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClearAPIKey = data
 		}
 	}
 
@@ -96066,6 +96941,119 @@ func (ec *executionContext) _ChannelTypeCount(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var channelUsageQueryConfigImplementors = []string{"ChannelUsageQueryConfig"}
+
+func (ec *executionContext) _ChannelUsageQueryConfig(ctx context.Context, sel ast.SelectionSet, obj *biz.ChannelUsageQueryConfig) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, channelUsageQueryConfigImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChannelUsageQueryConfig")
+		case "enabled":
+			out.Values[i] = ec._ChannelUsageQueryConfig_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preset":
+			out.Values[i] = ec._ChannelUsageQueryConfig_preset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baseUrlOverride":
+			out.Values[i] = ec._ChannelUsageQueryConfig_baseUrlOverride(ctx, field, obj)
+		case "userId":
+			out.Values[i] = ec._ChannelUsageQueryConfig_userId(ctx, field, obj)
+		case "script":
+			out.Values[i] = ec._ChannelUsageQueryConfig_script(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "apiKeyConfigured":
+			out.Values[i] = ec._ChannelUsageQueryConfig_apiKeyConfigured(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var channelUsageQueryTestResultImplementors = []string{"ChannelUsageQueryTestResult"}
+
+func (ec *executionContext) _ChannelUsageQueryTestResult(ctx context.Context, sel ast.SelectionSet, obj *biz.ChannelUsageQueryTestResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, channelUsageQueryTestResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChannelUsageQueryTestResult")
+		case "status":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isValid":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_isValid(ctx, field, obj)
+		case "invalidMessage":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_invalidMessage(ctx, field, obj)
+		case "remaining":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_remaining(ctx, field, obj)
+		case "unit":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_unit(ctx, field, obj)
+		case "planName":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_planName(ctx, field, obj)
+		case "total":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_total(ctx, field, obj)
+		case "used":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_used(ctx, field, obj)
+		case "extra":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_extra(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var cleanupOptionImplementors = []string{"CleanupOption"}
 
 func (ec *executionContext) _CleanupOption(ctx context.Context, sel ast.SelectionSet, obj *biz.CleanupOption) graphql.Marshaler {
@@ -98896,6 +99884,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "testChannelAPIKey":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_testChannelAPIKey(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "saveChannelUsageQuery":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_saveChannelUsageQuery(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "testChannelUsageQuery":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_testChannelUsageQuery(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -102945,6 +103947,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_apiKeyQuotaUsages(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "channelUsageQuery":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_channelUsageQuery(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -113503,6 +114527,56 @@ func (ec *executionContext) marshalNChannelTypeCount2ᚖgithubᚗcomᚋloopljᚋ
 		return graphql.Null
 	}
 	return ec._ChannelTypeCount(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNChannelUsageQueryConfig2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfig(ctx context.Context, sel ast.SelectionSet, v biz.ChannelUsageQueryConfig) graphql.Marshaler {
+	return ec._ChannelUsageQueryConfig(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNChannelUsageQueryConfig2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfig(ctx context.Context, sel ast.SelectionSet, v *biz.ChannelUsageQueryConfig) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChannelUsageQueryConfig(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNChannelUsageQueryConfigInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryConfigInput(ctx context.Context, v any) (biz.ChannelUsageQueryConfigInput, error) {
+	res, err := ec.unmarshalInputChannelUsageQueryConfigInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNChannelUsageQueryPreset2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQueryPreset(ctx context.Context, v any) (objects.ChannelUsageQueryPreset, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := objects.ChannelUsageQueryPreset(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNChannelUsageQueryPreset2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQueryPreset(ctx context.Context, sel ast.SelectionSet, v objects.ChannelUsageQueryPreset) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNChannelUsageQueryTestResult2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryTestResult(ctx context.Context, sel ast.SelectionSet, v biz.ChannelUsageQueryTestResult) graphql.Marshaler {
+	return ec._ChannelUsageQueryTestResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNChannelUsageQueryTestResult2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐChannelUsageQueryTestResult(ctx context.Context, sel ast.SelectionSet, v *biz.ChannelUsageQueryTestResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChannelUsageQueryTestResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNChannelWhereInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐChannelWhereInput(ctx context.Context, v any) (*ent.ChannelWhereInput, error) {

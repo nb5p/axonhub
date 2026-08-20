@@ -212,6 +212,11 @@ type ChannelSettings struct {
 	// ProviderQuota stores provider-specific credentials used only for quota
 	// polling. Keep upstream request credentials in ChannelCredentials.
 	ProviderQuota *ChannelProviderQuotaSettings `json:"providerQuota,omitempty"`
+
+	// UsageQuery configures a channel-specific quota query. The JavaScript only
+	// describes the HTTP request and extracts the JSON response; network access
+	// remains owned by the Go host.
+	UsageQuery *ChannelUsageQuerySettings `json:"usageQuery,omitempty"`
 }
 
 type RetryableErrorPattern struct {
@@ -227,6 +232,21 @@ type OpenCodeGoQuotaSettings struct {
 	WorkspaceID string `json:"workspaceId,omitempty"`
 	AuthCookie  string `json:"authCookie,omitempty"`
 }
+
+type ChannelUsageQuerySettings struct {
+	Enabled         bool                    `json:"enabled"`
+	Preset          ChannelUsageQueryPreset `json:"preset"`
+	BaseURLOverride string                  `json:"baseUrlOverride,omitempty"`
+	UserID          string                  `json:"userId,omitempty"`
+	Script          string                  `json:"script"`
+}
+
+type ChannelUsageQueryPreset string
+
+const (
+	ChannelUsageQueryPresetNewAPI ChannelUsageQueryPreset = "NEW_API"
+	ChannelUsageQueryPresetCustom ChannelUsageQueryPreset = "CUSTOM"
+)
 
 type ChannelRateLimit struct {
 	RPM           *int64 `json:"rpm,omitempty"`           // Requests Per Minute, nil = unlimited
@@ -278,6 +298,11 @@ type ChannelCredentials struct {
 
 	// GCP is the GCP credentials for the channel.
 	GCP *GCPCredential `json:"gcp,omitempty"`
+
+	// UsageQueryAPIKey is an optional credential used only by the channel's
+	// usage query. It is intentionally omitted from the GraphQL credential
+	// shape and is managed through the dedicated usage-query mutation.
+	UsageQueryAPIKey string `json:"usageQueryApiKey,omitempty"`
 }
 
 // GetAllAPIKeys returns all API keys for the channel, combining APIKey and APIKeys fields.

@@ -33,7 +33,8 @@ type ChannelsDialogType =
   | 'availability'
   | 'keyManagement'
   | 'disabledAPIKeys'
-  | 'endpoints';
+  | 'endpoints'
+  | 'usageQuery';
 
 interface ChannelsContextType {
   open: ChannelsDialogType | null;

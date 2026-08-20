@@ -134,13 +134,13 @@ func NewGraphqlHandlers(deps Dependencies) *GraphqlHandler {
 		Cache: lru.New[string](1024),
 	})
 	gqlSrv.Use(&loggingTracer{})
-	skipTestChannelTransaction := entgql.SkipOperations("TestChannel", "TestChannelAPIKeys")
+	skipTestChannelTransaction := entgql.SkipOperations("TestChannel", "TestChannelAPIKeys", "TestChannelUsageQuery")
 	skipBulkImportTransaction := entgql.SkipIfHasFields("bulkImportChannels")
 	gqlSrv.Use(entgql.Transactioner{
 		TxOpener: deps.Ent,
-		// TestChannel performs long-running parallel provider requests whose database
-		// operations do not require one transaction. BulkImportChannels manages one
-		// transaction per row to preserve its partial-success behavior.
+		// Channel tests perform provider requests whose database operations do not
+		// require one transaction. BulkImportChannels manages one transaction per
+		// row to preserve its partial-success behavior.
 		SkipTxFunc: func(op *ast.OperationDefinition) bool {
 			return skipTestChannelTransaction(op) || skipBulkImportTransaction(op)
 		},
