@@ -12,6 +12,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/apikey"
 	"github.com/looplj/axonhub/internal/ent/apikeyprofiletemplate"
+	"github.com/looplj/axonhub/internal/log"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
 )
@@ -237,6 +238,7 @@ func (s *APIKeyProfileTemplateService) DeleteTemplate(ctx context.Context, id in
 // the requested template without replacing the rest of the profile settings.
 func (s *APIKeyProfileTemplateService) ActivateTemplateProfile(ctx context.Context, apiKeyID, templateID int) (*ent.APIKey, error) {
 	var updatedKey *ent.APIKey
+	previousActiveProfile := ""
 	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
 		client := s.entFromContext(ctx)
 
@@ -255,6 +257,7 @@ func (s *APIKeyProfileTemplateService) ActivateTemplateProfile(ctx context.Conte
 		if apiKey.Profiles == nil {
 			return fmt.Errorf("API key has no linked profile for template '%s'", template.Name)
 		}
+		previousActiveProfile = apiKey.Profiles.ActiveProfile
 
 		profileName := ""
 		for i := range apiKey.Profiles.Profiles {
@@ -279,9 +282,22 @@ func (s *APIKeyProfileTemplateService) ActivateTemplateProfile(ctx context.Conte
 		return nil
 	})
 	if err != nil {
+		log.Warn(ctx, "api key profile activation failed",
+			log.Int("api_key_id", apiKeyID),
+			log.Int("template_id", templateID),
+			log.String("source", "profile_template_quick_switch"),
+			log.String("from_profile", previousActiveProfile),
+			log.Cause(err))
 		return nil, err
 	}
 	s.invalidateAPIKeys(ctx, []string{updatedKey.Key})
+	log.Info(ctx, "api key profile activated",
+		log.Int("api_key_id", updatedKey.ID),
+		log.Int("project_id", updatedKey.ProjectID),
+		log.Int("template_id", templateID),
+		log.String("source", "profile_template_quick_switch"),
+		log.String("from_profile", previousActiveProfile),
+		log.String("to_profile", updatedKey.Profiles.ActiveProfile))
 
 	return updatedKey, nil
 }

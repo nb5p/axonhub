@@ -24,8 +24,10 @@ local:
   modules:
     - internal/objects/apikey.go
     - internal/server/biz/api_key.go
+    - internal/server/biz/api_key_cache_invalidation_test.go
     - internal/server/biz/api_key_profile_template.go
     - internal/server/biz/api_key_profile_template_test.go
+    - internal/server/orchestrator/select_candidates.go
     - internal/server/gql/axonhub.graphql
     - internal/server/gql/generated.go
     - frontend/src/features/apikeys
@@ -65,6 +67,10 @@ database:
 - 关联模板的配置统一以模板名作为唯一名称，列表显示为“模板：名称”，配置名称输入框锁定；模板改名、发布和旧别名首次保存时会同步规范化名称与 `activeProfile`。
 - 脱离模板时立即清空配置名称并要求用户重新填写；独立配置名称不得与项目内任一模板名称重复，前后端均按忽略大小写和首尾空格的规则校验。
 - GraphQL 的 Profile 输入与输出均传递 `templateSync`，并通过 `make generate` 更新生成代码。
+- API Key 写操作在返回前同步失效当前进程的运行时缓存，再通过 watcher 通知其他实例；即使 watcher 延迟或丢弃事件，刚完成切换的实例也不会继续路由到旧配置。
+- 快捷切换只有在服务端响应确认目标模板确已成为生效配置后才提示成功，并立即用服务端返回值更新 API Key 列表与详情缓存；GraphQL 失败显示具体错误。
+- 配置编辑弹窗明确标出“选择尚未生效，保存后才用于路由”，避免把未保存预览误认为后端运行时状态。
+- 快捷切换和完整配置保存均写入结构化成功/失败日志，记录 API Key、项目、来源及 `from_profile`/`to_profile`；候选渠道调试日志同时记录实际生效的 Key/项目 profile。
 
 ## 与来源的差异
 
@@ -86,6 +92,8 @@ database:
 - `./node_modules/.bin/tsc --noEmit`：通过。
 - `node --test src/features/apikeys/*.test.mjs`：通过。
 - `api-key-profile-template-activation.test.mjs` 覆盖快捷切换将嵌入配置中的数字模板 ID 转换为 GraphQL GUID 后再提交。
+- `TestAPIKeyService_InvalidateAPIKeyCachesInvalidatesLocalCacheSynchronously` 覆盖 mutation 返回前的本机缓存失效，不依赖异步 watcher。
+- `api-key-profile-template-activation.test.mjs` 另覆盖服务端响应确认、列表/详情缓存回填、具体错误处理与未保存状态提示。
 - `TestSynchronizedTemplatePublishesAPIKeyProfileEdits` 覆盖新关联、Key 端修改、跨 Key 传播、运行时缓存失效和开关不可关闭。
 - `TestLoadTemplate_NameConflict`、`TestLoadTemplate_AlreadyLinked` 和 `TestAPIKeyService_UpdateAPIKeyProfiles/Template_names_are_canonical_and_reserved` 覆盖模板唯一名称、旧别名收敛及重名拒绝。
 
@@ -98,3 +106,4 @@ database:
 | 2026-08-15 | 用户反馈 | `b72cac454d23392b3eac985e7e1e101d288e3f9f` | 在 API Key 列表增加仅面向已关联模板的生效配置快捷切换，并使用专用 mutation 避免覆盖完整配置。 |
 | 2026-08-15 | 用户反馈 | `3939673c0e1338d0387f48f8de12921c3c0af714` | 取消关联配置的本地别名，统一采用模板名；脱离后强制重新命名，并阻止独立配置与模板重名。 |
 | 2026-08-15 | 用户反馈 | `8d110d917849690ba9688d4585ac8b7d62e417af` | 修复快捷切换误将数字模板 ID 直接提交给 GraphQL 的问题，统一发送 `APIKeyProfileTemplate` GUID。 |
+| 2026-08-20 | Alma 隐私模式误路由诊断 | 工作区未提交 | 加固 profile 切换的同步缓存失效、服务端确认回填、错误反馈和审计日志，并明确配置弹窗的保存边界；保留既有跨渠道容错语义。 |

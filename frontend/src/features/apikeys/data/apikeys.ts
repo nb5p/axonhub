@@ -3,8 +3,8 @@ import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-a
 import { graphqlRequest } from '@/gql/graphql';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { buildGUID } from '@/lib/utils';
 import { useSelectedProjectId } from '@/stores/projectStore';
+import { buildGUID } from '@/lib/utils';
 import { useErrorHandler } from '@/hooks/use-error-handler';
 import { useRequestPermissions } from '../../../hooks/useRequestPermissions';
 import type {
@@ -949,23 +949,50 @@ export function useActivateApiKeyProfileTemplate() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const selectedProjectId = useSelectedProjectId();
+  const { handleError } = useErrorHandler();
 
   return useMutation({
-    mutationFn: ({ apiKeyID, templateID }: { apiKeyID: string; templateID: number }) => {
+    mutationFn: async ({ apiKeyID, templateID }: { apiKeyID: string; templateID: number }) => {
       const headers = selectedProjectId ? { 'X-Project-ID': selectedProjectId } : undefined;
-      return graphqlRequest<{ activateApiKeyProfileTemplate: ApiKey }>(
+      const data = await graphqlRequest<{ activateApiKeyProfileTemplate: ApiKey }>(
         ACTIVATE_APIKEY_PROFILE_TEMPLATE_MUTATION,
         { apiKeyID, templateID: buildGUID('APIKeyProfileTemplate', String(templateID)) },
         headers
       );
+      const updatedApiKey = data.activateApiKeyProfileTemplate;
+      const activatedProfile = updatedApiKey.profiles?.profiles?.find((profile) => profile.templateID === templateID);
+      if (!activatedProfile || updatedApiKey.profiles?.activeProfile !== activatedProfile.name) {
+        throw new Error(t('apikeys.messages.activeProfileVerificationFailed'));
+      }
+
+      return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
+      const updatedApiKey = data.activateApiKeyProfileTemplate;
+      const activeProfile = updatedApiKey.profiles?.activeProfile;
+      if (activeProfile) {
+        queryClient.setQueriesData<ApiKeyConnection>({ queryKey: ['apiKeys'] }, (current) => {
+          if (!current) return current;
+
+          return {
+            ...current,
+            edges: current.edges.map((edge) =>
+              edge.node.id === updatedApiKey.id
+                ? { ...edge, node: { ...edge.node, profiles: { ...edge.node.profiles, activeProfile } } }
+                : edge
+            ),
+          };
+        });
+        queryClient.setQueriesData<ApiKey>({ queryKey: ['apiKey', variables.apiKeyID] }, (current) =>
+          current ? { ...current, profiles: { ...current.profiles, activeProfile } } : current
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
       queryClient.invalidateQueries({ queryKey: ['apiKey', variables.apiKeyID] });
       toast.success(t('apikeys.messages.activeProfileUpdateSuccess'));
     },
-    onError: () => {
-      toast.error(t('common.errors.internalServerError'));
+    onError: (error) => {
+      handleError(error, { context: t('apikeys.columns.quickSwitchActiveProfile') });
     },
   });
 }

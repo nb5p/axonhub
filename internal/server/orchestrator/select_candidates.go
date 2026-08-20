@@ -88,9 +88,22 @@ func selectCandidates(inbound *PersistentInboundTransformer, quotaProvider Provi
 		}
 
 		if log.DebugEnabled(ctx) {
+			apiKeyProfile := ""
+			projectProfile := ""
+			if inbound.state.APIKey != nil {
+				if inbound.state.APIKey.Profiles != nil {
+					apiKeyProfile = inbound.state.APIKey.Profiles.ActiveProfile
+				}
+				if project := inbound.state.APIKey.Edges.Project; project != nil && project.Profiles != nil {
+					projectProfile = project.Profiles.ActiveProfile
+				}
+			}
+
 			log.Debug(ctx, "selected candidates",
 				log.Int("candidate_count", len(candidates)),
 				log.String("model", llmRequest.Model),
+				log.String("api_key_profile", apiKeyProfile),
+				log.String("project_profile", projectProfile),
 				log.String("load_balance_strategy", inbound.state.RoutingPolicy.LoadBalancerStrategy),
 				log.String("trace_sticky_mode", string(inbound.state.RoutingPolicy.TraceStickyMode)),
 				log.Any("candidates", lo.Map(candidates, func(candidate *ChannelModelsCandidate, _ int) map[string]any {

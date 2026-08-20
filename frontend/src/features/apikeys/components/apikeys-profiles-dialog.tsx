@@ -479,26 +479,38 @@ export function ApiKeyProfilesDialog({
                   control={form.control}
                   name='activeProfile'
                   render={({ field }) => (
-                    <FormItem className='flex items-center space-y-0 gap-x-3'>
-                      <FormLabel className='shrink-0 font-medium'>{t('apikeys.profiles.activeProfile')}</FormLabel>
-                      <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {watchedProfiles
-                              .filter((profile) => profile.name.trim() !== '')
-                              .map((profile) => (
-                                <SelectItem key={profile.name} value={profile.name}>
-                                  {profile.templateID != null && profile.templateName?.trim()
-                                    ? t('apikeys.columns.linkedTemplate', { name: profile.templateName.trim() })
-                                    : profile.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                    <FormItem className='space-y-1'>
+                      <div className='flex items-center gap-x-3'>
+                        <FormLabel className='shrink-0 font-medium'>{t('apikeys.profiles.activeProfile')}</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('apikeys.profiles.selectActiveProfile')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {watchedProfiles
+                                .filter((profile) => profile.name.trim() !== '')
+                                .map((profile) => (
+                                  <SelectItem key={profile.name} value={profile.name}>
+                                    {profile.templateID != null && profile.templateName?.trim()
+                                      ? t('apikeys.columns.linkedTemplate', { name: profile.templateName.trim() })
+                                      : profile.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </div>
+                      <p
+                        className={cn(
+                          'text-muted-foreground text-xs',
+                          form.formState.dirtyFields.activeProfile && 'text-amber-600 dark:text-amber-400'
+                        )}
+                      >
+                        {form.formState.dirtyFields.activeProfile
+                          ? t('apikeys.profiles.activeProfilePendingSave')
+                          : t('apikeys.profiles.activeProfileSaveHint')}
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

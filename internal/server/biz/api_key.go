@@ -589,12 +589,16 @@ func (s *APIKeyService) UpdateAPIKeyStatus(ctx context.Context, id int, status a
 func (s *APIKeyService) UpdateAPIKeyProfiles(ctx context.Context, id int, profiles objects.APIKeyProfiles) (*ent.APIKey, error) {
 	var apiKey *ent.APIKey
 	cacheKeys := make([]string, 0, 1)
+	previousActiveProfile := ""
 
 	err := s.RunInTransaction(ctx, func(ctx context.Context) error {
 		client := s.entFromContext(ctx)
 		existing, err := client.APIKey.Get(ctx, id)
 		if err != nil {
 			return fmt.Errorf("failed to get API key: %w", err)
+		}
+		if existing.Profiles != nil {
+			previousActiveProfile = existing.Profiles.ActiveProfile
 		}
 
 		if existing.Type == apikey.TypeNoauth {
@@ -647,12 +651,25 @@ func (s *APIKeyService) UpdateAPIKeyProfiles(ctx context.Context, id int, profil
 		return nil
 	})
 	if err != nil {
+		log.Warn(ctx, "api key profile update failed",
+			log.Int("api_key_id", id),
+			log.String("source", "profile_editor_save"),
+			log.String("from_profile", previousActiveProfile),
+			log.String("requested_profile", profiles.ActiveProfile),
+			log.Cause(err))
 		return nil, err
 	}
 
 	for _, key := range lo.Uniq(cacheKeys) {
 		s.invalidateAPIKeyCaches(ctx, key)
 	}
+
+	log.Info(ctx, "api key profile updated",
+		log.Int("api_key_id", apiKey.ID),
+		log.Int("project_id", apiKey.ProjectID),
+		log.String("source", "profile_editor_save"),
+		log.String("from_profile", previousActiveProfile),
+		log.String("to_profile", apiKey.Profiles.ActiveProfile))
 
 	return apiKey, nil
 }
@@ -1031,6 +1048,12 @@ func (s *APIKeyService) invalidateAPIKeyCaches(ctx context.Context, keys ...stri
 	}
 
 	cacheKeys := buildAPIKeyCacheKeys(keys)
+	for _, cacheKey := range cacheKeys {
+		// Invalidate this process synchronously. The watcher remains necessary for
+		// other instances, but it is best-effort and may be delivered after the
+		// mutation response (or dropped when its buffer is full).
+		s.APIKeyCache.Invalidate(cacheKey)
+	}
 	if err := s.apiKeyNotifier.Notify(ctx, live.NewInvalidateKeysEvent(cacheKeys...)); err != nil {
 		log.Warn(ctx, "api key cache watcher notify failed", log.Cause(err))
 	}
