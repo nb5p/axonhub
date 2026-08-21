@@ -492,5 +492,6 @@
   "quota.usageQuery.remaining": "Remaining",
   "quota.usageQuery.used": "Used",
   "quota.usageQuery.total": "Total",
-  "quota.usageQuery.invalid": "The queried plan is invalid"
+  "quota.usageQuery.invalid": "The queried plan is invalid",
+  "quota.usageQuery.window": "Quota window {{index}}"
 }

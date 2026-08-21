@@ -254,50 +254,68 @@ func setUsageQueryHeaders(target http.Header, headers map[string]string) error {
 }
 
 func normalizeUsageQueryResult(result UsageQueryResult) QuotaData {
-	if result.Total == nil && result.Remaining != nil && result.Used != nil {
-		total := *result.Remaining + *result.Used
-		result.Total = &total
+	text := result.resolvedText()
+	if text.Total == nil && text.Remaining != nil && text.Used != nil {
+		total := *text.Remaining + *text.Used
+		text.Total = &total
 	}
-	if result.Remaining == nil && result.Total != nil && result.Used != nil {
-		remaining := *result.Total - *result.Used
-		result.Remaining = &remaining
+	if text.Remaining == nil && text.Total != nil && text.Used != nil {
+		remaining := *text.Total - *text.Used
+		text.Remaining = &remaining
 	}
 
 	status := "unknown"
-	isValid := result.IsValid == nil || *result.IsValid
+	isValid := text.IsValid == nil || *text.IsValid
 	if isValid {
 		status = "available"
-		if result.Remaining != nil && *result.Remaining <= 0 {
+		if text.Remaining != nil && *text.Remaining <= 0 {
 			status = "exhausted"
-		} else if result.Total != nil && result.Used != nil && *result.Total > 0 && *result.Used/(*result.Total) >= WarningThresholdRatio {
+		} else if text.Total != nil && text.Used != nil && *text.Total > 0 && *text.Used/(*text.Total) >= WarningThresholdRatio {
 			status = "warning"
+		} else if result.Progress != nil {
+			for _, window := range result.Progress.Windows {
+				percent, ok := usageQueryProgressPercent(window)
+				if !ok {
+					continue
+				}
+				if percent >= 100 {
+					status = "exhausted"
+					break
+				}
+				if percent >= WarningThresholdRatio*100 {
+					status = "warning"
+				}
+			}
 		}
 	}
 
 	rawData := map[string]any{"kind": usageQueryProviderType}
-	if result.IsValid != nil {
-		rawData["isValid"] = *result.IsValid
+	if text.IsValid != nil {
+		rawData["isValid"] = *text.IsValid
 	}
-	if result.InvalidMessage != "" {
-		rawData["invalidMessage"] = result.InvalidMessage
+	if text.InvalidMessage != "" {
+		rawData["invalidMessage"] = text.InvalidMessage
 	}
-	if result.Remaining != nil {
-		rawData["remaining"] = *result.Remaining
+	if text.Remaining != nil {
+		rawData["remaining"] = *text.Remaining
 	}
-	if result.Total != nil {
-		rawData["total"] = *result.Total
+	if text.Total != nil {
+		rawData["total"] = *text.Total
 	}
-	if result.Used != nil {
-		rawData["used"] = *result.Used
+	if text.Used != nil {
+		rawData["used"] = *text.Used
 	}
-	if result.Unit != "" {
-		rawData["unit"] = result.Unit
+	if text.Unit != "" {
+		rawData["unit"] = text.Unit
 	}
-	if result.PlanName != "" {
-		rawData["planName"] = result.PlanName
+	if text.PlanName != "" {
+		rawData["planName"] = text.PlanName
 	}
-	if result.Extra != "" {
-		rawData["extra"] = result.Extra
+	if text.Extra != "" {
+		rawData["extra"] = text.Extra
+	}
+	if result.Progress != nil && len(result.Progress.Windows) > 0 {
+		rawData["progress"] = result.Progress
 	}
 
 	return QuotaData{
@@ -306,4 +324,20 @@ func normalizeUsageQueryResult(result UsageQueryResult) QuotaData {
 		RawData:      rawData,
 		Ready:        IsReadyStatus(status),
 	}
+}
+
+func usageQueryProgressPercent(window UsageQueryProgressWindow) (float64, bool) {
+	if window.UsedPercent != nil {
+		return *window.UsedPercent, true
+	}
+	if window.Total == nil || *window.Total <= 0 {
+		return 0, false
+	}
+	if window.Used != nil {
+		return *window.Used / *window.Total * 100, true
+	}
+	if window.Remaining != nil {
+		return (*window.Total - *window.Remaining) / *window.Total * 100, true
+	}
+	return 0, false
 }

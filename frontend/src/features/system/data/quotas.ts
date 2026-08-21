@@ -63,6 +63,18 @@ type ProviderQuotaDataCommon = {
   error?: string;
 };
 
+export type ProviderUsageQueryProgressWindow = {
+  id?: string;
+  label?: string;
+  used?: number;
+  total?: number;
+  remaining?: number;
+  usedPercent?: number;
+  unit?: string;
+  windowStart?: string;
+  resetAt?: string;
+};
+
 export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
   kind?: 'usage_query';
   isValid?: boolean;
@@ -73,6 +85,9 @@ export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
   total?: number;
   used?: number;
   extra?: string;
+  progress?: {
+    windows?: ProviderUsageQueryProgressWindow[];
+  };
 };
 
 type ProviderClaudeQuotaData = ProviderQuotaDataCommon & {

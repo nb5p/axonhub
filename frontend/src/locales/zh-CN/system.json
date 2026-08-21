@@ -492,5 +492,6 @@
   "quota.usageQuery.remaining": "剩余额度",
   "quota.usageQuery.used": "已用额度",
   "quota.usageQuery.total": "总额度",
-  "quota.usageQuery.invalid": "查询到的套餐无效"
+  "quota.usageQuery.invalid": "查询到的套餐无效",
+  "quota.usageQuery.window": "额度窗口 {{index}}"
 }

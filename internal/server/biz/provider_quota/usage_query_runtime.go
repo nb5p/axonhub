@@ -32,6 +32,14 @@ type UsageQueryRequest struct {
 }
 
 type UsageQueryResult struct {
+	// Text is the structured, forward-compatible form of the legacy flat
+	// fields below. When present, it replaces the legacy fields for display and
+	// status calculation. Keeping the flat fields preserves existing scripts.
+	Text     *UsageQueryTextResult `json:"text,omitempty"`
+	Progress *UsageQueryProgress   `json:"progress,omitempty"`
+
+	// Deprecated: return these fields directly to preserve compatibility with
+	// existing usage-query scripts. New scripts should return text instead.
 	IsValid        *bool    `json:"isValid,omitempty"`
 	InvalidMessage string   `json:"invalidMessage,omitempty"`
 	Remaining      *float64 `json:"remaining,omitempty"`
@@ -40,6 +48,37 @@ type UsageQueryResult struct {
 	Total          *float64 `json:"total,omitempty"`
 	Used           *float64 `json:"used,omitempty"`
 	Extra          string   `json:"extra,omitempty"`
+}
+
+// UsageQueryTextResult is the text portion of a structured usage-query result.
+// Its fields intentionally match the legacy flat result format.
+type UsageQueryTextResult struct {
+	IsValid        *bool    `json:"isValid,omitempty"`
+	InvalidMessage string   `json:"invalidMessage,omitempty"`
+	Remaining      *float64 `json:"remaining,omitempty"`
+	Unit           string   `json:"unit,omitempty"`
+	PlanName       string   `json:"planName,omitempty"`
+	Total          *float64 `json:"total,omitempty"`
+	Used           *float64 `json:"used,omitempty"`
+	Extra          string   `json:"extra,omitempty"`
+}
+
+// UsageQueryProgress groups independently rendered quota windows. A script can
+// return any number of windows and each window may omit reset timestamps.
+type UsageQueryProgress struct {
+	Windows []UsageQueryProgressWindow `json:"windows,omitempty"`
+}
+
+type UsageQueryProgressWindow struct {
+	ID          string   `json:"id,omitempty"`
+	Label       string   `json:"label,omitempty"`
+	Used        *float64 `json:"used,omitempty"`
+	Total       *float64 `json:"total,omitempty"`
+	Remaining   *float64 `json:"remaining,omitempty"`
+	UsedPercent *float64 `json:"usedPercent,omitempty"`
+	Unit        string   `json:"unit,omitempty"`
+	WindowStart string   `json:"windowStart,omitempty"`
+	ResetAt     string   `json:"resetAt,omitempty"`
 }
 
 type GojaUsageQueryRuntime struct{}
@@ -219,14 +258,53 @@ func replaceUsageQueryValue(value any, variables map[string]string) (any, error)
 }
 
 func validateUsageQueryResult(result UsageQueryResult) error {
+	text := result.resolvedText()
 	for name, value := range map[string]*float64{
-		"remaining": result.Remaining,
-		"total":     result.Total,
-		"used":      result.Used,
+		"remaining": text.Remaining,
+		"total":     text.Total,
+		"used":      text.Used,
 	} {
 		if value != nil && (math.IsNaN(*value) || math.IsInf(*value, 0)) {
 			return fmt.Errorf("%s must be a finite number", name)
 		}
 	}
+	if result.Progress == nil {
+		return nil
+	}
+
+	for index, window := range result.Progress.Windows {
+		for name, value := range map[string]*float64{
+			"used":        window.Used,
+			"total":       window.Total,
+			"remaining":   window.Remaining,
+			"usedPercent": window.UsedPercent,
+		} {
+			if value != nil && (math.IsNaN(*value) || math.IsInf(*value, 0)) {
+				return fmt.Errorf("progress.windows[%d].%s must be a finite number", index, name)
+			}
+		}
+		if window.UsedPercent == nil && (window.Total == nil || (window.Used == nil && window.Remaining == nil)) {
+			return fmt.Errorf("progress.windows[%d] must define usedPercent or total with used/remaining", index)
+		}
+		if window.UsedPercent == nil && *window.Total <= 0 {
+			return fmt.Errorf("progress.windows[%d].total must be greater than zero", index)
+		}
+	}
 	return nil
+}
+
+func (r UsageQueryResult) resolvedText() UsageQueryTextResult {
+	if r.Text != nil {
+		return *r.Text
+	}
+	return UsageQueryTextResult{
+		IsValid:        r.IsValid,
+		InvalidMessage: r.InvalidMessage,
+		Remaining:      r.Remaining,
+		Unit:           r.Unit,
+		PlanName:       r.PlanName,
+		Total:          r.Total,
+		Used:           r.Used,
+		Extra:          r.Extra,
+	}
 }

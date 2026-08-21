@@ -382,6 +382,8 @@ input ChannelUsageQueryConfigInput {
 
 type ChannelUsageQueryTestResult {
   status: String!
+  text: ChannelUsageQueryTextResult
+  progress: ChannelUsageQueryProgress
   isValid: Boolean
   invalidMessage: String
   remaining: Float
@@ -390,6 +392,41 @@ type ChannelUsageQueryTestResult {
   total: Float
   used: Float
   extra: String
+}
+
+"""
+Text fields returned by a channel usage-query script. These fields mirror the
+legacy flat result format and are available to new structured scripts under
+the `text` key.
+"""
+type ChannelUsageQueryTextResult {
+  isValid: Boolean
+  invalidMessage: String
+  remaining: Float
+  unit: String
+  planName: String
+  total: Float
+  used: Float
+  extra: String
+}
+
+"""
+Independent quota windows returned by a channel usage-query script.
+"""
+type ChannelUsageQueryProgress {
+  windows: [ChannelUsageQueryProgressWindow!]!
+}
+
+type ChannelUsageQueryProgressWindow {
+  id: String
+  label: String
+  used: Float
+  total: Float
+  remaining: Float
+  usedPercent: Float
+  unit: String
+  windowStart: String
+  resetAt: String
 }
 
 type TestChannelAPIKeysPayload {

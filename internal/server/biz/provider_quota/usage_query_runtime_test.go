@@ -39,6 +39,38 @@ func TestGojaUsageQueryRuntime_ParsesRequestAndExtractsResult(t *testing.T) {
 	require.Equal(t, "USD", result.Unit)
 }
 
+func TestGojaUsageQueryRuntime_ExtractsStructuredTextAndProgressWindows(t *testing.T) {
+	runtime := NewGojaUsageQueryRuntime()
+	script := `({
+  request: { url: "{{baseUrl}}/quota", method: "GET" },
+  extractor: function(response) {
+    return {
+      text: { isValid: true, planName: response.plan, remaining: 39.5, unit: "USD" },
+      progress: {
+        windows: [
+          { id: "daily", label: "Daily", used: 10, total: 10, unit: "USD", windowStart: "2026-08-18T00:00:00Z", resetAt: "2026-08-19T00:00:00Z" },
+          { id: "weekly", label: "Weekly", usedPercent: 20 },
+          { id: "monthly", remaining: 70, total: 100, unit: "USD" }
+        ]
+      }
+    };
+  }
+})`
+
+	result, err := runtime.Extract(t.Context(), script, map[string]any{"plan": "Codex Lite"})
+	require.NoError(t, err)
+	require.NotNil(t, result.Text)
+	require.True(t, *result.Text.IsValid)
+	require.Equal(t, "Codex Lite", result.Text.PlanName)
+	require.NotNil(t, result.Progress)
+	require.Len(t, result.Progress.Windows, 3)
+	require.Equal(t, "daily", result.Progress.Windows[0].ID)
+	require.Equal(t, 10.0, *result.Progress.Windows[0].Used)
+	require.Equal(t, "", result.Progress.Windows[1].ResetAt)
+	require.Equal(t, 20.0, *result.Progress.Windows[1].UsedPercent)
+	require.Equal(t, 70.0, *result.Progress.Windows[2].Remaining)
+}
+
 func TestGojaUsageQueryRuntime_RejectsUnknownVariables(t *testing.T) {
 	runtime := NewGojaUsageQueryRuntime()
 	script := "({ request: { url: \"{{baseUrl}}/{{unknown}}\", method: \"GET\" }, extractor: function(response) { return response; } })"

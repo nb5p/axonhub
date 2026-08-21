@@ -87,3 +87,34 @@ func TestNormalizeUsageQueryResult_InvalidPlanIsUnknown(t *testing.T) {
 	require.False(t, result.Ready)
 	require.Equal(t, "expired", result.RawData["invalidMessage"])
 }
+
+func TestNormalizeUsageQueryResult_UsesStructuredProgressWindows(t *testing.T) {
+	valid := true
+	result := normalizeUsageQueryResult(UsageQueryResult{
+		Text: &UsageQueryTextResult{
+			IsValid:  &valid,
+			PlanName: "Codex Lite",
+			Unit:     "USD",
+		},
+		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
+			{ID: "daily", Used: lo.ToPtr(10.0), Total: lo.ToPtr(10.0), Unit: "USD", ResetAt: "2026-08-19T00:00:00Z"},
+			{ID: "weekly", UsedPercent: lo.ToPtr(20.0)},
+			{ID: "monthly", Remaining: lo.ToPtr(70.0), Total: lo.ToPtr(100.0), Unit: "USD"},
+		}},
+	})
+
+	require.Equal(t, "exhausted", result.Status)
+	require.False(t, result.Ready)
+	require.Equal(t, "Codex Lite", result.RawData["planName"])
+	progress, ok := result.RawData["progress"].(*UsageQueryProgress)
+	require.True(t, ok)
+	require.Len(t, progress.Windows, 3)
+	require.Empty(t, progress.Windows[2].ResetAt)
+}
+
+func TestNormalizeUsageQueryResult_RejectsIncompleteProgressWindow(t *testing.T) {
+	err := validateUsageQueryResult(UsageQueryResult{
+		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{{ID: "daily"}}},
+	})
+	require.ErrorContains(t, err, "must define usedPercent or total with used/remaining")
+}

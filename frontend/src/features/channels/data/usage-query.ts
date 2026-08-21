@@ -27,6 +27,8 @@ export interface ChannelUsageQueryConfigInput {
 
 export interface ChannelUsageQueryTestResult {
   status: 'available' | 'warning' | 'exhausted' | 'unknown';
+  text?: ChannelUsageQueryTextResult | null;
+  progress?: ChannelUsageQueryProgress | null;
   isValid?: boolean | null;
   invalidMessage?: string | null;
   remaining?: number | null;
@@ -35,6 +37,33 @@ export interface ChannelUsageQueryTestResult {
   total?: number | null;
   used?: number | null;
   extra?: string | null;
+}
+
+export interface ChannelUsageQueryTextResult {
+  isValid?: boolean | null;
+  invalidMessage?: string | null;
+  remaining?: number | null;
+  unit?: string | null;
+  planName?: string | null;
+  total?: number | null;
+  used?: number | null;
+  extra?: string | null;
+}
+
+export interface ChannelUsageQueryProgress {
+  windows: ChannelUsageQueryProgressWindow[];
+}
+
+export interface ChannelUsageQueryProgressWindow {
+  id?: string | null;
+  label?: string | null;
+  used?: number | null;
+  total?: number | null;
+  remaining?: number | null;
+  usedPercent?: number | null;
+  unit?: string | null;
+  windowStart?: string | null;
+  resetAt?: string | null;
 }
 
 const CHANNEL_USAGE_QUERY = `
@@ -69,6 +98,29 @@ const TEST_CHANNEL_USAGE_QUERY = `
   mutation TestChannelUsageQuery($channelID: ID!, $input: ChannelUsageQueryConfigInput!) {
     testChannelUsageQuery(channelID: $channelID, input: $input) {
       status
+      text {
+        isValid
+        invalidMessage
+        remaining
+        unit
+        planName
+        total
+        used
+        extra
+      }
+      progress {
+        windows {
+          id
+          label
+          used
+          total
+          remaining
+          usedPercent
+          unit
+          windowStart
+          resetAt
+        }
+      }
       isValid
       invalidMessage
       remaining

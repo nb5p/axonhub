@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -36,6 +37,8 @@ type ChannelUsageQueryConfigInput struct {
 
 type ChannelUsageQueryTestResult struct {
 	Status         string
+	Text           *providerquota.UsageQueryTextResult
+	Progress       *providerquota.UsageQueryProgress
 	IsValid        *bool
 	InvalidMessage *string
 	Remaining      *float64
@@ -242,7 +245,36 @@ func usageQueryTestResultFromQuotaData(quotaData providerquota.QuotaData) *Chann
 	if value, ok := data["extra"].(string); ok {
 		result.Extra = &value
 	}
+	result.Text = &providerquota.UsageQueryTextResult{
+		IsValid:        result.IsValid,
+		InvalidMessage: lo.FromPtr(result.InvalidMessage),
+		Remaining:      result.Remaining,
+		Unit:           lo.FromPtr(result.Unit),
+		PlanName:       lo.FromPtr(result.PlanName),
+		Total:          result.Total,
+		Used:           result.Used,
+		Extra:          lo.FromPtr(result.Extra),
+	}
+	if progress, ok := usageQueryProgressFromRawData(data["progress"]); ok {
+		result.Progress = progress
+	}
 	return result
+}
+
+func usageQueryProgressFromRawData(value any) (*providerquota.UsageQueryProgress, bool) {
+	if value == nil {
+		return nil, false
+	}
+
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return nil, false
+	}
+	var progress providerquota.UsageQueryProgress
+	if err := json.Unmarshal(encoded, &progress); err != nil || len(progress.Windows) == 0 {
+		return nil, false
+	}
+	return &progress, true
 }
 
 func hasEnabledUsageQuery(ch *ent.Channel) bool {

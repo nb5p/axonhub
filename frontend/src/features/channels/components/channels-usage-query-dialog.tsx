@@ -19,7 +19,9 @@ import type { Channel } from '../data/schema';
 import {
   type ChannelUsageQueryConfigInput,
   type ChannelUsageQueryPreset,
+  type ChannelUsageQueryProgressWindow,
   type ChannelUsageQueryTestResult,
+  type ChannelUsageQueryTextResult,
   useChannelUsageQuery,
   useRefreshAllUsageQueries,
   useSaveChannelUsageQuery,
@@ -96,6 +98,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
   const [script, setScript] = useState(NEW_API_SCRIPT);
   const [customScript, setCustomScript] = useState(CUSTOM_SCRIPT);
   const [testResult, setTestResult] = useState<ChannelUsageQueryTestResult | null>(null);
+  const testText: ChannelUsageQueryTextResult | ChannelUsageQueryTestResult | null = testResult?.text ?? testResult;
 
   useEffect(() => {
     if (!open || !data) return;
@@ -151,13 +154,22 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     return unit ? `${formatted} ${unit}` : formatted;
   };
 
+  const getProgressPercent = (window: ChannelUsageQueryProgressWindow): number | null => {
+    if (window.usedPercent != null) return window.usedPercent;
+    if (window.total == null || window.total <= 0) return null;
+    if (window.used != null) return (window.used / window.total) * 100;
+    if (window.remaining != null) return ((window.total - window.remaining) / window.total) * 100;
+    return null;
+  };
+
   const handleTest = async () => {
     setTestResult(null);
     try {
       const result = await testUsageQuery.mutateAsync({ channelID: currentRow.id, input: buildInput() });
       setTestResult(result);
-      if (result.isValid === false) {
-        toast.error(result.invalidMessage || t('channels.dialogs.usageQuery.test.invalid'));
+      const text = result.text ?? result;
+      if (text.isValid === false) {
+        toast.error(text.invalidMessage || t('channels.dialogs.usageQuery.test.invalid'));
       } else {
         toast.success(t('channels.dialogs.usageQuery.test.success'));
       }
@@ -329,42 +341,62 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
               />
             </div>
 
-            {testResult && (
-              <Alert variant={testResult.isValid === false ? 'destructive' : 'default'}>
+            {testResult && testText && (
+              <Alert variant={testText.isValid === false ? 'destructive' : 'default'}>
                 <AlertTitle className='flex items-center gap-2'>
                   {t('channels.dialogs.usageQuery.test.result')}
                   <Badge variant='outline'>{t(`quota.status.${testResult.status}`)}</Badge>
                 </AlertTitle>
                 <AlertDescription>
-                  {testResult.isValid === false ? (
-                    testResult.invalidMessage || t('channels.dialogs.usageQuery.test.invalid')
+                  {testText.isValid === false ? (
+                    testText.invalidMessage || t('channels.dialogs.usageQuery.test.invalid')
                   ) : (
                     <div className='mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
-                      {testResult.planName && (
+                      {testText.planName && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.plan')}</span>{' '}
-                          {testResult.planName}
+                          {testText.planName}
                         </div>
                       )}
-                      {testResult.remaining != null && (
+                      {testText.remaining != null && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.remaining')}</span>{' '}
-                          {formatValue(testResult.remaining, testResult.unit)}
+                          {formatValue(testText.remaining, testText.unit)}
                         </div>
                       )}
-                      {testResult.used != null && (
+                      {testText.used != null && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.used')}</span>{' '}
-                          {formatValue(testResult.used, testResult.unit)}
+                          {formatValue(testText.used, testText.unit)}
                         </div>
                       )}
-                      {testResult.total != null && (
+                      {testText.total != null && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.total')}</span>{' '}
-                          {formatValue(testResult.total, testResult.unit)}
+                          {formatValue(testText.total, testText.unit)}
                         </div>
                       )}
-                      {testResult.extra && <div className='sm:col-span-2'>{testResult.extra}</div>}
+                      {testText.extra && <div className='sm:col-span-2'>{testText.extra}</div>}
+                      {(testResult.progress?.windows ?? []).map((window, index) => {
+                        const percent = getProgressPercent(window);
+                        if (percent == null) return null;
+                        const label = window.label || window.id || `#${index + 1}`;
+                        const value =
+                          window.used != null && window.total != null
+                            ? `${formatValue(window.used, window.unit)} / ${formatValue(window.total, window.unit)}`
+                            : `${Math.round(percent)}%`;
+                        return (
+                          <div key={window.id || `${label}-${index}`} className='space-y-1 sm:col-span-2'>
+                            <div className='flex justify-between gap-3'>
+                              <span className='text-muted-foreground'>{label}</span>
+                              <span>{value}</span>
+                            </div>
+                            <div className='bg-muted h-1.5 overflow-hidden rounded-full'>
+                              <div className='h-full bg-primary' style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </AlertDescription>

@@ -21,6 +21,7 @@ import {
   ProviderApertisQuotaData,
   ProviderQuotaTodayUsageStats,
   ProviderUsageQueryQuotaData,
+  ProviderUsageQueryProgressWindow,
   ProviderOpenCodeGoQuotaData,
   OpenCodeGoQuotaWindow,
   ProviderKimiCodeQuotaData,
@@ -105,11 +106,32 @@ function getClineUsagePercent(window?: ClineQuotaWindow): number {
   return window?.usage_percent ?? (window?.usage_ratio ?? 0) * 100;
 }
 
+function getUsageQueryProgressPercent(window: ProviderUsageQueryProgressWindow): number | null {
+  if (window.usedPercent != null) return window.usedPercent;
+  if (window.total == null || window.total <= 0) return null;
+  if (window.used != null) return (window.used / window.total) * 100;
+  if (window.remaining != null) return ((window.total - window.remaining) / window.total) * 100;
+  return null;
+}
+
+function getUsageQueryProgressDurationPercent(window: ProviderUsageQueryProgressWindow): number | undefined {
+  if (!window.windowStart || !window.resetAt) return undefined;
+  const windowStart = new Date(window.windowStart).getTime();
+  const resetAt = new Date(window.resetAt).getTime();
+  if (!Number.isFinite(windowStart) || !Number.isFinite(resetAt) || resetAt <= windowStart) return undefined;
+  return ((Date.now() - windowStart) / (resetAt - windowStart)) * 100;
+}
+
 function getChannelPercentage(channel: ProviderQuotaChannel): number {
   let percentage = 0;
   if (channel.type === 'usage_query') {
     const qd = channel.quotaStatus.quotaData;
-    if (qd.total != null && qd.total > 0) {
+    const progressPercentages = (qd.progress?.windows ?? [])
+      .map(getUsageQueryProgressPercent)
+      .filter((percentage): percentage is number => percentage != null);
+    if (progressPercentages.length > 0) {
+      percentage = Math.max(...progressPercentages);
+    } else if (qd.total != null && qd.total > 0) {
       if (qd.used != null) {
         percentage = (qd.used / qd.total) * 100;
       } else if (qd.remaining != null) {
@@ -581,6 +603,7 @@ function QuotaRow({
                     ? ((qd.total - qd.remaining) / qd.total) * 100
                     : null
                 : null;
+            const progressWindows = qd.progress?.windows ?? [];
 
             return (
               <>
@@ -617,12 +640,62 @@ function QuotaRow({
                     )}
                   </div>
                 )}
-                {usedPercent != null && (
+                {progressWindows.length > 0
+                  ? progressWindows.map((window, index) => {
+                      const windowPercent = getUsageQueryProgressPercent(window);
+                      if (windowPercent == null) return null;
+                      const durationPercent = getUsageQueryProgressDurationPercent(window);
+                      const label = window.label || window.id || t('quota.usageQuery.window', { index: index + 1 });
+                      const value =
+                        window.used != null && window.total != null
+                          ? `${formatUsageQueryValue(window.used, window.unit)} / ${formatUsageQueryValue(window.total, window.unit)}`
+                          : window.remaining != null && window.total != null
+                            ? `${formatUsageQueryValue(window.remaining, window.unit)} / ${formatUsageQueryValue(window.total, window.unit)}`
+                            : formatQuotaUsage(windowPercent);
+                      const resetText = window.resetAt ? formatTimeToReset(window.resetAt, windowPercent) : '';
+                      return (
+                        <div
+                          key={window.id || `${label}-${index}`}
+                          className={index > 0 ? 'border-border/60 space-y-1 border-t border-dashed pt-3' : 'space-y-1'}
+                        >
+                          <div className='flex items-center justify-between gap-3 text-xs'>
+                            <span className='text-muted-foreground font-medium'>{label}</span>
+                            <span className='text-foreground text-right font-medium'>{value}</span>
+                          </div>
+                          <UsageTimeBar
+                            usagePercent={windowPercent}
+                            displayPercent={getQuotaDisplayPercentage(windowPercent, reverseUsageDisplay)}
+                            durationPercent={durationPercent}
+                            timeWindowDisplayStyle={timeWindowDisplayStyle}
+                            reverseTimeProgress={reverseUsageDisplay}
+                            durationLabel={timeProgressLabel}
+                            tooltip={
+                              <div className='space-y-0.5'>
+                                <div className='font-medium'>{label}</div>
+                                <div>{formatQuotaUsage(windowPercent)}</div>
+                                {durationPercent !== undefined && (
+                                  <div>
+                                    {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(durationPercent))}%
+                                  </div>
+                                )}
+                                {resetText && <div>{resetText}</div>}
+                              </div>
+                            }
+                          />
+                          {resetText && (
+                            <div className='text-muted-foreground text-right text-[11px]'>
+                              {resetText}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  : usedPercent != null && (
                   <div className='space-y-1'>
                     <div className='text-foreground text-right text-xs font-medium'>{formatQuotaUsage(usedPercent)}</div>
                     <ProgressBar percentage={usedPercent} />
                   </div>
-                )}
+                    )}
                 {qd.extra && <div className='text-muted-foreground border-border/60 border-t border-dashed pt-2 text-xs break-words'>{qd.extra}</div>}
               </>
             );

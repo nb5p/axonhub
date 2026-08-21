@@ -193,6 +193,15 @@ models:
   ChannelUsageQueryTestResult:
     model:
       - github.com/looplj/axonhub/internal/server/biz.ChannelUsageQueryTestResult
+  ChannelUsageQueryTextResult:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryTextResult
+  ChannelUsageQueryProgress:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryProgress
+  ChannelUsageQueryProgressWindow:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryProgressWindow
   OAuthCredentials:
     model:
       - github.com/looplj/axonhub/internal/objects.OAuthCredentials
