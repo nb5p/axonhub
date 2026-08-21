@@ -695,17 +695,19 @@ const (
 	ChannelTestAPIFormatOpenaiChatCompletion ChannelTestAPIFormat = "OPENAI_CHAT_COMPLETION"
 	ChannelTestAPIFormatOpenaiResponse       ChannelTestAPIFormat = "OPENAI_RESPONSE"
 	ChannelTestAPIFormatAnthropicMessages    ChannelTestAPIFormat = "ANTHROPIC_MESSAGES"
+	ChannelTestAPIFormatGeminiContents       ChannelTestAPIFormat = "GEMINI_CONTENTS"
 )
 
 var AllChannelTestAPIFormat = []ChannelTestAPIFormat{
 	ChannelTestAPIFormatOpenaiChatCompletion,
 	ChannelTestAPIFormatOpenaiResponse,
 	ChannelTestAPIFormatAnthropicMessages,
+	ChannelTestAPIFormatGeminiContents,
 }
 
 func (e ChannelTestAPIFormat) IsValid() bool {
 	switch e {
-	case ChannelTestAPIFormatOpenaiChatCompletion, ChannelTestAPIFormatOpenaiResponse, ChannelTestAPIFormatAnthropicMessages:
+	case ChannelTestAPIFormatOpenaiChatCompletion, ChannelTestAPIFormatOpenaiResponse, ChannelTestAPIFormatAnthropicMessages, ChannelTestAPIFormatGeminiContents:
 		return true
 	}
 	return false

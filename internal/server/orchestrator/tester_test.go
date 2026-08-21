@@ -30,6 +30,7 @@ func TestBuildChannelTestHTTPRequestUsesSelectedAPIFormat(t *testing.T) {
 		{name: "OpenAI Chat Completions", apiFormat: llm.APIFormatOpenAIChatCompletion},
 		{name: "OpenAI Responses", apiFormat: llm.APIFormatOpenAIResponse},
 		{name: "Anthropic Messages", apiFormat: llm.APIFormatAnthropicMessage},
+		{name: "Gemini Contents", apiFormat: llm.APIFormatGeminiContents},
 	}
 
 	for _, tt := range tests {

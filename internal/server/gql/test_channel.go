@@ -19,6 +19,8 @@ func toChannelTestAPIFormat(apiFormat *ChannelTestAPIFormat) (*orchestrator.Chan
 		value = orchestrator.ChannelTestAPIFormatOpenAIResponse
 	case ChannelTestAPIFormatAnthropicMessages:
 		value = orchestrator.ChannelTestAPIFormatAnthropicMessages
+	case ChannelTestAPIFormatGeminiContents:
+		value = orchestrator.ChannelTestAPIFormatGeminiContents
 	default:
 		return nil, fmt.Errorf("unsupported channel test API format %q", *apiFormat)
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/looplj/axonhub/llm/streams"
 	"github.com/looplj/axonhub/llm/transformer"
 	"github.com/looplj/axonhub/llm/transformer/anthropic"
+	"github.com/looplj/axonhub/llm/transformer/gemini"
 	"github.com/looplj/axonhub/llm/transformer/openai"
 	"github.com/looplj/axonhub/llm/transformer/openai/responses"
 )
@@ -80,6 +81,7 @@ const (
 	ChannelTestAPIFormatOpenAIChatCompletion ChannelTestAPIFormat = "openai/chat_completions"
 	ChannelTestAPIFormatOpenAIResponse       ChannelTestAPIFormat = "openai/responses"
 	ChannelTestAPIFormatAnthropicMessages    ChannelTestAPIFormat = "anthropic/messages"
+	ChannelTestAPIFormatGeminiContents       ChannelTestAPIFormat = "gemini/contents"
 )
 
 func (format ChannelTestAPIFormat) llmAPIFormat() (llm.APIFormat, error) {
@@ -90,6 +92,8 @@ func (format ChannelTestAPIFormat) llmAPIFormat() (llm.APIFormat, error) {
 		return llm.APIFormatOpenAIResponse, nil
 	case ChannelTestAPIFormatAnthropicMessages:
 		return llm.APIFormatAnthropicMessage, nil
+	case ChannelTestAPIFormatGeminiContents:
+		return llm.APIFormatGeminiContents, nil
 	default:
 		return "", fmt.Errorf("unsupported channel test API format %q", format)
 	}
@@ -149,6 +153,19 @@ func buildChannelTestHTTPRequest(
 			}},
 			"stream": useStream,
 		}
+	case llm.APIFormatGeminiContents:
+		payload = map[string]any{
+			"systemInstruction": map[string]any{
+				"parts": []map[string]string{{"text": systemPrompt}},
+			},
+			"contents": []map[string]any{{
+				"role":  "user",
+				"parts": []map[string]string{{"text": userPrompt}},
+			}},
+			"generationConfig": map[string]any{
+				"maxOutputTokens": 256,
+			},
+		}
 	}
 
 	body, err := json.Marshal(payload)
@@ -156,12 +173,21 @@ func buildChannelTestHTTPRequest(
 		return nil, nil, err
 	}
 
-	return inbound, &httpclient.Request{
+	request := &httpclient.Request{
 		Headers: http.Header{
 			"Content-Type": []string{"application/json"},
 		},
 		Body: body,
-	}, nil
+	}
+	if apiFormat == llm.APIFormatGeminiContents {
+		action := "generateContent"
+		if useStream {
+			action = "streamGenerateContent"
+		}
+		request.Path = fmt.Sprintf("/v1beta/models/%s:%s", model, action)
+	}
+
+	return inbound, request, nil
 }
 
 func newChannelTestInbound(apiFormat llm.APIFormat) (transformer.Inbound, error) {
@@ -172,6 +198,8 @@ func newChannelTestInbound(apiFormat llm.APIFormat) (transformer.Inbound, error)
 		return responses.NewInboundTransformer(), nil
 	case llm.APIFormatAnthropicMessage:
 		return anthropic.NewInboundTransformer(), nil
+	case llm.APIFormatGeminiContents:
+		return gemini.NewInboundTransformer(), nil
 	default:
 		return nil, fmt.Errorf("unsupported channel test API format %q", apiFormat)
 	}

@@ -117,34 +117,34 @@
 ### 2026-08-21 — tuzi-daycard-three-window-script
 
 - 兼容等级：`none`
-- 本地 commit：`aeea324f0ef572f062d1290bfad8cca3a679baaf`。
+- 本地 commit：`4593cf61d9aae4b02e11106c421053b97a2378c6`。
 - 影响结构：无；仅更新绿色环境 41 号渠道既有 `channels.settings.usageQuery.script` 文本，不新增或变更 Schema。
 - 旧数据库验证样本：更新前后均对绿色 `axonhub.db` 执行 `PRAGMA quick_check`，结果为 `ok`；脚本夹具验证日、周、月三窗口均能从真实响应形状提取。
 - 备份与恢复：更新前 `.backup` 已保存至 `/Users/tux/Playground/AxonHub/backups/usage-query-41/axonhub-20260821T145539Z-pre-three-window-no-balance.db`，SHA-256 为 `e515baf0eee500281351d3a669a855a156e5eb5e58af58385ea56fb8c9033266`，已登记 Obsidian 备份日志。
 - 回滚能力：可用该一致性备份恢复绿色数据库，或仅恢复 `settings.usageQuery.script`；本次不写入凭据。
-- 最低升级版本：`aeea324f0ef572f062d1290bfad8cca3a679baaf`。
+- 最低升级版本：`4593cf61d9aae4b02e11106c421053b97a2378c6`。
 - 用户批准（仅 breaking）：不适用。
 
 ### 2026-08-21 — channel-usage-query-tags
 
 - 兼容等级：`additive`
-- 本地 commit：`76a90bfa62356b46907a168c2141b57061ac3990`。
+- 本地 commit：`fa2fe5a8febdf45db14b15bae932adfe0c6cbd40`。
 - 影响结构：不新增 Schema；既有 `provider_quota_status.quota_data` JSON 增加可选 `tags` 和 `showCodexUsage` 字段，旧缓存缺失字段时安全按未显示处理。
 - 旧数据库验证样本：Goja 运行时、预设和配额规范化测试覆盖 tags；绿色 41 号脚本已更新为 tags、三窗口、无 A$，并执行 `PRAGMA quick_check`，结果为 `ok`。
 - 备份与恢复：沿用本次 41 号更新前的一致性备份 `/Users/tux/Playground/AxonHub/backups/usage-query-41/axonhub-20260821T145539Z-pre-three-window-no-balance.db`；本项未额外创建数据库备份。
 - 回滚能力：旧代码忽略新增缓存字段；若需完整还原 41 号脚本，恢复上述备份。
-- 最低升级版本：`76a90bfa62356b46907a168c2141b57061ac3990`。
+- 最低升级版本：`fa2fe5a8febdf45db14b15bae932adfe0c6cbd40`。
 - 用户批准（仅 breaking）：不适用。
 
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`
-- 本地 commit：`a683e9122d639c5a1273cc28d509d7019f2a6c35`。
-- 影响结构：无；只新增 GraphQL 测试枚举与运行时请求格式选择。
+- 本地 commit：`a683e9122d639c5a1273cc28d509d7019f2a6c35`、本次提交（2026-08-21，多格式测试）。
+- 影响结构：无；新增 `GEMINI_CONTENTS` GraphQL 测试枚举，扩展运行时请求格式和前端临时测试结果；不新增或修改持久化字段。
 - 旧数据库验证样本：不适用；不读取或写入新的持久化字段。
 - 备份与恢复：本次未创建备份；不需要数据库迁移。
 - 回滚能力：回退代码不会影响任何数据库结构或数据。
-- 最低升级版本：`a683e9122d639c5a1273cc28d509d7019f2a6c35`。
+- 最低升级版本：本次提交（2026-08-21，多格式测试）。
 - 用户批准（仅 breaking）：不适用。
 
 ### 2026-08-21 — test-request-list-visibility

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { IconSearch, IconPlayerPlay } from '@tabler/icons-react';
+import { useEffect, useMemo, useState } from 'react';
+import { IconFlask, IconPlayerPlay, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,21 +9,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import LongText from '@/components/long-text';
+import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
+import { ChannelTestAPIFormat, defaultChannelTestAPIFormats, getChannelTestAPIFormat } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
 import { ErrorDisplay } from '../utils/error-formatter';
 
-type TestStatus = 'not_started' | 'testing' | 'success' | 'failed';
+type TestStatus = 'not_started' | 'testing' | 'success' | 'failed' | 'skipped';
 
 interface ModelTestResult {
-  modelName: string;
   status: TestStatus;
   latency?: number;
   error?: string;
 }
+
+type ModelTestResults = Record<string, Partial<Record<ChannelTestAPIFormat, ModelTestResult>>>;
 
 interface Props {
   open: boolean;
@@ -31,142 +32,130 @@ interface Props {
   channel: Channel;
 }
 
-const testAPIFormats = [
-  { value: 'OPENAI_CHAT_COMPLETION', endpointFormat: 'openai/chat_completions', label: 'OpenAI Chat Completion' },
-  { value: 'OPENAI_RESPONSE', endpointFormat: 'openai/responses', label: 'OpenAI Response' },
-  { value: 'ANTHROPIC_MESSAGES', endpointFormat: 'anthropic/messages', label: 'Anthropic Messages' },
-] as const;
+const MAX_CONCURRENT_TESTS = 4;
 
-type TestAPIFormat = (typeof testAPIFormats)[number]['value'];
+function makeInitialResults(models: string[]): ModelTestResults {
+  return Object.fromEntries(models.map((model) => [model, {}]));
+}
 
 export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   const { t } = useTranslation();
+  const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const [testResults, setTestResults] = useState<Record<string, ModelTestResult>>({});
+  const [testResults, setTestResults] = useState<ModelTestResults>({});
   const [localSupportedModels, setLocalSupportedModels] = useState<string[]>(channel.supportedModels);
-  const [selectedAPIFormat, setSelectedAPIFormat] = useState<TestAPIFormat>();
+  const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>(defaultChannelTestAPIFormats);
   const [isTesting, setIsTesting] = useState(false);
   const [isRemovePopoverOpen, setIsRemovePopoverOpen] = useState(false);
   const testChannel = useTestChannel();
   const updateChannel = useUpdateChannel();
 
-  // Filter models based on search query
-  const availableEndpointFormats = new Set([...(channel.defaultEndpoints ?? []), ...(channel.endpoints ?? [])].map((endpoint) => endpoint.apiFormat));
-  const selectedFormatIsAvailable = !!selectedAPIFormat && testAPIFormats.some(
-    (format) => format.value === selectedAPIFormat && availableEndpointFormats.has(format.endpointFormat)
+  const availableEndpointFormats = useMemo(
+    () => new Set([...(channel.defaultEndpoints ?? []), ...(channel.endpoints ?? [])].map((endpoint) => endpoint.apiFormat)),
+    [channel.defaultEndpoints, channel.endpoints]
   );
-  const filteredModels = (selectedFormatIsAvailable ? localSupportedModels : []).filter((model) => model.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredModels = localSupportedModels.filter((model) => model.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Initialize test results when dialog opens
   useEffect(() => {
     if (open) {
-      const initialResults: Record<string, ModelTestResult> = {};
-      channel.supportedModels.forEach((model) => {
-        initialResults[model] = {
-          modelName: model,
-          status: 'not_started',
-        };
-      });
-      setTestResults(initialResults);
+      setTestResults(makeInitialResults(channel.supportedModels));
       setLocalSupportedModels(channel.supportedModels);
       setSelectedModels([]);
-      setSelectedAPIFormat(undefined);
+      setSelectedAPIFormats(defaultChannelTestAPIFormats);
       setSearchQuery('');
     }
   }, [open, channel.supportedModels]);
 
-  const handleAPIFormatChange = (value: TestAPIFormat) => {
-    const initialResults: Record<string, ModelTestResult> = {};
-    localSupportedModels.forEach((model) => {
-      initialResults[model] = { modelName: model, status: 'not_started' };
-    });
-    setSelectedAPIFormat(value);
-    setSelectedModels([]);
-    setSearchQuery('');
-    setTestResults(initialResults);
+  const isFormatAvailable = (format: ChannelTestAPIFormat) => availableEndpointFormats.has(getChannelTestAPIFormat(format).endpointFormat);
+
+  const handleAPIFormatsChange = (formats: ChannelTestAPIFormat[]) => {
+    setSelectedAPIFormats(formats);
+    setTestResults(makeInitialResults(localSupportedModels));
   };
 
-  // Handle model selection
   const handleModelSelect = (modelName: string, checked: boolean) => {
-    if (checked) {
-      setSelectedModels((prev) => [...prev, modelName]);
-    } else {
-      setSelectedModels((prev) => prev.filter((m) => m !== modelName));
-    }
+    setSelectedModels((previous) => (checked ? [...previous, modelName] : previous.filter((model) => model !== modelName)));
   };
 
-  // Handle select all
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedModels(filteredModels);
-    } else {
-      setSelectedModels([]);
-    }
+    setSelectedModels(checked ? filteredModels : []);
   };
 
-  // Test a single model
-  const testModel = async (modelName: string) => {
-    setTestResults((prev) => ({
-      ...prev,
-      [modelName]: { ...prev[modelName], status: 'testing' },
+  const setTestResult = (modelName: string, format: ChannelTestAPIFormat, result: ModelTestResult) => {
+    setTestResults((previous) => ({
+      ...previous,
+      [modelName]: {
+        ...previous[modelName],
+        [format]: result,
+      },
     }));
+  };
+
+  const testModel = async (modelName: string, format: ChannelTestAPIFormat) => {
+    if (!isFormatAvailable(format)) {
+      setTestResult(modelName, format, { status: 'skipped', error: t('channels.dialogs.test.formatUnavailable') });
+      return;
+    }
+
+    setTestResult(modelName, format, { status: 'testing' });
 
     try {
       const startTime = Date.now();
-      const result = await testChannel.mutateAsync({
-        channelID: channel.id,
-        modelID: modelName,
-        apiFormat: selectedAPIFormat,
-      });
+      const result = await testChannel.mutateAsync({ channelID: channel.id, modelID: modelName, apiFormat: format });
       const latency = (Date.now() - startTime) / 1000;
 
-      setTestResults((prev) => ({
-        ...prev,
-        [modelName]: {
-          ...prev[modelName],
-          status: result.success ? 'success' : 'failed',
-          latency: result.success ? result.latency || latency : undefined,
-          error: result.success ? undefined : result.error || 'Test failed',
-        },
-      }));
+      setTestResult(modelName, format, {
+        status: result.success ? 'success' : 'failed',
+        latency: result.success ? result.latency || latency : undefined,
+        error: result.success ? undefined : result.error || t('channels.dialogs.test.testFailed'),
+      });
     } catch (error) {
-      setTestResults((prev) => ({
-        ...prev,
-        [modelName]: {
-          ...prev[modelName],
-          status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      }));
+      setTestResult(modelName, format, {
+        status: 'failed',
+        error: error instanceof Error ? error.message : t('common.errors.internalServerError'),
+      });
     }
   };
 
-  // Test selected models
-  const handleTestSelected = async () => {
-    if (selectedModels.length === 0) return;
-
-    setIsTesting(true);
-
-    // Test models in parallel
-    await Promise.all(selectedModels.map((model) => testModel(model)));
-
-    setIsTesting(false);
+  const runTests = async (tasks: Array<{ modelName: string; format: ChannelTestAPIFormat }>) => {
+    const queue = [...tasks];
+    const workerCount = Math.min(MAX_CONCURRENT_TESTS, queue.length);
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (queue.length > 0) {
+          const task = queue.shift();
+          if (!task) return;
+          await testModel(task.modelName, task.format);
+        }
+      })
+    );
   };
 
-  // Get status badge
+  const handleTestSelected = async () => {
+    const tasks = selectedModels.flatMap((modelName) =>
+      selectedAPIFormats.filter(isFormatAvailable).map((format) => ({ modelName, format }))
+    );
+    if (tasks.length === 0 || isTesting) return;
+
+    setIsTesting(true);
+    try {
+      await runTests(tasks);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const getStatusBadge = (status: TestStatus) => {
     switch (status) {
       case 'testing':
         return <Badge variant='secondary'>{t('channels.dialogs.test.testingModel')}</Badge>;
       case 'success':
-        return (
-          <Badge variant='default' className='border-green-200 bg-green-100 text-green-800'>
-            {t('channels.dialogs.test.testSuccess')}
-          </Badge>
-        );
+        return <Badge className='border-green-200 bg-green-100 text-green-800'>{t('channels.dialogs.test.testSuccess')}</Badge>;
       case 'failed':
         return <Badge variant='destructive'>{t('channels.dialogs.test.testFailed')}</Badge>;
+      case 'skipped':
+        return <Badge variant='outline'>{t('channels.dialogs.test.formatUnavailable')}</Badge>;
       default:
         return <Badge variant='outline'>{t('channels.dialogs.test.notStarted')}</Badge>;
     }
@@ -174,144 +163,116 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
 
   const isAllSelected = filteredModels.length > 0 && filteredModels.every((model) => selectedModels.includes(model));
   const isIndeterminate = selectedModels.length > 0 && !isAllSelected;
-
-  const failedModels = selectedModels.filter((model) => testResults[model]?.status === 'failed');
+  const failedModels = selectedModels.filter((model) => {
+    const availableFormats = selectedAPIFormats.filter(isFormatAvailable);
+    return availableFormats.length > 0 && availableFormats.every((format) => testResults[model]?.[format]?.status === 'failed');
+  });
 
   const handleRemoveFailed = async () => {
     const failedModelNames = new Set(failedModels);
     const newSupportedModels = localSupportedModels.filter((model) => !failedModelNames.has(model));
 
     try {
-      await updateChannel.mutateAsync({
-        id: channel.id,
-        input: {
-          supportedModels: newSupportedModels,
-        },
-      });
+      await updateChannel.mutateAsync({ id: channel.id, input: { supportedModels: newSupportedModels } });
       setLocalSupportedModels(newSupportedModels);
-      setSelectedModels((prev) => prev.filter((model) => !failedModelNames.has(model)));
+      setSelectedModels((previous) => previous.filter((model) => !failedModelNames.has(model)));
+      setTestResults(makeInitialResults(newSupportedModels));
       setIsRemovePopoverOpen(false);
-    } catch (error) {
-      // Error is handled by useUpdateChannel toast
+    } catch (_error) {
+      // Errors are handled by useUpdateChannel toast.
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='flex max-h-[90vh] flex-col w-full max-w-full sm:max-w-2xl'>
+      <DialogContent ref={setDialogContent} className='flex max-h-[90vh] w-full max-w-full flex-col sm:max-w-6xl'>
         <DialogHeader>
           <DialogTitle className='text-lg sm:text-xl'>{t('channels.dialogs.test.title')}</DialogTitle>
           <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
             <DialogDescription className='text-sm sm:text-base'>{t('channels.dialogs.test.description', { name: channel.name })}</DialogDescription>
-            <Select value={selectedAPIFormat} onValueChange={(value) => handleAPIFormatChange(value as TestAPIFormat)}>
-              <SelectTrigger className='w-full sm:w-60'>
-                <SelectValue placeholder={t('channels.dialogs.test.apiFormatPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {testAPIFormats.map((format) => (
-                  <SelectItem key={format.value} value={format.value} disabled={!availableEndpointFormats.has(format.endpointFormat)}>
-                    {format.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ChannelTestFormatSelector
+              value={selectedAPIFormats}
+              onChange={handleAPIFormatsChange}
+              availableEndpointFormats={availableEndpointFormats}
+              portalContainer={dialogContent}
+            />
           </div>
         </DialogHeader>
 
         <div className='min-h-0 flex-1 space-y-4'>
-          {/* Search */}
           <div className='relative'>
             <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
             <Input
               placeholder={t('channels.dialogs.test.searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='pl-10 h-10 sm:h-9'
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className='h-10 pl-10 sm:h-9'
             />
           </div>
 
-          {/* Models Table */}
           <div className='min-h-0 flex-1 overflow-hidden rounded-lg border'>
             <div className='max-h-96 overflow-auto'>
-              <Table>
+              <Table className='min-w-max'>
                 <TableHeader>
                   <TableRow>
                     <TableHead className='w-14 sm:w-12'>
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={handleSelectAll}
-                        ref={(el) => {
-                          if (el) {
-                            const input = el.querySelector('input') as HTMLInputElement;
-                            if (input) {
-                              input.indeterminate = isIndeterminate;
-                            }
-                          }
+                        ref={(element) => {
+                          const input = element?.querySelector('input') as HTMLInputElement | null;
+                          if (input) input.indeterminate = isIndeterminate;
                         }}
                         className='scale-100 sm:scale-75'
                       />
                     </TableHead>
-                    <TableHead>{t('channels.dialogs.test.modelNameColumn')}</TableHead>
-                    <TableHead className='w-32 sm:w-40'>{t('channels.dialogs.test.statusColumn')}</TableHead>
-                    <TableHead className='w-28 sm:w-24'></TableHead>
+                    <TableHead className='min-w-48'>{t('channels.dialogs.test.modelNameColumn')}</TableHead>
+                    {selectedAPIFormats.map((format) => (
+                      <TableHead key={format} className='min-w-52'>
+                        {t(getChannelTestAPIFormat(format).labelKey)}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!selectedAPIFormat && (
-                    <TableRow>
-                      <TableCell colSpan={4} className='text-muted-foreground py-8 text-center'>
-                        {t('channels.dialogs.test.selectAPIFormatFirst')}
+                  {filteredModels.map((model) => (
+                    <TableRow key={model} className='align-top'>
+                      <TableCell>
+                        <Checkbox checked={selectedModels.includes(model)} onCheckedChange={(checked) => handleModelSelect(model, !!checked)} className='scale-100 sm:scale-75' />
                       </TableCell>
-                    </TableRow>
-                  )}
-                  {filteredModels.map((model) => {
-                    const result = testResults[model];
-                    return (
-                      <TableRow key={model} className='align-top'>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedModels.includes(model)}
-                            onCheckedChange={(checked) => handleModelSelect(model, !!checked)}
-                            className='scale-100 sm:scale-75'
-                          />
-                        </TableCell>
-                        <TableCell className='pr-4 sm:pr-8 font-medium'>
-                          <div>{model}</div>
-                          {result?.error && (
-                            <div className='mt-2 max-w-full sm:max-w-[320px]'>
-                              <ErrorDisplay error={result.error} messageClassName='text-xs font-medium text-red-600' />
+                      <TableCell className='pr-4 font-medium sm:pr-8'>{model}</TableCell>
+                      {selectedAPIFormats.map((format) => {
+                        const result = testResults[model]?.[format];
+                        const available = isFormatAvailable(format);
+                        return (
+                          <TableCell key={format} className='min-w-52 align-top'>
+                            <div className='space-y-2'>
+                              {getStatusBadge(available ? result?.status || 'not_started' : 'skipped')}
+                              {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
+                              {result?.error && <ErrorDisplay error={result.error} messageClassName='text-xs font-medium text-red-600' />}
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                onClick={() => testModel(model, format)}
+                                disabled={!available || result?.status === 'testing' || isTesting}
+                              >
+                                <IconPlayerPlay className='h-3 w-3' />
+                                {result?.status === 'testing' ? t('channels.dialogs.test.testingModel') : t('channels.dialogs.test.testModel')}
+                              </Button>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className='min-w-[120px] sm:min-w-[140px] align-top'>
-                          <div className='pt-0.5'>{getStatusBadge(result?.status || 'not_started')}</div>
-                          {result?.latency && <div className='text-muted-foreground mt-2 text-xs'>{result.latency.toFixed(2)}s</div>}
-                        </TableCell>
-                        <TableCell className='align-top'>
-                          <div className='pt-0.5'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              onClick={() => testModel(model)}
-                              disabled={result?.status === 'testing' || testChannel.isPending}
-                              className='h-9 sm:h-8'
-                            >
-                              <IconPlayerPlay className='mr-1 h-4 w-4 sm:h-3 sm:w-3' />
-                              {result?.status === 'testing' ? t('channels.dialogs.test.testingModel') : t('channels.dialogs.test.testModel')}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
           </div>
         </div>
 
-        <DialogFooter className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2'>
-          <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+        <DialogFooter className='flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-2'>
+          <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row'>
             <Button variant='outline' onClick={() => onOpenChange(false)} className='w-full sm:w-auto'>
               {t('common.buttons.cancel')}
             </Button>
@@ -322,19 +283,11 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                     {t('channels.dialogs.test.removeFailed')} ({failedModels.length})
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className='w-full sm:w-80'>
+                <PopoverContent container={dialogContent} className='w-full sm:w-80'>
                   <div className='grid gap-4'>
-                    <div className='space-y-2'>
-                      <p className='text-muted-foreground text-sm'>{t('channels.dialogs.test.removeFailedConfirm')}</p>
-                    </div>
+                    <p className='text-muted-foreground text-sm'>{t('channels.dialogs.test.removeFailedConfirm')}</p>
                     <div className='flex justify-end gap-2'>
-                      <Button
-                        size='sm'
-                        variant='destructive'
-                        onClick={handleRemoveFailed}
-                        disabled={updateChannel.isPending}
-                        className='h-9 sm:h-8'
-                      >
+                      <Button size='sm' variant='destructive' onClick={handleRemoveFailed} disabled={updateChannel.isPending}>
                         {updateChannel.isPending ? t('common.buttons.saving') : t('common.buttons.confirm')}
                       </Button>
                     </div>
@@ -344,8 +297,8 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
             )}
           </div>
           <Button onClick={handleTestSelected} disabled={selectedModels.length === 0 || isTesting} className='h-10 sm:h-9'>
-            <IconPlayerPlay className='mr-2 h-4 w-4' />
-            {t('channels.dialogs.test.testAllButton', { count: selectedModels.length })}
+            <IconFlask className='h-4 w-4' />
+            {t('channels.dialogs.test.batchTestButton', { count: selectedModels.length, formats: selectedAPIFormats.length })}
           </Button>
         </DialogFooter>
       </DialogContent>

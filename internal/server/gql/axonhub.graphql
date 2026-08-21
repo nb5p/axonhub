@@ -333,6 +333,7 @@ enum ChannelTestAPIFormat {
   OPENAI_CHAT_COMPLETION
   OPENAI_RESPONSE
   ANTHROPIC_MESSAGES
+  GEMINI_CONTENTS
 }
 
 type TestChannelPayload {

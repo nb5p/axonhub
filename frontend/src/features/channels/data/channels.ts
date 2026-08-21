@@ -1483,7 +1483,7 @@ export function useTestChannel(options?: { silent?: boolean }) {
       channelID: string;
       modelID?: string;
       proxy?: ProxyConfig;
-      apiFormat?: 'OPENAI_CHAT_COMPLETION' | 'OPENAI_RESPONSE' | 'ANTHROPIC_MESSAGES';
+      apiFormat?: 'OPENAI_CHAT_COMPLETION' | 'OPENAI_RESPONSE' | 'ANTHROPIC_MESSAGES' | 'GEMINI_CONTENTS';
     }) => {
       try {
         const data = await graphqlRequest<{

@@ -20,7 +20,11 @@ local:
     - 466f201927f231eb1b164176bf667fc21c76eb1d
     - 89b60f42031d7870c02d63a594d635af567752c2
     - f71cae9869c3f1e4aeed25593f555bf20b460a50
-    - f2c91bef0f0c50a4b2db141e97736e637cb5faa4
+    - 827c3685c10ab213ae10fd2a72fce55140f958c0
+    - 4593cf61d9aae4b02e11106c421053b97a2378c6
+    - fa2fe5a8febdf45db14b15bae932adfe0c6cbd40
+    - 86c06faeceefc128c9c3213c2612faf8cb77bb87
+    - bbf3d0fc34f19fd9716e8401c3f4811b1ad357cc
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -214,5 +218,8 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 | 2026-08-21 | 本地交互扩展；上游比较至 `9fb6f1af` | `466f2019` | original：增加列表结果列、手动刷新和右上角展示开关。 |
 | 2026-08-21 | 本地协议扩展；上游比较至 `49ade6f2` | `89b60f42` | superseded：首次引入多窗口结果，已由当前 v2 三段式协议替代。 |
 | 2026-08-21 | 本地需求；上游比较至 `49ade6f2` | `f71cae98` | original：确立三段式 v2 协议、四个不可改写的系统预设，并令 Codex／Claude／OpenCode Go 统一使用脚本 checker。 |
-| 2026-08-21 | 本地行为修正；上游比较至 `49ade6f2` | `f2c91bef` | original：仅在渠道凭据是 OAuth 时自动启用 Codex／Claude 预设；普通 API Key 渠道保持未配置，显式保存的自定义查询不受影响。 |
-| 2026-08-21 | 本地展示扩展；上游比较至 `49ade6f2` | `76a90bfa62356b46907a168c2141b57061ac3990` | original：v2 结果加入 tags；Codex／Claude 套餐转为 tags，OpenCode Go 文本显示三个窗口折算后的最小可用金额，41 号使用套餐／并发 tags 且不显示 A$。 |
+| 2026-08-21 | 本地行为修正；上游比较至 `49ade6f2` | `827c3685` | original：仅在渠道凭据是 OAuth 时自动启用 Codex／Claude 预设；普通 API Key 渠道保持未配置，显式保存的自定义查询不受影响。 |
+| 2026-08-21 | 本地脚本覆盖；上游比较至 `49ade6f2` | `4593cf61` | original：补齐 Tuzi DayCard 日／周／月窗口夹具验证，绿色 41 号使用无 A$ 的三窗口脚本。 |
+| 2026-08-21 | 本地展示扩展；上游比较至 `49ade6f2` | `fa2fe5a8febdf45db14b15bae932adfe0c6cbd40` | original：v2 结果加入 tags；Codex／Claude 套餐转为 tags，OpenCode Go 文本显示三个窗口折算后的最小可用金额，41 号使用套餐／并发 tags 且不显示 A$。 |
+| 2026-08-21 | 本地编辑体验；上游比较至 `49ade6f2` | `86c06fae` | original：内置预设可显式转为 `CUSTOM` 后编辑，系统预设本身仍不可被覆盖。 |
+| 2026-08-21 | 本地回归覆盖；上游比较至 `49ade6f2` | `bbf3d0fc` | original：验证 41 号渠道任一窗口耗尽会暂停路由、额度恢复后重新可用。 |
