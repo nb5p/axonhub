@@ -79,6 +79,12 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     setTestResult(null);
   };
 
+  const convertPresetToCustom = () => {
+    setCustomScript(script);
+    setPreset('CUSTOM');
+    setTestResult(null);
+  };
+
   const buildInput = (): ChannelUsageQueryConfigInput => ({
     enabled,
     showInProviderQuota,
@@ -277,7 +283,14 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
             )}
 
             <div className='space-y-2'>
-              <Label htmlFor='usage-query-script'>{t('channels.dialogs.usageQuery.script.label')}</Label>
+              <div className='flex items-center justify-between gap-3'>
+                <Label htmlFor='usage-query-script'>{t('channels.dialogs.usageQuery.script.label')}</Label>
+                {preset !== 'CUSTOM' && (
+                  <Button type='button' size='sm' variant='outline' onClick={convertPresetToCustom}>
+                    {t('channels.dialogs.usageQuery.actions.editPreset')}
+                  </Button>
+                )}
+              </div>
               <Textarea
                 id='usage-query-script'
                 value={script}

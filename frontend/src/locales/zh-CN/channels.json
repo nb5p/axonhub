@@ -884,6 +884,7 @@
   "channels.dialogs.usageQuery.result.used": "已用额度：",
   "channels.dialogs.usageQuery.result.total": "总额度：",
   "channels.dialogs.usageQuery.actions.test": "测试",
+  "channels.dialogs.usageQuery.actions.editPreset": "编辑预设",
   "channels.dialogs.usageQuery.actions.save": "保存配置",
   "channels.dialogs.usageQuery.saveSuccess": "用量查询配置已保存",
   "channels.dialogs.usageQuery.saveFailed": "保存用量查询配置失败",

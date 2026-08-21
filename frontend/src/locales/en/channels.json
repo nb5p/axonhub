@@ -884,6 +884,7 @@
   "channels.dialogs.usageQuery.result.used": "Used:",
   "channels.dialogs.usageQuery.result.total": "Total:",
   "channels.dialogs.usageQuery.actions.test": "Test",
+  "channels.dialogs.usageQuery.actions.editPreset": "Edit preset",
   "channels.dialogs.usageQuery.actions.save": "Save configuration",
   "channels.dialogs.usageQuery.saveSuccess": "Usage query configuration saved",
   "channels.dialogs.usageQuery.saveFailed": "Failed to save usage query configuration",
