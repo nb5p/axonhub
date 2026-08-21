@@ -27,6 +27,7 @@ local:
     - e20024a6da28610a36ace3713d06113709135318
     - 287c77a51d625fcd372be8ed80ae07ff6d9445c2
     - 698dfa1c36a00eca5d93de68052f361a8a15fcc5
+    - bc4f80a4f60ef4a95bab146a0cc83705c93394ca
   modules:
     - frontend/src/components/quota-badges.tsx
     - frontend/src/features/system/data/quotas.ts
@@ -73,7 +74,7 @@ database:
 - 已用与剩余文案统一为“已使用 X%”和“剩余 X%”。
 - Codex 窗口在持久化配额数据中优先使用绝对 `reset_at` 计算剩余时间和时间进度，仅当它缺失时才回退到快照 `reset_after_seconds`；primary 和 secondary 窗口共用同一规则。
 - 新字段保存在现有 `quota_enforcement_settings` JSON 中；旧值缺少字段时默认显示已用量并采用三角标记。
-- 提供商配额渠道行在渠道名右侧、可用状态左侧显示当天的请求数、总 Token 和 A$；A$ 来自 `usage_logs.total_cost` 的渠道实际成本，不展示下游客户计费的 U$。
+- 提供商配额渠道行将当天的请求数、总 Token 和 A$ 放在标题下一行、各配额窗口进度条之前，避免挤压渠道名与可用状态；A$ 来自 `usage_logs.total_cost` 的渠道实际成本，不展示下游客户计费的 U$，并固定两位小数。
 - GraphQL 通过当天 `usage_logs` 的渠道分组一次性查询该三项数据，沿用弹层的 `read_channels` 授权边界和 60 秒刷新周期；未改动 Ent Schema 或数据库结构。
 
 ## 与来源的差异
@@ -98,6 +99,7 @@ database:
 - `node --test frontend/src/**/*.test.mjs`：49 项通过，其中 Codex 重置时间 6 项覆盖绝对时间优先、过期时间、相对秒数回退、双窗口、时间进度和本地时区日期。
 - `go test ./internal/server/gql -run '^TestProviderQuotaTodayUsageStats$' -count=1`：通过，覆盖当天聚合、按渠道分组、请求数、Token、A$ 实际成本及跨日排除。
 - `pnpm --dir frontend exec tsc --noEmit --pretty false`：通过；中途产生的非业务锁文件变更已还原，未纳入提交。
+- `frontend/node_modules/.bin/tsc --noEmit --pretty false -p frontend/tsconfig.json`：通过，覆盖当日用量标签换行与 A$ 两位小数调整。
 
 ## 更新历史
 
@@ -108,4 +110,5 @@ database:
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ab88ca2641193524c3482c50dc7d32aa322e36d5` | 将纯显示偏好与配额执行拆为独立卡片和独立保存操作，并明确路由影响文案。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `e20024a6da28610a36ace3713d06113709135318` | 反转时间进度、三角位置和对应文案，使剩余量方向保持一致。 |
 | 2026-08-20 | `upstream/unstable@9fb6f1af` | `287c77a51d625fcd372be8ed80ae07ff6d9445c2` | Codex 倒计时和时间进度以绝对 `reset_at` 为权威来源，避免持久化快照过期后与本地日期矛盾。 |
-| 2026-08-21 | `upstream/unstable@49ade6f2`；Sub2API `2bc139ab`（仅语义参考） | `698dfa1c36a00eca5d93de68052f361a8a15fcc5` | 在提供商配额弹层的渠道名称与状态之间增加今日 req、Token 和 A$ 实际成本；不展示 U$，不复制 LGPL 源码。 |
+| 2026-08-21 | `upstream/unstable@49ade6f2`；Sub2API `2bc139ab`（仅语义参考） | `698dfa1c36a00eca5d93de68052f361a8a15fcc5` | 在提供商配额弹层增加今日 req、Token 和 A$ 实际成本；不展示 U$，不复制 LGPL 源码。 |
+| 2026-08-21 | 本地显示修正 | `bc4f80a4f60ef4a95bab146a0cc83705c93394ca` | 将今日标签移至标题下一行、配额窗口进度条之前，并将 A$ 固定为两位小数。 |
