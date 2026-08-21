@@ -139,7 +139,7 @@ const codexUsageQueryScript = `({
       if (resetAt) result.resetAt = resetAt;
       return result;
     }
-    return { text: String(body.plan_type || "Codex"), progress: { windows: [windowResult("primary", rateLimit.primary_window), windowResult("secondary", rateLimit.secondary_window)].filter(Boolean) } };
+    return { tags: [String(body.plan_type || "Codex")], progress: { windows: [windowResult("primary", rateLimit.primary_window), windowResult("secondary", rateLimit.secondary_window)].filter(Boolean) } };
   }
 })`
 
@@ -170,7 +170,7 @@ const claudeOAuthUsageQueryScript = `({
       if (resetAt) result.resetAt = resetAt;
       return result;
     }
-    return { text: String(body.rate_limit_tier || "Claude"), progress: { windows: [windowResult("fiveHour", body.five_hour, 18000), windowResult("sevenDay", body.seven_day, 604800), windowResult("sevenDaySonnet", body.seven_day_sonnet, 604800), windowResult("sevenDayOpus", body.seven_day_opus, 604800)].filter(Boolean) } };
+    return { tags: [String(body.rate_limit_tier || "Claude")], progress: { windows: [windowResult("fiveHour", body.five_hour, 18000), windowResult("sevenDay", body.seven_day, 604800), windowResult("sevenDaySonnet", body.seven_day_sonnet, 604800), windowResult("sevenDayOpus", body.seven_day_opus, 604800)].filter(Boolean) } };
   }
 })`
 
@@ -192,14 +192,21 @@ const openCodeGoUsageQueryScript = `({
       const offset = -date.getTimezoneOffset(), sign = offset >= 0 ? "+" : "-", absolute = Math.abs(offset);
       return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()) + sign + pad(Math.floor(absolute / 60)) + ":" + pad(absolute % 60);
     }
-    function windowResult(id, window, durationSeconds) {
+    function windowResult(id, window, limit, durationSeconds) {
       if (!window) return null;
-      const result = { id: id, durationSeconds: durationSeconds }, used = Number(window.percent);
-      if (Number.isFinite(used)) result.remainingPercent = clamp(100 - used);
+      const used = Number(window.percent);
+      if (!Number.isFinite(used)) return null;
+      const result = { id: id, durationSeconds: durationSeconds, remainingPercent: clamp(100 - used), limit: limit, usedPercent: used };
       const resetAt = formatTime(window.resetsAt);
       if (resetAt) result.resetAt = resetAt;
       return result;
     }
-    return { text: "OpenCode Go", progress: { windows: [windowResult("rolling", usage.rolling, 18000), windowResult("weekly", usage.weekly, 604800), windowResult("monthly", usage.monthly, 2592000)].filter(Boolean) } };
+    const windows = [windowResult("rolling", usage.rolling, 12, 18000), windowResult("weekly", usage.weekly, 30, 604800), windowResult("monthly", usage.monthly, 60, 2592000)];
+    if (windows.some(function (window) { return window === null; })) throw new Error("无法读取 OpenCode Go 用量信息");
+    const remaining = Math.max(0, Math.min.apply(null, windows.map(function (window) { return window.limit * (100 - window.usedPercent) / 100; })));
+    return {
+      text: "最小可用 USD " + remaining.toFixed(2),
+      progress: { windows: windows.map(function (window) { return { id: window.id, durationSeconds: window.durationSeconds, remainingPercent: window.remainingPercent, resetAt: window.resetAt }; }) }
+    };
   }
 })`

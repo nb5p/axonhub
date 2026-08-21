@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/looplj/axonhub/internal/ent"
+	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/llm/httpclient"
 )
@@ -100,6 +101,7 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 
 	quotaData := normalizeUsageQueryResult(result)
 	quotaData.RawData["showInProviderQuota"] = usageQueryShowsInProviderQuota(ch)
+	quotaData.RawData["showCodexUsage"] = ch.Type == channel.TypeCodex && ch.Credentials.IsOAuth()
 	return quotaData, nil
 }
 
@@ -331,6 +333,9 @@ func normalizeUsageQueryResult(result UsageQueryResult) QuotaData {
 	}
 	if text != "" {
 		rawData["text"] = text
+	}
+	if len(result.Tags) > 0 {
+		rawData["tags"] = result.Tags
 	}
 	if result.Progress != nil && len(result.Progress.Windows) > 0 {
 		rawData["progress"] = result.Progress

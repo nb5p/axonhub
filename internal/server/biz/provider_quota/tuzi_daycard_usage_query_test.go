@@ -49,10 +49,9 @@ const tuziDayCardUsageQueryScript = `({
       return item;
     }).filter(Boolean);
 
-    const text = [subscription.group_name || "Tuzi DayCard"];
-    if (data.concurrency != null) text.push("并发 " + data.concurrency);
-    if (subscription.expires_at || data.expires_at) text.push("到期 " + (subscription.expires_at || data.expires_at));
-    return { text: text.join(" · "), progress: { windows: windows } };
+    const tags = [subscription.group_name || "Tuzi DayCard"];
+    if (data.concurrency != null) tags.push("并发: " + data.concurrency);
+    return { tags: tags, progress: { windows: windows } };
   }
 })`
 
@@ -85,8 +84,7 @@ func TestTuziDayCardUsageQueryScript_ExtractsAllSubscriptionWindows(t *testing.T
 	}, UsageQueryScriptContext{Now: "2026-08-21T07:36:46+08:00"})
 	require.NoError(t, err)
 	require.Nil(t, result.Balance)
-	require.Contains(t, result.Text, "Codex（月卡 lite）")
-	require.Contains(t, result.Text, "并发 8")
+	require.Equal(t, []string{"Codex（月卡 lite）", "并发: 8"}, result.Tags)
 	require.NotNil(t, result.Progress)
 	require.Len(t, result.Progress.Windows, 3)
 	require.Equal(t, []string{"daily", "weekly", "monthly"}, []string{

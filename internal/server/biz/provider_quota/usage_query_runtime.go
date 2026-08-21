@@ -53,6 +53,7 @@ type UsageQueryResult struct {
 	// quota as money. When present, Remaining is required.
 	Balance  *UsageQueryBalance  `json:"balance,omitempty"`
 	Text     string              `json:"text,omitempty"`
+	Tags     []string            `json:"tags,omitempty"`
 	Progress *UsageQueryProgress `json:"progress,omitempty"`
 
 	// Deprecated: return these fields directly to preserve compatibility with

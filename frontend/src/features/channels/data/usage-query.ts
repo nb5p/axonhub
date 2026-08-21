@@ -30,6 +30,7 @@ export interface ChannelUsageQueryTestResult {
   status: 'available' | 'warning' | 'exhausted' | 'unknown';
   balance?: ChannelUsageQueryBalance | null;
   text?: string | null;
+  tags?: string[] | null;
   progress?: ChannelUsageQueryProgress | null;
 }
 
@@ -86,6 +87,7 @@ const TEST_CHANNEL_USAGE_QUERY = `
         unit
       }
       text
+      tags
       progress {
         windows {
           id

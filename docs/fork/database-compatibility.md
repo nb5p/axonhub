@@ -125,6 +125,17 @@
 - 最低升级版本：`aeea324f0ef572f062d1290bfad8cca3a679baaf`。
 - 用户批准（仅 breaking）：不适用。
 
+### 2026-08-21 — channel-usage-query-tags
+
+- 兼容等级：`additive`
+- 本地 commit：`76a90bfa62356b46907a168c2141b57061ac3990`。
+- 影响结构：不新增 Schema；既有 `provider_quota_status.quota_data` JSON 增加可选 `tags` 和 `showCodexUsage` 字段，旧缓存缺失字段时安全按未显示处理。
+- 旧数据库验证样本：Goja 运行时、预设和配额规范化测试覆盖 tags；绿色 41 号脚本已更新为 tags、三窗口、无 A$，并执行 `PRAGMA quick_check`，结果为 `ok`。
+- 备份与恢复：沿用本次 41 号更新前的一致性备份 `/Users/tux/Playground/AxonHub/backups/usage-query-41/axonhub-20260821T145539Z-pre-three-window-no-balance.db`；本项未额外创建数据库备份。
+- 回滚能力：旧代码忽略新增缓存字段；若需完整还原 41 号脚本，恢复上述备份。
+- 最低升级版本：`76a90bfa62356b46907a168c2141b57061ac3990`。
+- 用户批准（仅 breaking）：不适用。
+
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`

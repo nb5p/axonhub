@@ -49,7 +49,11 @@ func TestUsageQueryPresetScripts_ParseAndExtract(t *testing.T) {
 			preset: objects.ChannelUsageQueryPresetOpenCode,
 			path:   "/usage",
 			response: map[string]any{
-				"usage": map[string]any{"rolling": map[string]any{"percent": 20, "resetsAt": "2026-08-19T07:36:46+08:00"}},
+				"usage": map[string]any{
+					"rolling": map[string]any{"percent": 20, "resetsAt": "2026-08-19T07:36:46+08:00"},
+					"weekly":  map[string]any{"percent": 40, "resetsAt": "2026-08-25T07:36:46+08:00"},
+					"monthly": map[string]any{"percent": 10, "resetsAt": "2026-09-17T07:36:46+08:00"},
+				},
 			},
 		},
 	}
@@ -74,7 +78,17 @@ func TestUsageQueryPresetScripts_ParseAndExtract(t *testing.T) {
 				Body:    tt.response,
 			}, UsageQueryScriptContext{Now: "2026-08-18T07:36:46+08:00"})
 			require.NoError(t, err)
-			require.NotEmpty(t, result.Text)
+			if tt.preset != objects.ChannelUsageQueryPresetNewAPI {
+				require.NotNil(t, result.Progress)
+			}
+			if tt.preset == objects.ChannelUsageQueryPresetCodex || tt.preset == objects.ChannelUsageQueryPresetClaude {
+				require.NotEmpty(t, result.Tags)
+			} else {
+				require.NotEmpty(t, result.Text)
+			}
+			if tt.preset == objects.ChannelUsageQueryPresetOpenCode {
+				require.Equal(t, "最小可用 USD 9.60", result.Text)
+			}
 		})
 	}
 }

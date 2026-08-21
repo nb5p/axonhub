@@ -94,6 +94,7 @@ func TestNormalizeUsageQueryResult_InvalidPlanIsUnknown(t *testing.T) {
 func TestNormalizeUsageQueryResult_UsesStructuredProgressWindows(t *testing.T) {
 	result := normalizeUsageQueryResult(UsageQueryResult{
 		Text: "Codex Lite",
+		Tags: []string{"Plus"},
 		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
 			{ID: "daily", RemainingPercent: lo.ToPtr(0.0), ResetAt: "2026-08-19T00:00:00+00:00"},
 			{ID: "weekly", RemainingPercent: lo.ToPtr(80.0)},
@@ -104,6 +105,7 @@ func TestNormalizeUsageQueryResult_UsesStructuredProgressWindows(t *testing.T) {
 	require.Equal(t, "exhausted", result.Status)
 	require.False(t, result.Ready)
 	require.Equal(t, "Codex Lite", result.RawData["text"])
+	require.Equal(t, []string{"Plus"}, result.RawData["tags"])
 	progress, ok := result.RawData["progress"].(*UsageQueryProgress)
 	require.True(t, ok)
 	require.Len(t, progress.Windows, 3)

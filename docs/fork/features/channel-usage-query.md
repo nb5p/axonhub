@@ -93,7 +93,7 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 
 ## v2 返回协议
 
-返回对象最多有三部分，均可省略；脚本可以只返回文本、只返回进度条，或三者同时返回。
+返回对象最多有四部分，均可省略；脚本可以只返回文本、标签、进度条，或任意组合。
 
 ```ts
 {
@@ -102,6 +102,7 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
     unit?: string;     // 可选自由文本，例如 "A$"
   };
   text?: string;       // 脚本完全控制的说明文本
+  tags?: string[];     // 简短状态标签，例如套餐、并发
   progress?: {
     windows: Array<{
       id: string;                 // 必填，^[A-Za-z][A-Za-z0-9_-]*$
@@ -114,9 +115,12 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 ```
 
 - `balance` 面向 OpenRouter／New API 等有货币余额的渠道；不适用金额的 Codex、Claude、OpenCode Go 应直接省略。`A$` 在界面固定显示两位小数。
-- `text` 不限制长度和格式，可以写套餐、并发、解释文字或纯文本进度摘要。列表和配额卡只显示两行；完整内容通过鼠标悬浮、触摸或键盘焦点的气泡查看。
+- `text` 不限制长度和格式，可以写解释文字或纯文本进度摘要。列表和配额卡只显示两行；完整内容通过鼠标悬浮、触摸或键盘焦点的气泡查看。
+- `tags` 是简短标签数组，适合套餐名称、并发等不应占用文本区的信息。余额存在时显示在余额数字后；没有余额时和电池图标左对齐单独显示。
 - `progress.windows` 可包含任意数量的独立窗口，五个或更多同样有效。窗口可只提供 `id`，也可不提供重置时间；缺少可计算的百分比时不会渲染填充条。
 - 系统状态以最紧张的已给出窗口为准：`remainingPercent=0` 为耗尽，剩余不超过 20% 为预警。没有 `balance` 或百分比时，不会凭空推断耗尽。
+
+Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询渠道不会因为渠道类型同为 Codex 而获得这些 OAuth 专属信息。
 
 新版本会读取此前缓存的旧平铺结果（`remaining`、`planName`、`extra` 与旧窗口字段）直到下一次成功轮询，因此升级时不需要清空配额缓存。
 
@@ -168,15 +172,14 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
       return item;
     }).filter(Boolean);
 
-    const text = [subscription.group_name || "Tuzi DayCard"];
-    if (data.concurrency != null) text.push("并发 " + data.concurrency);
-    if (subscription.expires_at || data.expires_at) text.push("到期 " + (subscription.expires_at || data.expires_at));
-    return { text: text.join(" · "), progress: { windows: windows } };
+    const tags = [subscription.group_name || "Tuzi DayCard"];
+    if (data.concurrency != null) tags.push("并发: " + data.concurrency);
+    return { tags: tags, progress: { windows: windows } };
   },
 })
 ```
 
-限额为 `0`、缺失，或没有已用值的窗口会被省略，避免把“未设置上限”误判成耗尽。该脚本允许没有重置时间的窗口，并刻意忽略 `fuel_pack.available_usd`：该字段不是 Codex OAuth 的 A$ 余额。
+限额为 `0`、缺失，或没有已用值的窗口会被省略，避免把“未设置上限”误判成耗尽。套餐和并发通过 `tags` 显示；脚本允许没有重置时间的窗口，并刻意忽略 `fuel_pack.available_usd`：该字段不是 Codex OAuth 的 A$ 余额。
 
 ## 安全与资源边界
 
@@ -210,3 +213,4 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 | 2026-08-21 | 本地协议扩展；上游比较至 `49ade6f2` | `89b60f42` | superseded：首次引入多窗口结果，已由当前 v2 三段式协议替代。 |
 | 2026-08-21 | 本地需求；上游比较至 `49ade6f2` | `f71cae98` | original：确立三段式 v2 协议、四个不可改写的系统预设，并令 Codex／Claude／OpenCode Go 统一使用脚本 checker。 |
 | 2026-08-21 | 本地行为修正；上游比较至 `49ade6f2` | `f2c91bef` | original：仅在渠道凭据是 OAuth 时自动启用 Codex／Claude 预设；普通 API Key 渠道保持未配置，显式保存的自定义查询不受影响。 |
+| 2026-08-21 | 本地展示扩展；上游比较至 `49ade6f2` | `76a90bfa62356b46907a168c2141b57061ac3990` | original：v2 结果加入 tags；Codex／Claude 套餐转为 tags，OpenCode Go 文本显示三个窗口折算后的最小可用金额，41 号使用套餐／并发 tags 且不显示 A$。 |

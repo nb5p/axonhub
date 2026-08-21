@@ -110,7 +110,7 @@ ${timeHelpers}
     ].filter(Boolean);
 
     return {
-      text: String(body.plan_type || "Codex"),
+      tags: [String(body.plan_type || "Codex")],
       progress: { windows: windows }
     };
   }
@@ -165,13 +165,8 @@ ${timeHelpers}
       makeWindow("sevenDaySonnet", body.seven_day_sonnet, 7 * 24 * 60 * 60),
       makeWindow("sevenDayOpus", body.seven_day_opus, 7 * 24 * 60 * 60)
     ].filter(Boolean);
-    const extraUsage = body.extra_usage || {};
-    const extraText = Number.isFinite(Number(extraUsage.used)) && Number.isFinite(Number(extraUsage.limit))
-      ? " · Extra " + extraUsage.used + "/" + extraUsage.limit
-      : "";
-
     return {
-      text: String(body.rate_limit_tier || "Claude") + extraText,
+      tags: [String(body.rate_limit_tier || "Claude")],
       progress: { windows: windows }
     };
   }
@@ -197,25 +192,48 @@ ${timeHelpers}
       throw new Error(body.message || "无法读取 OpenCode Go 用量信息");
     }
 
-    function makeWindow(id, data, durationSeconds) {
+    function makeWindow(id, data, limit, durationSeconds) {
       if (!data) return null;
       const usedPercent = Number(data.percent);
-      const result = { id: id, durationSeconds: durationSeconds };
-      if (Number.isFinite(usedPercent)) result.remainingPercent = clamp(100 - usedPercent);
+      if (!Number.isFinite(usedPercent)) return null;
+      const result = {
+        id: id,
+        durationSeconds: durationSeconds,
+        remainingPercent: clamp(100 - usedPercent),
+        limit: limit,
+        usedPercent: usedPercent
+      };
       const resetAt = formatOffsetTime(data.resetsAt, context);
       if (resetAt) result.resetAt = resetAt;
       return result;
     }
 
     const windows = [
-      makeWindow("rolling", usage.rolling, 5 * 60 * 60),
-      makeWindow("weekly", usage.weekly, 7 * 24 * 60 * 60),
-      makeWindow("monthly", usage.monthly, 30 * 24 * 60 * 60)
-    ].filter(Boolean);
+      makeWindow("rolling", usage.rolling, 12, 5 * 60 * 60),
+      makeWindow("weekly", usage.weekly, 30, 7 * 24 * 60 * 60),
+      makeWindow("monthly", usage.monthly, 60, 30 * 24 * 60 * 60)
+    ];
+
+    if (windows.some(function (window) { return window === null; })) {
+      throw new Error("无法读取 OpenCode Go 用量信息");
+    }
+
+    const remaining = Math.max(0, Math.min.apply(null, windows.map(function (window) {
+      return window.limit * (100 - window.usedPercent) / 100;
+    })));
 
     return {
-      text: "OpenCode Go",
-      progress: { windows: windows }
+      text: "最小可用 USD " + remaining.toFixed(2),
+      progress: {
+        windows: windows.map(function (window) {
+          return {
+            id: window.id,
+            durationSeconds: window.durationSeconds,
+            remainingPercent: window.remainingPercent,
+            resetAt: window.resetAt
+          };
+        })
+      }
     };
   }
 })`,

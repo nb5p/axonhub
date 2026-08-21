@@ -387,6 +387,7 @@ type ChannelUsageQueryTestResult {
   status: String!
   balance: ChannelUsageQueryBalance
   text: String
+  tags: [String!]
   progress: ChannelUsageQueryProgress
 }
 

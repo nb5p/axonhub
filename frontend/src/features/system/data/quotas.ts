@@ -88,6 +88,8 @@ export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
     unit?: string;
   };
   text?: string;
+  tags?: string[];
+  showCodexUsage?: boolean;
   progress?: {
     windows?: ProviderUsageQueryProgressWindow[];
   };

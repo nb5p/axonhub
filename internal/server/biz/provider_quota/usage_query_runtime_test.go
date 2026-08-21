@@ -51,6 +51,7 @@ func TestGojaUsageQueryRuntime_ExtractsStructuredTextAndProgressWindows(t *testi
 	    return {
 	      balance: { remaining: response.body.balance, unit: "A$" },
 	      text: response.body.plan + "\n" + context.now,
+	      tags: ["Plus", "并发: 8"],
 	      progress: {
 	        windows: [
 	          { id: "daily", durationSeconds: 86400, remainingPercent: 0, resetAt: "2026-08-19T00:00:00+08:00" },
@@ -72,6 +73,7 @@ func TestGojaUsageQueryRuntime_ExtractsStructuredTextAndProgressWindows(t *testi
 	require.NotNil(t, result.Balance)
 	require.Equal(t, 39.5, result.Balance.Remaining)
 	require.Equal(t, "Codex Lite\n2026-08-18T07:36:46+08:00", result.Text)
+	require.Equal(t, []string{"Plus", "并发: 8"}, result.Tags)
 	require.NotNil(t, result.Progress)
 	require.Len(t, result.Progress.Windows, 3)
 	require.Equal(t, "daily", result.Progress.Windows[0].ID)

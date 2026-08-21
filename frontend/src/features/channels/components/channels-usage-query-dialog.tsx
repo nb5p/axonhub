@@ -306,6 +306,15 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
                           {formatValue(testResult.balance.remaining, testResult.balance.unit)}
                         </div>
                       )}
+                      {(testResult.tags ?? []).length > 0 && (
+                        <div className='flex flex-wrap gap-1 sm:col-span-2'>
+                          {testResult.tags?.map((tag, index) => (
+                            <Badge key={`${tag}-${index}`} variant='secondary'>
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       {testResult.text && <div className='whitespace-pre-line sm:col-span-2'>{testResult.text}</div>}
                       {(testResult.progress?.windows ?? []).map((window, index) => {
                         const percent = getProgressPercent(window);

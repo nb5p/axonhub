@@ -39,6 +39,7 @@ type ChannelUsageQueryTestResult struct {
 	Status   string
 	Balance  *providerquota.UsageQueryBalance
 	Text     *string
+	Tags     []string
 	Progress *providerquota.UsageQueryProgress
 }
 
@@ -240,6 +241,9 @@ func usageQueryTestResultFromQuotaData(quotaData providerquota.QuotaData) *Chann
 	}
 	if value, ok := data["text"].(string); ok {
 		result.Text = &value
+	}
+	if tags, ok := data["tags"].([]string); ok {
+		result.Tags = tags
 	}
 	if progress, ok := usageQueryProgressFromRawData(data["progress"]); ok {
 		result.Progress = progress

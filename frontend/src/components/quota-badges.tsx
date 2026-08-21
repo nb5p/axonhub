@@ -554,6 +554,7 @@ function QuotaRow({
   };
   const quotaData = quota.quotaData;
   const channelTodayUsage = todayUsage ?? { requestCount: 0, totalTokens: 0, actualCost: 0 };
+  const showCodexUsage = channel.type === 'usage_query' && (quotaData as ProviderUsageQueryQuotaData).showCodexUsage === true;
   return (
     <div className='space-y-3 border-b py-3 first:pt-1 last:border-0 last:pb-1'>
       <div className='flex items-center justify-between'>
@@ -580,17 +581,19 @@ function QuotaRow({
         </div>
       </div>
 
-      <div className='ml-6 flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
-        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
-          {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
-        </span>
-        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
-          {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
-        </span>
-        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
-          {formatActualCost(channelTodayUsage.actualCost)}
-        </span>
-      </div>
+      {showCodexUsage && (
+        <div className='ml-6 flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
+          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
+            {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
+          </span>
+          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
+            {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
+          </span>
+          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
+            {formatActualCost(channelTodayUsage.actualCost)}
+          </span>
+        </div>
+      )}
 
       {quotaData.error && (
         <div className='ml-6 rounded bg-red-500/10 p-2 text-xs break-words text-red-500'>
@@ -605,15 +608,23 @@ function QuotaRow({
             const progressWindows = qd.progress?.windows ?? [];
             const balance = qd.balance ?? (qd.remaining != null ? { remaining: qd.remaining, unit: qd.unit } : undefined);
             const text = qd.text ?? [qd.planName, qd.extra].filter(Boolean).join('\n');
+            const tags = qd.tags ?? [];
 
             return (
               <>
-                {balance && (
-                  <div className='text-xs'>
-                    <div className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</div>
-                    <div className='text-foreground mt-0.5 font-medium'>
-                      {formatUsageQueryValue(balance.remaining, balance.unit)}
-                    </div>
+                {(balance || tags.length > 0) && (
+                  <div className='flex flex-wrap items-center gap-1.5 text-xs'>
+                    {balance && (
+                      <>
+                        <span className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</span>
+                        <span className='text-foreground font-medium'>{formatUsageQueryValue(balance.remaining, balance.unit)}</span>
+                      </>
+                    )}
+                    {tags.map((tag, index) => (
+                      <Badge key={`${tag}-${index}`} variant='secondary' className='h-5 px-1.5 text-[10px] font-medium'>
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 )}
                 {text && (

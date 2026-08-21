@@ -668,6 +668,7 @@ type ComplexityRoot struct {
 		Balance  func(childComplexity int) int
 		Progress func(childComplexity int) int
 		Status   func(childComplexity int) int
+		Tags     func(childComplexity int) int
 		Text     func(childComplexity int) int
 	}
 
@@ -4814,6 +4815,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelUsageQueryTestResult.Status(childComplexity), true
+	case "ChannelUsageQueryTestResult.tags":
+		if e.complexity.ChannelUsageQueryTestResult.Tags == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryTestResult.Tags(childComplexity), true
 	case "ChannelUsageQueryTestResult.text":
 		if e.complexity.ChannelUsageQueryTestResult.Text == nil {
 			break
@@ -27363,6 +27370,35 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_text(_ cont
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelUsageQueryTestResult_tags(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_tags,
+		func(ctx context.Context) (any, error) {
+			return obj.Tags, nil
+		},
+		nil,
+		ec.marshalOString2ᚕstringᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_tags(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelUsageQueryTestResult_progress(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -34599,6 +34635,8 @@ func (ec *executionContext) fieldContext_Mutation_testChannelUsageQuery(ctx cont
 				return ec.fieldContext_ChannelUsageQueryTestResult_balance(ctx, field)
 			case "text":
 				return ec.fieldContext_ChannelUsageQueryTestResult_text(ctx, field)
+			case "tags":
+				return ec.fieldContext_ChannelUsageQueryTestResult_tags(ctx, field)
 			case "progress":
 				return ec.fieldContext_ChannelUsageQueryTestResult_progress(ctx, field)
 			}
@@ -97982,6 +98020,8 @@ func (ec *executionContext) _ChannelUsageQueryTestResult(ctx context.Context, se
 			out.Values[i] = ec._ChannelUsageQueryTestResult_balance(ctx, field, obj)
 		case "text":
 			out.Values[i] = ec._ChannelUsageQueryTestResult_text(ctx, field, obj)
+		case "tags":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_tags(ctx, field, obj)
 		case "progress":
 			out.Values[i] = ec._ChannelUsageQueryTestResult_progress(ctx, field, obj)
 		default:
