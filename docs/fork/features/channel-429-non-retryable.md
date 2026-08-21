@@ -9,14 +9,15 @@ source:
   branch: unstable
   baseline_commit: 9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca
   adopted_commits: []
-  last_checked_commit: 9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca
-  last_checked_at: 2026-08-20
+  last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
+  last_checked_at: 2026-08-21
   license: Apache-2.0
 local:
   branch: ai-slop
   commit_marker: "🧩"
   commits:
     - 621b04052ab69434df631119de7e604635389da0
+    - e325b77369b1d1e5bd81a2ce14572367efe76f63
   modules:
     - internal/objects/channel.go
     - internal/server/gql/axonhub.graphql
@@ -28,12 +29,14 @@ local:
     - frontend/src/features/channels/data/channels.ts
     - frontend/src/features/channels/data/schema.ts
     - frontend/src/features/channels/utils/merge.ts
+    - frontend/src/locales/en/channels.json
+    - frontend/src/locales/zh-CN/channels.json
 upstream:
   repository: https://github.com/looplj/axonhub
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-20
+  last_compared_at: 2026-08-21
 reconciliations: []
 history_rewrites: []
 database:
@@ -45,9 +48,9 @@ database:
 
 ## 目的
 
-让管理员为特定渠道启用 `treat429AsNonRetryable`。启用后，该渠道实际返回 HTTP 429 时，当前请求立即将原错误返回给调用方，不重试同一渠道、同渠道其他模型或后续候选渠道/模型。
+让管理员为特定渠道启用 `treat429AsNonRetryable`。启用后，该渠道实际返回 HTTP 429 时，不重试同一渠道、同渠道其他模型或后续候选渠道/模型；该标记只影响重试选择。
 
-开关默认关闭，保持所有既有渠道（包括官方 OAuth 订阅渠道）的 429 重试、候选切换和配额感知行为。首版不会从 429 推断额度恢复时间，也不会自动禁用渠道、创建冷却状态或改变下一次新请求的候选选择。
+上游错误是否向调用方透传、脱敏或改写仍由全局“上游错误策略”决定。开关默认关闭，保持所有既有渠道（包括官方 OAuth 订阅渠道）的 429 重试、候选切换和配额感知行为；无论该开关是否开启，带 `Retry-After` 的上游 429 都按既有规则创建渠道冷却。
 
 ## 来源与采用范围
 
@@ -56,18 +59,18 @@ database:
 ## 本地实现
 
 - `ChannelSettings` 增加可选 JSON 布尔字段 `treat429AsNonRetryable`，GraphQL 的输入/输出类型和渠道创建、复制、更新、列表读取链路均包含该字段。
-- 渠道编辑弹窗在“重试状态码”正上方提供“HTTP 429 不重试”复选开关，并说明其立即返回、不切换候选、保持渠道启用且不创建冷却的语义。
-- pipeline 增加可选 `RetryTerminator` 接口；当前渠道针对配置命中的 429 在同渠道重试和跨渠道切换前终止整个重试循环。
-- 429 冷却追踪复用同一决策，避免在启用开关时因为 `Retry-After` 创建内存冷却状态。
+- 渠道编辑弹窗在“重试状态码”正上方提供“HTTP 429 不重试”复选开关，明确其仅跳过重试和候选切换；是否将上游错误暴露给调用方由系统上游错误策略决定。
+- pipeline 的可选 `RetryTerminator` 只终止重试循环；当前渠道针对配置命中的 429 不进行同渠道重试或跨渠道切换，之后由 API 层按系统错误策略生成下游响应。
+- 429 冷却追踪与该开关解耦：只要上游提供 `Retry-After`，仍创建内存冷却状态。
 - 未新增后台任务、轮询、数据库查询或外部请求；开关关闭时只有一次可选接口断言，不改变原有重试路径。
 
 ## 与来源的差异
 
-上游已有 429 默认可重试、同渠道跳过及 Retry-After 冷却机制。本地只增加渠道级“立即返回”覆盖，并保留这些默认行为作为兼容路径。
+上游已有 429 默认可重试、同渠道跳过及 Retry-After 冷却机制。本地只增加渠道级“禁止重试”覆盖，并保留全局上游错误策略和冷却机制作为兼容路径。
 
 ## 上游收敛
 
-2026-08-20 比较 `upstream/unstable@9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`：搜索渠道级 429 非重试设置、相关 GraphQL 字段和重试路径，未发现同类实现，关系为 `none`。
+2026-08-21 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`：搜索渠道级 429 非重试设置、相关 GraphQL 字段和重试路径，未发现同类实现，关系为 `none`。
 
 ## 数据库兼容
 
@@ -80,8 +83,9 @@ database:
 ## 验证
 
 - `make generate`：GraphQL 代码生成成功。
-- `go test ./internal/server/orchestrator -run 'Test(IsRetryableErrorForChannel|PersistentOutboundTransformer_ShouldStopRetry_OnConfigured429|RateLimitTracking_OnOutboundRawError_(429|ConfiguredNonRetryable429DoesNotCoolDown))' -count=1`：通过。
+- `go test ./internal/server/orchestrator -run '^(TestRateLimitTracking_OnOutboundRawError_ConfiguredNonRetryable429StillCoolsDown|TestPersistentOutboundTransformer_ShouldStopRetry_OnConfigured429)$' -count=1`：通过，覆盖禁止重试和带 `Retry-After` 的独立冷却。
 - `cd llm && go test ./pipeline -run 'TestPipeline_Process_RetryLogic' -count=1`：通过，覆盖终止信号阻止同渠道和跨渠道重试。
+- `go test ./internal/server/api -run '^TestApplyUpstreamErrorPolicy_' -count=1`：通过，覆盖系统上游错误策略的透传和改写。
 - 未运行 lint、前端 build 或重启开发服务器，符合仓库规则。
 
 ## 更新历史
@@ -89,3 +93,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-20 | 本地需求；上游比较至 `9fb6f1af` | `621b04052ab69434df631119de7e604635389da0` | original：以渠道级开关终止当前请求的 429 重试和候选切换，同时跳过内存冷却。 |
+| 2026-08-21 | `upstream/unstable@49ade6f2` | `e325b77369b1d1e5bd81a2ce14572367efe76f63` | 修正该开关为仅禁止重试：保留系统上游错误策略和 `Retry-After` 冷却。 |
