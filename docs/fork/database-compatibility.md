@@ -114,6 +114,17 @@
 - 最低升级版本：`f2c91bef0f0c50a4b2db141e97736e637cb5faa4`。
 - 用户批准（仅 breaking）：不适用。
 
+### 2026-08-21 — tuzi-daycard-three-window-script
+
+- 兼容等级：`none`
+- 本地 commit：`aeea324f0ef572f062d1290bfad8cca3a679baaf`。
+- 影响结构：无；仅更新绿色环境 41 号渠道既有 `channels.settings.usageQuery.script` 文本，不新增或变更 Schema。
+- 旧数据库验证样本：更新前后均对绿色 `axonhub.db` 执行 `PRAGMA quick_check`，结果为 `ok`；脚本夹具验证日、周、月三窗口均能从真实响应形状提取。
+- 备份与恢复：更新前 `.backup` 已保存至 `/Users/tux/Playground/AxonHub/backups/usage-query-41/axonhub-20260821T145539Z-pre-three-window-no-balance.db`，SHA-256 为 `e515baf0eee500281351d3a669a855a156e5eb5e58af58385ea56fb8c9033266`，已登记 Obsidian 备份日志。
+- 回滚能力：可用该一致性备份恢复绿色数据库，或仅恢复 `settings.usageQuery.script`；本次不写入凭据。
+- 最低升级版本：`aeea324f0ef572f062d1290bfad8cca3a679baaf`。
+- 用户批准（仅 breaking）：不适用。
+
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`

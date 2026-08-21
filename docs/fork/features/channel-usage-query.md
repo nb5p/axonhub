@@ -171,15 +171,12 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
     const text = [subscription.group_name || "Tuzi DayCard"];
     if (data.concurrency != null) text.push("并发 " + data.concurrency);
     if (subscription.expires_at || data.expires_at) text.push("到期 " + (subscription.expires_at || data.expires_at));
-    const available = Number(data.fuel_pack && data.fuel_pack.available_usd);
-    const result = { text: text.join(" · "), progress: { windows: windows } };
-    if (Number.isFinite(available)) result.balance = { remaining: available, unit: "A$" };
-    return result;
+    return { text: text.join(" · "), progress: { windows: windows } };
   },
 })
 ```
 
-限额为 `0`、缺失，或没有已用值的窗口会被省略，避免把“未设置上限”误判成耗尽。该脚本允许没有重置时间的窗口。
+限额为 `0`、缺失，或没有已用值的窗口会被省略，避免把“未设置上限”误判成耗尽。该脚本允许没有重置时间的窗口，并刻意忽略 `fuel_pack.available_usd`：该字段不是 Codex OAuth 的 A$ 余额。
 
 ## 安全与资源边界
 
