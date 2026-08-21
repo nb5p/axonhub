@@ -33,6 +33,7 @@ type Handlers struct {
 	Codex          *api.CodexHandlers
 	ClaudeCode     *api.ClaudeCodeHandlers
 	Antigravity    *api.AntigravityHandlers
+	OAuthImport    *api.OAuthImportHandlers
 	Copilot        *api.CopilotHandlers
 	RequestContent *api.RequestContentHandlers
 	OIDC           *api.OIDCHandlers
@@ -119,6 +120,7 @@ func SetupRoutes(server *Server, handlers Handlers, client *ent.Client, services
 
 		adminGroup.POST("/antigravity/oauth/start", handlers.Antigravity.StartOAuth)
 		adminGroup.POST("/antigravity/oauth/exchange", handlers.Antigravity.Exchange)
+		adminGroup.POST("/oauth/import/sub2api", handlers.OAuthImport.ImportSub2APICredentials)
 
 		adminGroup.POST("/copilot/oauth/start", handlers.Copilot.StartOAuth)
 		adminGroup.POST("/copilot/oauth/poll", handlers.Copilot.PollOAuth)

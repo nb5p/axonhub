@@ -8,7 +8,10 @@ import (
 )
 
 type OAuthCredentials struct {
-	ClientID     string    `json:"client_id,omitempty"`
+	ClientID string `json:"client_id,omitempty"`
+	// ProjectID is used by Google Code Assist / Antigravity accounts. It is
+	// ignored by providers that do not require a Google Cloud project.
+	ProjectID    string    `json:"project_id,omitempty"`
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	IDToken      string    `json:"id_token,omitempty"`

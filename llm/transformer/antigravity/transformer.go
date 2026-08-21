@@ -46,9 +46,10 @@ func (t *Transformer) GetTokenProvider() *oauth.TokenProvider {
 
 // Config holds configuration for Antigravity transformer.
 type Config struct {
-	BaseURL string `json:"base_url"`
-	APIKey  string `json:"api_key"`
-	Project string `json:"project"` // Google Cloud Project ID
+	BaseURL          string                  `json:"base_url"`
+	APIKey           string                  `json:"api_key"`
+	OAuthCredentials *oauth.OAuthCredentials `json:"-"`
+	Project          string                  `json:"project"` // Google Cloud Project ID
 }
 
 // Transformer implements transformer.Outbound for Antigravity protocol.
@@ -77,7 +78,12 @@ func NewTransformer(config Config, opts ...Option) (*Transformer, error) {
 		opt(t)
 	}
 
-	if config.APIKey != "" {
+	if config.OAuthCredentials != nil {
+		t.initOAuthTokenProvider(config.OAuthCredentials)
+		if t.config.Project == "" {
+			t.config.Project = config.OAuthCredentials.ProjectID
+		}
+	} else if config.APIKey != "" {
 		t.initTokenProvider(config.APIKey)
 		// If Project is not explicitly set, try to extract it from credentials
 		if t.config.Project == "" {
@@ -96,6 +102,32 @@ func (t *Transformer) initTokenProvider(apiKey string) {
 	if refreshToken == "" {
 		return
 	}
+	t.initOAuthTokenProvider(&oauth.OAuthCredentials{
+		RefreshToken: refreshToken,
+		ClientID:     ClientID,
+		Scopes:       Scopes,
+	})
+}
+
+func (t *Transformer) initOAuthTokenProvider(creds *oauth.OAuthCredentials) {
+	if creds == nil || creds.RefreshToken == "" {
+		return
+	}
+	if creds.ClientID == "" {
+		// Sub2API's Gemini account export records the refresh token and project
+		// ID, but not the built-in public client identity used by Code Assist.
+		// Keep the credential interoperable with that export format.
+		creds = &oauth.OAuthCredentials{
+			ClientID:     ClientID,
+			ProjectID:    creds.ProjectID,
+			AccessToken:  creds.AccessToken,
+			RefreshToken: creds.RefreshToken,
+			IDToken:      creds.IDToken,
+			ExpiresAt:    creds.ExpiresAt,
+			TokenType:    creds.TokenType,
+			Scopes:       creds.Scopes,
+		}
+	}
 
 	httpClient := t.httpClient
 	if httpClient == nil {
@@ -111,11 +143,7 @@ func (t *Transformer) initTokenProvider(apiKey string) {
 	}
 
 	t.tokenProvider = NewTokenProvider(oauth.TokenProviderParams{
-		Credentials: &oauth.OAuthCredentials{
-			RefreshToken: refreshToken,
-			ClientID:     ClientID,
-			Scopes:       Scopes,
-		},
+		Credentials: creds,
 		HTTPClient:  httpClient,
 		OnRefreshed: t.onTokenRefreshed,
 	})

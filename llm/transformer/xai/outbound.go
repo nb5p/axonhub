@@ -16,6 +16,11 @@ import (
 const (
 	// DefaultBaseURL is the default base URL for xAI API.
 	DefaultBaseURL = "https://api.x.ai/v1"
+	// OAuthBaseURL is xAI's subscription gateway used by Grok OAuth accounts.
+	OAuthBaseURL = "https://cli-chat-proxy.grok.com/v1"
+	// OAuthTokenURL is the xAI Build OAuth refresh endpoint used by imported
+	// Grok accounts. API-key channels do not use this endpoint.
+	OAuthTokenURL = "https://auth.x.ai/oauth2/token"
 )
 
 // Config holds all configuration for the xAI outbound transformer.

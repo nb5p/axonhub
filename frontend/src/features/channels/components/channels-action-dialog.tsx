@@ -42,6 +42,7 @@ import {
 } from '../data/channels';
 import { claudecodeOAuthExchange, claudecodeOAuthStart } from '../data/claudecode';
 import { codexDecodeAuthJSON, codexOAuthExchange, codexOAuthStart } from '../data/codex';
+import { importSub2APIOAuthCredentials, Sub2APIOAuthProvider } from '../data/sub2api-oauth';
 import {
   getDefaultBaseURL,
   getDefaultModels,
@@ -309,6 +310,15 @@ function isOfficialClaudeCodeChannel(channel: { credentials?: { apiKey?: string 
   return apiKey.includes('sk-ant-oat') || apiKey.includes('sk-ant-api03') || channel.baseURL === defaultURL;
 }
 
+function isOAuthCredentialJSON(apiKey: string | undefined): boolean {
+  try {
+    const credentials = JSON.parse(apiKey || '');
+    return !!(credentials.access_token && credentials.refresh_token);
+  } catch {
+    return false;
+  }
+}
+
 function extractCodexAuthJSONText(apiKey: string | undefined): string | undefined {
   if (!apiKey) return apiKey;
 
@@ -366,6 +376,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const [showOpenCodeGoAuthCookie, setShowOpenCodeGoAuthCookie] = useState(false);
   const [authMode, setAuthMode] = useState<'official' | 'auth-json' | 'third-party'>('official');
   const [codexAuthJSONText, setCodexAuthJSONText] = useState('');
+	const [sub2apiAccountJSONText, setSub2apiAccountJSONText] = useState('');
   const [patternError, setPatternError] = useState<string | null>(null);
 
   // Debounced search values for better performance
@@ -512,6 +523,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
       claudecodeOAuth.reset();
       antigravityOAuth.reset();
       setCodexAuthJSONText('');
+		setSub2apiAccountJSONText('');
     }
   }, [open, codexOAuth, claudecodeOAuth, antigravityOAuth]);
 
@@ -774,21 +786,25 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const activeChannelType = selectedType || derivedChannelType;
   const isCodexType = activeChannelType === 'codex';
   const isAntigravityType = activeChannelType === 'antigravity';
+  const isXAIType = activeChannelType === 'xai';
   const isClineType = activeChannelType === 'cline';
   const isClaudeCodeType = activeChannelType === 'claudecode';
   const isCopilotType = activeChannelType === 'github_copilot';
   const isOpenCodeGoType = isOpenCodeGoChannelType(activeChannelType);
+  const hasXaiOAuthCredentials = isXAIType && isOAuthCredentialJSON(form.watch('credentials.apiKey'));
 
   // OAuth providers cannot have their provider/API format changed during edit.
   // Derived from currentRow credentials so it stays stable across re-renders
   // and is not affected by mutable authMode state.
   const isOAuthChannel = useMemo(() => {
+    if (hasXaiOAuthCredentials) return true;
     if (!isEdit || !currentRow) return false;
     if (alwaysOAuthProviderKeys.includes(currentRow.type)) return true;
     if (currentRow.type === 'codex') return isOfficialCodexChannel(currentRow);
     if (currentRow.type === 'claudecode') return isOfficialClaudeCodeChannel(currentRow);
+    if (currentRow.type === 'xai') return isOAuthCredentialJSON(currentRow.credentials?.apiKey);
     return false;
-  }, [isEdit, currentRow]);
+  }, [currentRow, hasXaiOAuthCredentials, isEdit]);
 
   const wrapUnsupported = useCallback(
     (enabled: boolean, children: React.ReactNode, wrapperClassName: string) => {
@@ -1160,11 +1176,52 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         shouldTouch: true,
         shouldValidate: true,
       });
+      form.setValue('credentials.apiKeys', [], { shouldDirty: true });
       toast.success(t('channels.dialogs.codexAuthJson.messages.applied'));
     } catch {
       toast.error(t('channels.dialogs.codexAuthJson.messages.invalid'));
     }
   }, [codexAuthJSONText, form, t]);
+
+  const applySub2APIAccountJSON = useCallback(async (provider: Sub2APIOAuthProvider) => {
+    try {
+      const result = await importSub2APIOAuthCredentials({ provider, accountJSON: sub2apiAccountJSONText });
+      form.setValue('credentials.apiKey', result.credentials, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      form.setValue('credentials.apiKeys', [], { shouldDirty: true });
+      if (result.base_url) {
+        form.setValue('baseURL', result.base_url, { shouldDirty: true });
+      }
+      toast.success(t('channels.dialogs.sub2apiImport.messages.applied'));
+    } catch {
+      toast.error(t('channels.dialogs.sub2apiImport.messages.invalid'));
+    }
+  }, [form, sub2apiAccountJSONText, t]);
+
+  const renderSub2APIImport = useCallback(
+    (provider: Sub2APIOAuthProvider) => (
+      <div className='mt-3 rounded-md border p-3'>
+        <div className='space-y-2'>
+          <FormLabel className='text-sm font-medium'>{t('channels.dialogs.sub2apiImport.label')}</FormLabel>
+          <Textarea
+            value={sub2apiAccountJSONText}
+            onChange={(event) => setSub2apiAccountJSONText(event.target.value)}
+            placeholder={t('channels.dialogs.sub2apiImport.placeholder')}
+            className='min-h-[120px] resize-y font-mono text-xs'
+            spellCheck={false}
+          />
+          <Button type='button' variant='secondary' onClick={() => applySub2APIAccountJSON(provider)}>
+            {t('channels.dialogs.sub2apiImport.applyButton')}
+          </Button>
+          <p className='text-muted-foreground text-xs'>{t('channels.dialogs.sub2apiImport.description')}</p>
+        </div>
+      </div>
+    ),
+    [applySub2APIAccountJSON, sub2apiAccountJSONText, t]
+  );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Check if there are selected fetched models that haven't been confirmed
@@ -1990,6 +2047,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                                   {t('channels.dialogs.fields.apiFormat.antigravity.description')}
                                 </p>
                               </div>
+                              {renderSub2APIImport('gemini')}
                             </div>
                           </div>
                         </FormItem>
@@ -2014,6 +2072,13 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                               }}
                             />
                           </div>
+                        </div>
+                      )}
+
+                      {isXAIType && (
+                        <div className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
+                          <div className='col-span-2' />
+                          <div className='md:col-span-6'>{renderSub2APIImport('grok')}</div>
                         </div>
                       )}
 
@@ -2143,20 +2208,23 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                               </Tabs>
 
                               {isCodexType && authMode === 'auth-json' && (
-                                <div className='rounded-md border p-3'>
-                                  <div className='space-y-2'>
-                                    <FormLabel className='text-sm font-medium'>{t('channels.dialogs.codexAuthJson.label')}</FormLabel>
-                                    <Textarea
-                                      value={codexAuthJSONText}
-                                      onChange={(e) => setCodexAuthJSONText(e.target.value)}
-                                      placeholder={t('channels.dialogs.codexAuthJson.placeholder')}
-                                      className='min-h-[160px] resize-y font-mono text-xs'
-                                    />
-                                    <Button type='button' variant='secondary' onClick={applyCodexAuthJSON}>
-                                      {t('channels.dialogs.codexAuthJson.applyButton')}
-                                    </Button>
-                                    <p className='text-muted-foreground text-xs'>{t('channels.dialogs.codexAuthJson.description')}</p>
+                                <div className='space-y-3'>
+                                  <div className='rounded-md border p-3'>
+                                    <div className='space-y-2'>
+                                      <FormLabel className='text-sm font-medium'>{t('channels.dialogs.codexAuthJson.label')}</FormLabel>
+                                      <Textarea
+                                        value={codexAuthJSONText}
+                                        onChange={(e) => setCodexAuthJSONText(e.target.value)}
+                                        placeholder={t('channels.dialogs.codexAuthJson.placeholder')}
+                                        className='min-h-[160px] resize-y font-mono text-xs'
+                                      />
+                                      <Button type='button' variant='secondary' onClick={applyCodexAuthJSON}>
+                                        {t('channels.dialogs.codexAuthJson.applyButton')}
+                                      </Button>
+                                      <p className='text-muted-foreground text-xs'>{t('channels.dialogs.codexAuthJson.description')}</p>
+                                    </div>
                                   </div>
+                                  {renderSub2APIImport('codex')}
                                 </div>
                               )}
                             </div>
@@ -2172,6 +2240,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                               <div className='space-y-2'>
                                 {authMode === 'official' &&
                                   renderOAuthSection(claudecodeOAuth, t('channels.dialogs.fields.apiFormat.claudecode.description'))}
+                                {authMode === 'official' && renderSub2APIImport('claudecode')}
                               </div>
                             )}
                           </div>
@@ -2204,7 +2273,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                         )}
                       />
 
-                      {(!(isCodexType || isClaudeCodeType || isCopilotType) || authMode === 'third-party') &&
+                      {(!(isCodexType || isClaudeCodeType || isCopilotType || hasXaiOAuthCredentials) || authMode === 'third-party') &&
                         selectedProvider !== 'antigravity' &&
                         selectedType !== 'anthropic_gcp' && (
                           <FormField

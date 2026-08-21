@@ -16,9 +16,16 @@ func NewTokenProvider(params oauth.TokenProviderParams) *oauth.TokenProvider {
 		params.UserAgent = GetUserAgent()
 	}
 
+	clientSecret := ClientSecret
+	// Imported Gemini Code Assist credentials carry their own public OAuth
+	// client ID. Supplying Antigravity's client secret to a different client
+	// would make a standard refresh fail, so omit it in that case.
+	if params.Credentials != nil && params.Credentials.ClientID != "" && params.Credentials.ClientID != ClientID {
+		clientSecret = ""
+	}
 	params.ExchangeStrategy = &AntigravityExchangeStrategy{
 		UserAgent:    params.UserAgent,
-		ClientSecret: ClientSecret,
+		ClientSecret: clientSecret,
 	}
 
 	return oauth.NewTokenProvider(params)
@@ -41,7 +48,9 @@ func (s *AntigravityExchangeStrategy) BuildExchangeRequest(params oauth.Exchange
 	form := url.Values{}
 	form.Set("grant_type", "authorization_code")
 	form.Set("client_id", params.ClientID)
-	form.Set("client_secret", s.ClientSecret)
+	if s.ClientSecret != "" {
+		form.Set("client_secret", s.ClientSecret)
+	}
 	form.Set("code", params.Code)
 	form.Set("redirect_uri", params.RedirectURI)
 	form.Set("code_verifier", params.CodeVerifier)
@@ -75,7 +84,9 @@ func (s *AntigravityExchangeStrategy) BuildRefreshRequest(creds *oauth.OAuthCred
 	form := url.Values{}
 	form.Set("grant_type", "refresh_token")
 	form.Set("client_id", creds.ClientID)
-	form.Set("client_secret", s.ClientSecret)
+	if s.ClientSecret != "" {
+		form.Set("client_secret", s.ClientSecret)
+	}
 	form.Set("refresh_token", creds.RefreshToken)
 
 	header := http.Header{
