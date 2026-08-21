@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
 import { invalidateChannelDependentQueries } from './channel-query-invalidation';
+import type { ChannelUsageQueryPreset } from './usage-query-presets';
 
-export type ChannelUsageQueryPreset = 'NEW_API' | 'CUSTOM';
+export type { ChannelUsageQueryPreset } from './usage-query-presets';
 
 export interface ChannelUsageQueryConfig {
   enabled: boolean;
@@ -27,27 +28,14 @@ export interface ChannelUsageQueryConfigInput {
 
 export interface ChannelUsageQueryTestResult {
   status: 'available' | 'warning' | 'exhausted' | 'unknown';
-  text?: ChannelUsageQueryTextResult | null;
+  balance?: ChannelUsageQueryBalance | null;
+  text?: string | null;
   progress?: ChannelUsageQueryProgress | null;
-  isValid?: boolean | null;
-  invalidMessage?: string | null;
-  remaining?: number | null;
-  unit?: string | null;
-  planName?: string | null;
-  total?: number | null;
-  used?: number | null;
-  extra?: string | null;
 }
 
-export interface ChannelUsageQueryTextResult {
-  isValid?: boolean | null;
-  invalidMessage?: string | null;
+export interface ChannelUsageQueryBalance {
   remaining?: number | null;
   unit?: string | null;
-  planName?: string | null;
-  total?: number | null;
-  used?: number | null;
-  extra?: string | null;
 }
 
 export interface ChannelUsageQueryProgress {
@@ -55,14 +43,9 @@ export interface ChannelUsageQueryProgress {
 }
 
 export interface ChannelUsageQueryProgressWindow {
-  id?: string | null;
-  label?: string | null;
-  used?: number | null;
-  total?: number | null;
-  remaining?: number | null;
-  usedPercent?: number | null;
-  unit?: string | null;
-  windowStart?: string | null;
+  id: string;
+  durationSeconds?: number | null;
+  remainingPercent?: number | null;
   resetAt?: string | null;
 }
 
@@ -98,37 +81,19 @@ const TEST_CHANNEL_USAGE_QUERY = `
   mutation TestChannelUsageQuery($channelID: ID!, $input: ChannelUsageQueryConfigInput!) {
     testChannelUsageQuery(channelID: $channelID, input: $input) {
       status
-      text {
-        isValid
-        invalidMessage
+      balance {
         remaining
         unit
-        planName
-        total
-        used
-        extra
       }
+      text
       progress {
         windows {
           id
-          label
-          used
-          total
-          remaining
-          usedPercent
-          unit
-          windowStart
+          durationSeconds
+          remainingPercent
           resetAt
         }
       }
-      isValid
-      invalidMessage
-      remaining
-      unit
-      planName
-      total
-      used
-      extra
     }
   }
 `;

@@ -19,16 +19,18 @@ func TestUsageQueryChecker_CheckQuota(t *testing.T) {
 		require.Equal(t, "Bearer admin-key", r.Header.Get("Authorization"))
 		require.Equal(t, "42", r.Header.Get("New-Api-User"))
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Plan", "pro")
 		_, _ = w.Write([]byte("{\"success\":true,\"data\":{\"group\":\"pro\",\"quota\":1000000,\"used_quota\":4000000}}"))
 	}))
 	defer server.Close()
 
 	script := "({\n" +
+		" responseVersion: 2,\n" +
 		" request: { url: \"{{baseUrl}}/api/user/self\", method: \"GET\", headers: { Authorization: \"Bearer {{accessToken}}\", \"New-Api-User\": \"{{userId}}\" } },\n" +
-		" extractor: function(response) { return {\n" +
-		"  planName: response.data.group, remaining: response.data.quota / 500000,\n" +
-		"  used: response.data.used_quota / 500000,\n" +
-		"  total: (response.data.quota + response.data.used_quota) / 500000, unit: \"USD\"\n" +
+		" extractor: function(response, context) { const body = response.body; return {\n" +
+		"  balance: { remaining: response.status === 200 ? body.data.quota / 500000 : 0, unit: \"A$\" },\n" +
+		"  text: response.headers[\"x-plan\"] + \" \" + context.now,\n" +
+		"  progress: { windows: [{ id: \"daily\", remainingPercent: 20, resetAt: context.now }] }\n" +
 		" }; }\n" +
 		"})"
 	ch := &ent.Channel{
@@ -41,7 +43,7 @@ func TestUsageQueryChecker_CheckQuota(t *testing.T) {
 			UsageQuery: &objects.ChannelUsageQuerySettings{
 				Enabled:             true,
 				ShowInProviderQuota: lo.ToPtr(false),
-				Preset:              objects.ChannelUsageQueryPresetNewAPI,
+				Preset:              objects.ChannelUsageQueryPresetCustom,
 				UserID:              "42",
 				Script:              script,
 			},
@@ -53,10 +55,11 @@ func TestUsageQueryChecker_CheckQuota(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "warning", result.Status)
 	require.True(t, result.Ready)
-	require.Equal(t, "pro", result.RawData["planName"])
-	require.Equal(t, 2.0, result.RawData["remaining"])
-	require.Equal(t, 8.0, result.RawData["used"])
-	require.Equal(t, 10.0, result.RawData["total"])
+	balance, ok := result.RawData["balance"].(*UsageQueryBalance)
+	require.True(t, ok)
+	require.Equal(t, 2.0, balance.Remaining)
+	require.Equal(t, "A$", balance.Unit)
+	require.Regexp(t, `^pro \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$`, result.RawData["text"])
 	require.Equal(t, false, result.RawData["showInProviderQuota"])
 }
 
@@ -85,36 +88,43 @@ func TestNormalizeUsageQueryResult_InvalidPlanIsUnknown(t *testing.T) {
 	})
 	require.Equal(t, "unknown", result.Status)
 	require.False(t, result.Ready)
-	require.Equal(t, "expired", result.RawData["invalidMessage"])
+	require.Equal(t, "expired", result.RawData["error"])
 }
 
 func TestNormalizeUsageQueryResult_UsesStructuredProgressWindows(t *testing.T) {
-	valid := true
 	result := normalizeUsageQueryResult(UsageQueryResult{
-		Text: &UsageQueryTextResult{
-			IsValid:  &valid,
-			PlanName: "Codex Lite",
-			Unit:     "USD",
-		},
+		Text: "Codex Lite",
 		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
-			{ID: "daily", Used: lo.ToPtr(10.0), Total: lo.ToPtr(10.0), Unit: "USD", ResetAt: "2026-08-19T00:00:00Z"},
-			{ID: "weekly", UsedPercent: lo.ToPtr(20.0)},
-			{ID: "monthly", Remaining: lo.ToPtr(70.0), Total: lo.ToPtr(100.0), Unit: "USD"},
+			{ID: "daily", RemainingPercent: lo.ToPtr(0.0), ResetAt: "2026-08-19T00:00:00+00:00"},
+			{ID: "weekly", RemainingPercent: lo.ToPtr(80.0)},
+			{ID: "monthly", RemainingPercent: lo.ToPtr(70.0)},
 		}},
 	})
 
 	require.Equal(t, "exhausted", result.Status)
 	require.False(t, result.Ready)
-	require.Equal(t, "Codex Lite", result.RawData["planName"])
+	require.Equal(t, "Codex Lite", result.RawData["text"])
 	progress, ok := result.RawData["progress"].(*UsageQueryProgress)
 	require.True(t, ok)
 	require.Len(t, progress.Windows, 3)
 	require.Empty(t, progress.Windows[2].ResetAt)
 }
 
+func TestNormalizeUsageQueryResult_ProgressTakesPrecedenceOverZeroBalance(t *testing.T) {
+	result := normalizeUsageQueryResult(UsageQueryResult{
+		Balance: &UsageQueryBalance{Remaining: 0, Unit: "A$"},
+		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
+			{ID: "daily", RemainingPercent: lo.ToPtr(80.0)},
+		}},
+	})
+
+	require.Equal(t, "available", result.Status)
+	require.True(t, result.Ready)
+}
+
 func TestNormalizeUsageQueryResult_RejectsIncompleteProgressWindow(t *testing.T) {
 	err := validateUsageQueryResult(UsageQueryResult{
 		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{{ID: "daily"}}},
 	})
-	require.ErrorContains(t, err, "must define usedPercent or total with used/remaining")
+	require.NoError(t, err)
 }

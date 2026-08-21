@@ -107,19 +107,26 @@ function getClineUsagePercent(window?: ClineQuotaWindow): number {
 }
 
 function getUsageQueryProgressPercent(window: ProviderUsageQueryProgressWindow): number | null {
+  if (window.remainingPercent != null) return 100 - window.remainingPercent;
   if (window.usedPercent != null) return window.usedPercent;
-  if (window.total == null || window.total <= 0) return null;
-  if (window.used != null) return (window.used / window.total) * 100;
-  if (window.remaining != null) return ((window.total - window.remaining) / window.total) * 100;
+  if (window.total != null && window.total > 0 && window.used != null) return (window.used / window.total) * 100;
+  if (window.total != null && window.total > 0 && window.remaining != null) return ((window.total - window.remaining) / window.total) * 100;
   return null;
 }
 
 function getUsageQueryProgressDurationPercent(window: ProviderUsageQueryProgressWindow): number | undefined {
-  if (!window.windowStart || !window.resetAt) return undefined;
-  const windowStart = new Date(window.windowStart).getTime();
+  if (window.windowStart && window.resetAt) {
+    const windowStart = new Date(window.windowStart).getTime();
+    const resetAt = new Date(window.resetAt).getTime();
+    if (Number.isFinite(windowStart) && Number.isFinite(resetAt) && resetAt > windowStart) {
+      return ((Date.now() - windowStart) / (resetAt - windowStart)) * 100;
+    }
+  }
+  if (!window.durationSeconds || window.durationSeconds <= 0 || !window.resetAt) return undefined;
   const resetAt = new Date(window.resetAt).getTime();
-  if (!Number.isFinite(windowStart) || !Number.isFinite(resetAt) || resetAt <= windowStart) return undefined;
-  return ((Date.now() - windowStart) / (resetAt - windowStart)) * 100;
+  if (!Number.isFinite(resetAt)) return undefined;
+  const remainingSeconds = Math.max(0, (resetAt - Date.now()) / 1000);
+  return ((window.durationSeconds - remainingSeconds) / window.durationSeconds) * 100;
 }
 
 function getChannelPercentage(channel: ProviderQuotaChannel): number {
@@ -131,12 +138,11 @@ function getChannelPercentage(channel: ProviderQuotaChannel): number {
       .filter((percentage): percentage is number => percentage != null);
     if (progressPercentages.length > 0) {
       percentage = Math.max(...progressPercentages);
+    } else if (qd.balance?.remaining != null && qd.balance.remaining <= 0) {
+      percentage = 100;
     } else if (qd.total != null && qd.total > 0) {
-      if (qd.used != null) {
-        percentage = (qd.used / qd.total) * 100;
-      } else if (qd.remaining != null) {
-        percentage = ((qd.total - qd.remaining) / qd.total) * 100;
-      }
+      if (qd.used != null) percentage = (qd.used / qd.total) * 100;
+      else if (qd.remaining != null) percentage = ((qd.total - qd.remaining) / qd.total) * 100;
     }
   } else if (channel.type === 'claudecode') {
     const qd = channel.quotaStatus.quotaData;
@@ -478,6 +484,7 @@ function QuotaRow({
   };
 
   const formatUsageQueryValue = (value: number, unit?: string) => {
+    if (unit === 'A$') return `A$${value.toFixed(2)}`;
     if (unit && /^[A-Z]{3}$/.test(unit)) {
       return t('currencies.format', {
         val: value,
@@ -595,64 +602,35 @@ function QuotaRow({
         <div className='mt-3 space-y-3'>
           {(() => {
             const qd = channel.quotaStatus.quotaData as ProviderUsageQueryQuotaData;
-            const usedPercent =
-              qd.total != null && qd.total > 0
-                ? qd.used != null
-                  ? (qd.used / qd.total) * 100
-                  : qd.remaining != null
-                    ? ((qd.total - qd.remaining) / qd.total) * 100
-                    : null
-                : null;
             const progressWindows = qd.progress?.windows ?? [];
+            const balance = qd.balance ?? (qd.remaining != null ? { remaining: qd.remaining, unit: qd.unit } : undefined);
+            const text = qd.text ?? [qd.planName, qd.extra].filter(Boolean).join('\n');
 
             return (
               <>
-                {qd.isValid === false && (
-                  <div className='rounded bg-red-500/10 p-2 text-xs break-words text-red-500'>
-                    {qd.invalidMessage || t('quota.usageQuery.invalid')}
+                {balance && (
+                  <div className='text-xs'>
+                    <div className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</div>
+                    <div className='text-foreground mt-0.5 font-medium'>
+                      {formatUsageQueryValue(balance.remaining, balance.unit)}
+                    </div>
                   </div>
                 )}
-                {qd.planName && (
-                  <div className='flex items-center justify-between gap-4 text-xs'>
-                    <span className='text-muted-foreground font-medium'>{t('quota.usageQuery.plan')}</span>
-                    <span className='text-foreground text-right font-medium break-words'>{qd.planName}</span>
-                  </div>
-                )}
-                {(qd.remaining != null || qd.used != null || qd.total != null) && (
-                  <div className='grid grid-cols-2 gap-x-5 gap-y-2 text-xs'>
-                    {qd.remaining != null && (
-                      <div>
-                        <div className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</div>
-                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.remaining, qd.unit)}</div>
-                      </div>
-                    )}
-                    {qd.used != null && (
-                      <div>
-                        <div className='text-muted-foreground'>{t('quota.usageQuery.used')}</div>
-                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.used, qd.unit)}</div>
-                      </div>
-                    )}
-                    {qd.total != null && (
-                      <div>
-                        <div className='text-muted-foreground'>{t('quota.usageQuery.total')}</div>
-                        <div className='text-foreground mt-0.5 font-medium'>{formatUsageQueryValue(qd.total, qd.unit)}</div>
-                      </div>
-                    )}
-                  </div>
+                {text && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='text-muted-foreground line-clamp-2 cursor-default whitespace-pre-line text-xs'>{text}</div>
+                    </TooltipTrigger>
+                    <TooltipContent className='max-w-sm whitespace-pre-line break-words'>{text}</TooltipContent>
+                  </Tooltip>
                 )}
                 {progressWindows.length > 0
                   ? progressWindows.map((window, index) => {
                       const windowPercent = getUsageQueryProgressPercent(window);
-                      if (windowPercent == null) return null;
                       const durationPercent = getUsageQueryProgressDurationPercent(window);
                       const label = window.label || window.id || t('quota.usageQuery.window', { index: index + 1 });
-                      const value =
-                        window.used != null && window.total != null
-                          ? `${formatUsageQueryValue(window.used, window.unit)} / ${formatUsageQueryValue(window.total, window.unit)}`
-                          : window.remaining != null && window.total != null
-                            ? `${formatUsageQueryValue(window.remaining, window.unit)} / ${formatUsageQueryValue(window.total, window.unit)}`
-                            : formatQuotaUsage(windowPercent);
-                      const resetText = window.resetAt ? formatTimeToReset(window.resetAt, windowPercent) : '';
+                      const value = window.remainingPercent == null ? '-' : `${Math.round(window.remainingPercent)}%`;
+                      const resetText = window.resetAt ? formatTimeToReset(window.resetAt, windowPercent ?? 0) : '';
                       return (
                         <div
                           key={window.id || `${label}-${index}`}
@@ -662,26 +640,28 @@ function QuotaRow({
                             <span className='text-muted-foreground font-medium'>{label}</span>
                             <span className='text-foreground text-right font-medium'>{value}</span>
                           </div>
-                          <UsageTimeBar
-                            usagePercent={windowPercent}
-                            displayPercent={getQuotaDisplayPercentage(windowPercent, reverseUsageDisplay)}
-                            durationPercent={durationPercent}
-                            timeWindowDisplayStyle={timeWindowDisplayStyle}
-                            reverseTimeProgress={reverseUsageDisplay}
-                            durationLabel={timeProgressLabel}
-                            tooltip={
-                              <div className='space-y-0.5'>
-                                <div className='font-medium'>{label}</div>
-                                <div>{formatQuotaUsage(windowPercent)}</div>
-                                {durationPercent !== undefined && (
-                                  <div>
-                                    {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(durationPercent))}%
-                                  </div>
-                                )}
-                                {resetText && <div>{resetText}</div>}
-                              </div>
-                            }
-                          />
+                          {windowPercent != null && (
+                            <UsageTimeBar
+                              usagePercent={windowPercent}
+                              displayPercent={getQuotaDisplayPercentage(windowPercent, reverseUsageDisplay)}
+                              durationPercent={durationPercent}
+                              timeWindowDisplayStyle={timeWindowDisplayStyle}
+                              reverseTimeProgress={reverseUsageDisplay}
+                              durationLabel={timeProgressLabel}
+                              tooltip={
+                                <div className='space-y-0.5'>
+                                  <div className='font-medium'>{label}</div>
+                                  <div>{formatQuotaUsage(windowPercent)}</div>
+                                  {durationPercent !== undefined && (
+                                    <div>
+                                      {timeProgressLabel}: {Math.round(getTimeDisplayPercentage(durationPercent))}%
+                                    </div>
+                                  )}
+                                  {resetText && <div>{resetText}</div>}
+                                </div>
+                              }
+                            />
+                          )}
                           {resetText && (
                             <div className='text-muted-foreground text-right text-[11px]'>
                               {resetText}
@@ -690,13 +670,7 @@ function QuotaRow({
                         </div>
                       );
                     })
-                  : usedPercent != null && (
-                  <div className='space-y-1'>
-                    <div className='text-foreground text-right text-xs font-medium'>{formatQuotaUsage(usedPercent)}</div>
-                    <ProgressBar percentage={usedPercent} />
-                  </div>
-                    )}
-                {qd.extra && <div className='text-muted-foreground border-border/60 border-t border-dashed pt-2 text-xs break-words'>{qd.extra}</div>}
+                  : null}
               </>
             );
           })()}

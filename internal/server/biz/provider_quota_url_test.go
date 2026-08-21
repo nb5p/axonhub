@@ -47,8 +47,9 @@ func TestGetProviderType_ExistingTypesPreserved(t *testing.T) {
 		channelType    channel.Type
 		expectedResult string
 	}{
-		{"claudecode", channel.TypeClaudecode, "claudecode"},
-		{"codex", channel.TypeCodex, "codex"},
+		{"claudecode", channel.TypeClaudecode, "usage_query"},
+		{"codex", channel.TypeCodex, "usage_query"},
+		{"opencode_go", channel.TypeOpencodeGo, "usage_query"},
 		{"github_copilot", channel.TypeGithubCopilot, "github_copilot"},
 		{"nanogpt", channel.TypeNanogpt, "nanogpt"},
 		{"nanogpt_responses", channel.TypeNanogptResponses, "nanogpt"},
@@ -158,7 +159,7 @@ func TestHasCredentialsForProvider_NonOpenaiNoCreds(t *testing.T) {
 		Type:        channel.TypeClaudecode,
 		Credentials: objects.ChannelCredentials{},
 	}
-	require.False(t, hasCredentialsForProvider(ch))
+	require.True(t, hasCredentialsForProvider(ch))
 }
 
 func TestHasCredentialsForProvider_CodexWithOAuth(t *testing.T) {
@@ -188,7 +189,7 @@ func TestHasCredentialsForProvider_CodexWithPlainAPIKey(t *testing.T) {
 			APIKey: "sk-plain-api-key",
 		},
 	}
-	require.False(t, hasCredentialsForProvider(ch))
+	require.True(t, hasCredentialsForProvider(ch))
 }
 
 func TestHasCredentialsForProvider_ClaudeCodeWithOAuth(t *testing.T) {
@@ -218,7 +219,7 @@ func TestHasCredentialsForProvider_ClaudeCodeWithPlainAPIKey(t *testing.T) {
 			APIKey: "sk-plain-api-key",
 		},
 	}
-	require.False(t, hasCredentialsForProvider(ch))
+	require.True(t, hasCredentialsForProvider(ch))
 }
 
 func TestGetProviderType_OpenaiWithWaferURLPort(t *testing.T) {

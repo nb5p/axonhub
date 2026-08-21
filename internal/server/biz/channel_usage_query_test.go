@@ -113,12 +113,39 @@ func TestChannelUsageQueryConfig_TestUsesTemporaryKeyWithoutPersisting(t *testin
 	})
 	require.NoError(t, err)
 	require.Equal(t, "available", result.Status)
-	require.NotNil(t, result.Remaining)
-	require.Equal(t, 12.5, *result.Remaining)
+	require.NotNil(t, result.Balance)
+	require.Equal(t, 12.5, result.Balance.Remaining)
 
 	stored, err := client.Channel.Get(ctx, ch.ID)
 	require.NoError(t, err)
 	require.Equal(t, "saved-query-key", stored.Credentials.UsageQueryAPIKey)
 	require.NotNil(t, stored.Settings)
 	require.Nil(t, stored.Settings.UsageQuery)
+}
+
+func TestChannelUsageQueryConfig_PresetScriptIsServerOwned(t *testing.T) {
+	svc, client := setupTestChannelService(t)
+	defer client.Close()
+
+	ctx := authz.WithTestBypass(ent.NewContext(context.Background(), client))
+	ch, err := client.Channel.Create().
+		SetType(channel.TypeCodex).
+		SetName("Codex usage query").
+		SetBaseURL("https://chatgpt.com").
+		SetCredentials(objects.ChannelCredentials{APIKey: "{\"access_token\":\"test-token\"}"}).
+		SetSupportedModels([]string{"test-model"}).
+		SetDefaultTestModel("test-model").
+		SetStatus(channel.StatusEnabled).
+		Save(ctx)
+	require.NoError(t, err)
+
+	config, err := svc.SaveChannelUsageQueryConfig(ctx, ch.ID, ChannelUsageQueryConfigInput{
+		Enabled: true,
+		Preset:  objects.ChannelUsageQueryPresetCodex,
+		Script:  "not the preset script",
+	})
+	require.NoError(t, err)
+	require.Equal(t, objects.ChannelUsageQueryPresetCodex, config.Preset)
+	require.Contains(t, config.Script, "responseVersion: 2")
+	require.NotContains(t, config.Script, "not the preset script")
 }

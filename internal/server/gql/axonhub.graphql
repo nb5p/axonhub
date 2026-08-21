@@ -352,6 +352,9 @@ type TestAPIKeyResult {
 
 enum ChannelUsageQueryPreset {
   NEW_API
+  CODEX
+  CLAUDE_OAUTH
+  OPENCODE_GO
   CUSTOM
 }
 
@@ -382,32 +385,18 @@ input ChannelUsageQueryConfigInput {
 
 type ChannelUsageQueryTestResult {
   status: String!
-  text: ChannelUsageQueryTextResult
+  balance: ChannelUsageQueryBalance
+  text: String
   progress: ChannelUsageQueryProgress
-  isValid: Boolean
-  invalidMessage: String
-  remaining: Float
-  unit: String
-  planName: String
-  total: Float
-  used: Float
-  extra: String
 }
 
 """
-Text fields returned by a channel usage-query script. These fields mirror the
-legacy flat result format and are available to new structured scripts under
-the `text` key.
+Optional monetary balance returned by a channel usage-query script. A script
+omits this object when the provider does not expose a meaningful balance.
 """
-type ChannelUsageQueryTextResult {
-  isValid: Boolean
-  invalidMessage: String
-  remaining: Float
+type ChannelUsageQueryBalance {
+  remaining: Float!
   unit: String
-  planName: String
-  total: Float
-  used: Float
-  extra: String
 }
 
 """
@@ -418,14 +407,9 @@ type ChannelUsageQueryProgress {
 }
 
 type ChannelUsageQueryProgressWindow {
-  id: String
-  label: String
-  used: Float
-  total: Float
-  remaining: Float
-  usedPercent: Float
-  unit: String
-  windowStart: String
+  id: String!
+  durationSeconds: Int
+  remainingPercent: Float
   resetAt: String
 }
 

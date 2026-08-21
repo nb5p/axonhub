@@ -21,58 +21,12 @@ import {
   type ChannelUsageQueryPreset,
   type ChannelUsageQueryProgressWindow,
   type ChannelUsageQueryTestResult,
-  type ChannelUsageQueryTextResult,
   useChannelUsageQuery,
   useRefreshAllUsageQueries,
   useSaveChannelUsageQuery,
   useTestChannelUsageQuery,
 } from '../data/usage-query';
-
-const NEW_API_SCRIPT = `({
-  request: {
-    url: "{{baseUrl}}/api/user/self",
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer {{accessToken}}",
-      "User-Agent": "cc-switch/1.0",
-      "New-Api-User": "{{userId}}"
-    },
-  },
-  extractor: function (response) {
-    if (response.success && response.data) {
-      return {
-        planName: response.data.group || "默认套餐",
-        remaining: response.data.quota / 500000,
-        used: response.data.used_quota / 500000,
-        total: (response.data.quota + response.data.used_quota) / 500000,
-        unit: "USD",
-      };
-    }
-    return {
-      isValid: false,
-      invalidMessage: response.message || "查询失败"
-    };
-  },
-})`;
-
-const CUSTOM_SCRIPT = `({
-  request: {
-    url: "{{baseUrl}}/user/balance",
-    method: "GET",
-    headers: {
-      "Authorization": "Bearer {{apiKey}}",
-      "User-Agent": "cc-switch/1.0"
-    }
-  },
-  extractor: function(response) {
-    return {
-      isValid: response.is_active || true,
-      remaining: response.balance,
-      unit: "USD"
-    };
-  }
-})`;
+import { getUsageQueryPreset } from '../data/usage-query-presets';
 
 interface Props {
   open: boolean;
@@ -95,15 +49,14 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [clearApiKey, setClearApiKey] = useState(false);
   const [userId, setUserId] = useState('');
-  const [script, setScript] = useState(NEW_API_SCRIPT);
-  const [customScript, setCustomScript] = useState(CUSTOM_SCRIPT);
+  const [script, setScript] = useState(getUsageQueryPreset('NEW_API').script);
+  const [customScript, setCustomScript] = useState(getUsageQueryPreset('CUSTOM').script);
   const [testResult, setTestResult] = useState<ChannelUsageQueryTestResult | null>(null);
-  const testText: ChannelUsageQueryTextResult | ChannelUsageQueryTestResult | null = testResult?.text ?? testResult;
 
   useEffect(() => {
     if (!open || !data) return;
     const nextPreset = data.script ? data.preset : 'NEW_API';
-    const nextScript = data.script || (nextPreset === 'NEW_API' ? NEW_API_SCRIPT : CUSTOM_SCRIPT);
+    const nextScript = data.script || getUsageQueryPreset(nextPreset).script;
     setEnabled(data.script ? data.enabled : true);
     setShowInProviderQuota(data.showInProviderQuota);
     setPreset(nextPreset);
@@ -113,14 +66,16 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     setClearApiKey(false);
     setUserId(data.userId ?? '');
     setScript(nextScript);
-    setCustomScript(nextPreset === 'CUSTOM' ? nextScript : CUSTOM_SCRIPT);
+    setCustomScript(nextPreset === 'CUSTOM' ? nextScript : getUsageQueryPreset('CUSTOM').script);
     setTestResult(null);
   }, [data, open]);
 
   const handlePresetChange = (value: ChannelUsageQueryPreset) => {
     if (preset === 'CUSTOM') setCustomScript(script);
     setPreset(value);
-    setScript(value === 'NEW_API' ? NEW_API_SCRIPT : customScript || CUSTOM_SCRIPT);
+    setScript(value === 'CUSTOM' ? customScript || getUsageQueryPreset('CUSTOM').script : getUsageQueryPreset(value).script);
+    const defaultBaseUrl = getUsageQueryPreset(value).defaultBaseUrl;
+    if (defaultBaseUrl) setBaseUrlOverride(defaultBaseUrl);
     setTestResult(null);
   };
 
@@ -129,13 +84,13 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     showInProviderQuota,
     preset,
     baseUrlOverride: baseUrlOverride.trim() || null,
-    userId: preset === 'NEW_API' ? userId.trim() || null : null,
+    userId: getUsageQueryPreset(preset).requiresUserId ? userId.trim() || null : null,
     script,
     apiKey: clearApiKey ? null : apiKey.trim() || null,
     clearApiKey,
   });
 
-  const canSubmit = !isError && script.trim() !== '' && (preset !== 'NEW_API' || userId.trim() !== '');
+  const canSubmit = !isError && script.trim() !== '' && (!getUsageQueryPreset(preset).requiresUserId || userId.trim() !== '');
 
   const formatValue = (value: number | null | undefined, unit?: string | null): string => {
     if (value == null) return '-';
@@ -144,22 +99,19 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
         val: value,
         currency: unit,
         locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 6,
+        minimumFractionDigits: unit === 'A$' ? 2 : 0,
+        maximumFractionDigits: unit === 'A$' ? 2 : 6,
       });
     }
     const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      maximumFractionDigits: 6,
+      minimumFractionDigits: unit === 'A$' ? 2 : 0,
+      maximumFractionDigits: unit === 'A$' ? 2 : 6,
     }).format(value);
-    return unit ? `${formatted} ${unit}` : formatted;
+    return unit === 'A$' ? `A$${formatted}` : unit ? `${formatted} ${unit}` : formatted;
   };
 
   const getProgressPercent = (window: ChannelUsageQueryProgressWindow): number | null => {
-    if (window.usedPercent != null) return window.usedPercent;
-    if (window.total == null || window.total <= 0) return null;
-    if (window.used != null) return (window.used / window.total) * 100;
-    if (window.remaining != null) return ((window.total - window.remaining) / window.total) * 100;
-    return null;
+    return window.remainingPercent == null ? null : 100 - window.remainingPercent;
   };
 
   const handleTest = async () => {
@@ -167,12 +119,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     try {
       const result = await testUsageQuery.mutateAsync({ channelID: currentRow.id, input: buildInput() });
       setTestResult(result);
-      const text = result.text ?? result;
-      if (text.isValid === false) {
-        toast.error(text.invalidMessage || t('channels.dialogs.usageQuery.test.invalid'));
-      } else {
-        toast.success(t('channels.dialogs.usageQuery.test.success'));
-      }
+      toast.success(t('channels.dialogs.usageQuery.test.success'));
     } catch (error) {
       toast.error(t('channels.dialogs.usageQuery.test.failed'), {
         description: error instanceof Error ? error.message : String(error),
@@ -232,6 +179,9 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='NEW_API'>{t('channels.dialogs.usageQuery.preset.newApi')}</SelectItem>
+                    <SelectItem value='CODEX'>{t('channels.dialogs.usageQuery.preset.codex')}</SelectItem>
+                    <SelectItem value='CLAUDE_OAUTH'>{t('channels.dialogs.usageQuery.preset.claudeOauth')}</SelectItem>
+                    <SelectItem value='OPENCODE_GO'>{t('channels.dialogs.usageQuery.preset.opencodeGo')}</SelectItem>
                     <SelectItem value='CUSTOM'>{t('channels.dialogs.usageQuery.preset.custom')}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -314,7 +264,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
               </div>
             </div>
 
-            {preset === 'NEW_API' && (
+            {getUsageQueryPreset(preset).requiresUserId && (
               <div className='space-y-2'>
                 <Label htmlFor='usage-query-user-id'>{t('channels.dialogs.usageQuery.userId.label')}</Label>
                 <Input
@@ -337,68 +287,45 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
                   setTestResult(null);
                 }}
                 spellCheck={false}
+                readOnly={preset !== 'CUSTOM'}
                 className='min-h-80 resize-y font-mono text-xs leading-5'
               />
             </div>
 
-            {testResult && testText && (
-              <Alert variant={testText.isValid === false ? 'destructive' : 'default'}>
+            {testResult && (
+              <Alert>
                 <AlertTitle className='flex items-center gap-2'>
                   {t('channels.dialogs.usageQuery.test.result')}
                   <Badge variant='outline'>{t(`quota.status.${testResult.status}`)}</Badge>
                 </AlertTitle>
                 <AlertDescription>
-                  {testText.isValid === false ? (
-                    testText.invalidMessage || t('channels.dialogs.usageQuery.test.invalid')
-                  ) : (
-                    <div className='mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
-                      {testText.planName && (
-                        <div>
-                          <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.plan')}</span>{' '}
-                          {testText.planName}
-                        </div>
-                      )}
-                      {testText.remaining != null && (
+                  <div className='mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
+                      {testResult.balance && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.remaining')}</span>{' '}
-                          {formatValue(testText.remaining, testText.unit)}
+                          {formatValue(testResult.balance.remaining, testResult.balance.unit)}
                         </div>
                       )}
-                      {testText.used != null && (
-                        <div>
-                          <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.used')}</span>{' '}
-                          {formatValue(testText.used, testText.unit)}
-                        </div>
-                      )}
-                      {testText.total != null && (
-                        <div>
-                          <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.total')}</span>{' '}
-                          {formatValue(testText.total, testText.unit)}
-                        </div>
-                      )}
-                      {testText.extra && <div className='sm:col-span-2'>{testText.extra}</div>}
+                      {testResult.text && <div className='whitespace-pre-line sm:col-span-2'>{testResult.text}</div>}
                       {(testResult.progress?.windows ?? []).map((window, index) => {
                         const percent = getProgressPercent(window);
-                        if (percent == null) return null;
-                        const label = window.label || window.id || `#${index + 1}`;
-                        const value =
-                          window.used != null && window.total != null
-                            ? `${formatValue(window.used, window.unit)} / ${formatValue(window.total, window.unit)}`
-                            : `${Math.round(percent)}%`;
+                        const label = window.id || `#${index + 1}`;
+                        const value = percent == null ? '-' : `${Math.round(100 - percent)}%`;
                         return (
-                          <div key={window.id || `${label}-${index}`} className='space-y-1 sm:col-span-2'>
+                          <div key={`${label}-${index}`} className='space-y-1 sm:col-span-2'>
                             <div className='flex justify-between gap-3'>
                               <span className='text-muted-foreground'>{label}</span>
                               <span>{value}</span>
                             </div>
-                            <div className='bg-muted h-1.5 overflow-hidden rounded-full'>
-                              <div className='h-full bg-primary' style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} />
-                            </div>
+                            {percent != null && (
+                              <div className='bg-muted h-1.5 overflow-hidden rounded-full'>
+                                <div className='h-full bg-primary' style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
-                    </div>
-                  )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}

@@ -110,10 +110,10 @@ func TestProviderQuotaService_RunQuotaCheck_CollectionDisabledForSelectedProvide
 
 	minimaxChecker := &countingQuotaChecker{providerType: "minimax"}
 	zhipuChecker := &countingQuotaChecker{providerType: "zhipu"}
-	codexChecker := &countingQuotaChecker{providerType: "codex"}
+	usageQueryChecker := &countingQuotaChecker{providerType: "usage_query"}
 	service.checkers["minimax"] = minimaxChecker
 	service.checkers["zhipu"] = zhipuChecker
-	service.checkers["codex"] = codexChecker
+	service.checkers["usage_query"] = usageQueryChecker
 	createProviderQuotaCollectionChannel(t, ctx, client, "MiniMax", channel.TypeMinimax)
 	createProviderQuotaCollectionChannel(t, ctx, client, "BigModel", channel.TypeZhipu)
 	codexChannel := createProviderQuotaCollectionChannel(t, ctx, client, "Codex", channel.TypeCodex)
@@ -130,7 +130,7 @@ func TestProviderQuotaService_RunQuotaCheck_CollectionDisabledForSelectedProvide
 
 	require.Zero(t, minimaxChecker.calls.Load())
 	require.Zero(t, zhipuChecker.calls.Load())
-	require.EqualValues(t, 1, codexChecker.calls.Load())
+	require.EqualValues(t, 1, usageQueryChecker.calls.Load())
 }
 
 func TestProviderQuotaService_GetQuotaStatus_CollectionDisabledForProvider(t *testing.T) {
@@ -143,7 +143,7 @@ func TestProviderQuotaService_GetQuotaStatus_CollectionDisabledForProvider(t *te
 		Ready:        false,
 	})
 	service.quotaCache.Store(2, &QuotaChannelStatus{
-		ProviderType: "codex",
+		ProviderType: "github_copilot",
 		Status:       "available",
 		Ready:        true,
 	})
@@ -159,20 +159,17 @@ func TestProviderQuotaService_ResetChannelQuotaNow_CollectionDisabledForCodex(t 
 	service, systemService, ctx, client := setupProviderQuotaCollectionService(t)
 	defer client.Close()
 
-	codexChecker := &countingQuotaChecker{providerType: "codex"}
-	service.checkers["codex"] = codexChecker
 	channelEntity := createProviderQuotaCollectionChannel(t, ctx, client, "Codex", channel.TypeCodex)
 	require.NoError(t, client.Channel.UpdateOne(channelEntity).
 		SetCredentials(objects.ChannelCredentials{APIKey: "{\"access_token\":\"test-token\"}"}).
 		Exec(ctx))
 	require.NoError(t, systemService.UpdateProviderQuotaCollectionSettings(ctx, nil, []ProviderQuotaCollectionProvider{
-		{Provider: "codex", Enabled: false},
+		{Provider: "usage_query", Enabled: false},
 	}))
 
 	err := service.ResetChannelQuotaNow(ctx, channelEntity.ID)
 
-	require.ErrorContains(t, err, "provider quota collection is disabled for codex")
-	require.Zero(t, codexChecker.calls.Load())
+	require.ErrorContains(t, err, "provider quota collection is disabled for usage queries")
 }
 
 func TestProviderQuotaService_RefreshUsageQueries_RefreshesEnabledScriptsWhenCollectionIsDisabled(t *testing.T) {
@@ -211,4 +208,19 @@ func TestProviderQuotaService_RefreshUsageQueries_RefreshesEnabledScriptsWhenCol
 
 	require.NoError(t, service.RefreshUsageQueryChannel(ctx, channelEntity.ID))
 	require.EqualValues(t, 3, checker.calls.Load())
+}
+
+func TestProviderQuotaService_RefreshUsageQueries_IncludesBuiltInPresets(t *testing.T) {
+	service, _, ctx, client := setupProviderQuotaCollectionService(t)
+	defer client.Close()
+
+	checker := &countingQuotaChecker{providerType: "usage_query"}
+	service.checkers["usage_query"] = checker
+	channelEntity := createProviderQuotaCollectionChannel(t, ctx, client, "Codex", channel.TypeCodex)
+
+	require.NoError(t, service.RefreshUsageQueries(ctx))
+	require.EqualValues(t, 1, checker.calls.Load())
+
+	require.NoError(t, service.RefreshUsageQueryChannel(ctx, channelEntity.ID))
+	require.EqualValues(t, 2, checker.calls.Load())
 }

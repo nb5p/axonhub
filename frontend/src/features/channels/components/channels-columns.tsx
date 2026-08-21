@@ -753,11 +753,13 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
   const refreshUsageQuery = useRefreshChannelUsageQuery();
   const channel = row.original;
   const configured = channel.settings?.usageQuery?.enabled === true;
+  const builtInPreset = channel.type === 'codex' || channel.type === 'claudecode' || channel.type === 'opencode_go' || channel.type === 'opencode_go_anthropic';
   const quotaStatus = channel.providerQuotaStatus?.providerType === 'usage_query' ? channel.providerQuotaStatus : null;
   const quotaData = quotaStatus?.quotaData as ProviderUsageQueryQuotaData | null | undefined;
 
   const formatValue = (value: number | undefined, unit?: string): string => {
     if (value == null) return '-';
+    if (unit === 'A$') return `A$${value.toFixed(2)}`;
     if (unit && /^[A-Z]{3}$/.test(unit)) {
       return t('currencies.format', {
         val: value,
@@ -771,23 +773,28 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
     return unit ? `${formatted} ${unit}` : formatted;
   };
 
-  let text = '-';
+  let fullText = '-';
   if (quotaData?.error) {
-    text = quotaData.error;
+    fullText = quotaData.error;
   } else if (quotaData?.isValid === false) {
-    text = quotaData.invalidMessage || t('channels.usageQuery.invalid');
+    fullText = quotaData.invalidMessage || t('channels.usageQuery.invalid');
   } else if (quotaData) {
     const details: string[] = [];
-    if (quotaData.extra) details.push(quotaData.extra);
-    if (quotaData.planName) details.push(quotaData.planName);
-    if (quotaData.remaining != null) {
-      details.push(`${t('channels.usageQuery.remaining')}${formatValue(quotaData.remaining, quotaData.unit)}`);
+    if (quotaData.text) {
+      details.push(quotaData.text);
+    } else {
+      if (quotaData.extra) details.push(quotaData.extra);
+      if (quotaData.planName) details.push(quotaData.planName);
+    }
+    const balance = quotaData.balance ?? (quotaData.remaining != null ? { remaining: quotaData.remaining, unit: quotaData.unit } : undefined);
+    if (balance) {
+      details.push(`${t('channels.usageQuery.remaining')}${formatValue(balance.remaining, balance.unit)}`);
     } else if (quotaData.used != null && quotaData.total != null) {
       details.push(`${formatValue(quotaData.used, quotaData.unit)} / ${formatValue(quotaData.total, quotaData.unit)}`);
     }
-    if (details.length > 0) text = details.join('\n');
+    if (details.length > 0) fullText = details.join('\n');
   }
-  text = normalizeUsageQueryText(text);
+  const text = normalizeUsageQueryText(fullText);
 
   const refresh = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -807,9 +814,9 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
         <TooltipTrigger asChild>
           <span className='line-clamp-2 min-w-0 flex-1 whitespace-pre-line break-words text-left text-sm leading-5'>{text}</span>
         </TooltipTrigger>
-        <TooltipContent className='max-w-96 whitespace-pre-line break-words'>{text}</TooltipContent>
+        <TooltipContent className='max-w-96 whitespace-pre-line break-words'>{fullText}</TooltipContent>
       </Tooltip>
-      {canWrite && configured && (
+      {canWrite && (configured || builtInPreset) && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

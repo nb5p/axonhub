@@ -251,8 +251,11 @@ type ChannelUsageQuerySettings struct {
 type ChannelUsageQueryPreset string
 
 const (
-	ChannelUsageQueryPresetNewAPI ChannelUsageQueryPreset = "NEW_API"
-	ChannelUsageQueryPresetCustom ChannelUsageQueryPreset = "CUSTOM"
+	ChannelUsageQueryPresetNewAPI   ChannelUsageQueryPreset = "NEW_API"
+	ChannelUsageQueryPresetCodex    ChannelUsageQueryPreset = "CODEX"
+	ChannelUsageQueryPresetClaude   ChannelUsageQueryPreset = "CLAUDE_OAUTH"
+	ChannelUsageQueryPresetOpenCode ChannelUsageQueryPreset = "OPENCODE_GO"
+	ChannelUsageQueryPresetCustom   ChannelUsageQueryPreset = "CUSTOM"
 )
 
 type ChannelRateLimit struct {

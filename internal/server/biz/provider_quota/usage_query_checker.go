@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/looplj/axonhub/internal/ent"
+	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/llm/httpclient"
 )
 
@@ -46,7 +47,7 @@ func NewUsageQueryCheckerWithRuntime(httpClient *httpclient.HttpClient, runtime 
 }
 
 func (c *UsageQueryChecker) SupportsChannel(ch *ent.Channel) bool {
-	return ch != nil && ch.Settings != nil && ch.Settings.UsageQuery != nil && ch.Settings.UsageQuery.Enabled
+	return effectiveUsageQuerySettings(ch) != nil
 }
 
 func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (QuotaData, error) {
@@ -54,7 +55,7 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 		return QuotaData{}, errors.New("usage query is not enabled")
 	}
 
-	settings := ch.Settings.UsageQuery
+	settings := effectiveUsageQuerySettings(ch)
 	baseURL := strings.TrimSpace(settings.BaseURLOverride)
 	if baseURL == "" {
 		baseURL = strings.TrimRight(strings.TrimSpace(ch.BaseURL), "/")
@@ -76,7 +77,8 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 		apiKey = strings.TrimSpace(ch.Credentials.OAuth.AccessToken)
 	}
 
-	requestConfig, err := c.runtime.ParseRequest(ctx, settings.Script, map[string]string{
+	script := effectiveUsageQueryScript(settings)
+	requestConfig, err := c.runtime.ParseRequest(ctx, script, map[string]string{
 		"baseUrl":     strings.TrimRight(baseURL, "/"),
 		"apiKey":      apiKey,
 		"accessToken": apiKey,
@@ -91,7 +93,7 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 		return QuotaData{}, err
 	}
 
-	result, err := c.runtime.Extract(ctx, settings.Script, response)
+	result, err := c.runtime.Extract(ctx, script, response, usageQueryScriptContext(time.Now()))
 	if err != nil {
 		return QuotaData{}, fmt.Errorf("failed to extract usage query response: %w", err)
 	}
@@ -102,8 +104,15 @@ func (c *UsageQueryChecker) CheckQuota(ctx context.Context, ch *ent.Channel) (Qu
 }
 
 func usageQueryShowsInProviderQuota(ch *ent.Channel) bool {
-	return ch != nil && ch.Settings != nil && ch.Settings.UsageQuery != nil &&
-		(ch.Settings.UsageQuery.ShowInProviderQuota == nil || *ch.Settings.UsageQuery.ShowInProviderQuota)
+	settings := effectiveUsageQuerySettings(ch)
+	return settings != nil && (settings.ShowInProviderQuota == nil || *settings.ShowInProviderQuota)
+}
+
+func effectiveUsageQuerySettings(ch *ent.Channel) *objects.ChannelUsageQuerySettings {
+	if ch != nil && ch.Settings != nil && ch.Settings.UsageQuery != nil && ch.Settings.UsageQuery.Enabled {
+		return ch.Settings.UsageQuery
+	}
+	return BuiltInUsageQuerySettings(ch)
 }
 
 func (c *UsageQueryChecker) executeRequest(
@@ -111,33 +120,33 @@ func (c *UsageQueryChecker) executeRequest(
 	ch *ent.Channel,
 	baseURL string,
 	config UsageQueryRequest,
-) (any, error) {
+) (UsageQueryHTTPResponse, error) {
 	method := strings.ToUpper(strings.TrimSpace(config.Method))
 	if method == "" {
 		method = http.MethodGet
 	}
 	if _, ok := usageQueryAllowedMethods[method]; !ok {
-		return nil, fmt.Errorf("usage query HTTP method %q is not allowed", method)
+		return UsageQueryHTTPResponse{}, fmt.Errorf("usage query HTTP method %q is not allowed", method)
 	}
 
 	requestURL, err := validateUsageQueryURL(ctx, config.URL, baseURL)
 	if err != nil {
-		return nil, err
+		return UsageQueryHTTPResponse{}, err
 	}
 
 	body, contentType, err := encodeUsageQueryBody(config.Body)
 	if err != nil {
-		return nil, err
+		return UsageQueryHTTPResponse{}, err
 	}
 	requestCtx, cancel := context.WithTimeout(ctx, usageQueryRequestTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(requestCtx, method, requestURL.String(), bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("failed to build usage query request: %w", err)
+		return UsageQueryHTTPResponse{}, fmt.Errorf("failed to build usage query request: %w", err)
 	}
 	if err := setUsageQueryHeaders(req.Header, config.Headers); err != nil {
-		return nil, err
+		return UsageQueryHTTPResponse{}, err
 	}
 	if contentType != "" && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", contentType)
@@ -161,23 +170,41 @@ func (c *UsageQueryChecker) executeRequest(
 
 	resp, err := native.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("usage query request failed: %w", err)
+		return UsageQueryHTTPResponse{}, fmt.Errorf("usage query request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxUsageQueryResponseBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read usage query response: %w", err)
+		return UsageQueryHTTPResponse{}, fmt.Errorf("failed to read usage query response: %w", err)
 	}
 	if len(data) > maxUsageQueryResponseBytes {
-		return nil, fmt.Errorf("usage query response exceeds %d bytes", maxUsageQueryResponseBytes)
+		return UsageQueryHTTPResponse{}, fmt.Errorf("usage query response exceeds %d bytes", maxUsageQueryResponseBytes)
 	}
 
-	var response any
-	if err := json.Unmarshal(data, &response); err != nil {
-		return nil, fmt.Errorf("usage query returned HTTP %d with invalid JSON: %w", resp.StatusCode, err)
+	var responseBody any
+	if err := json.Unmarshal(data, &responseBody); err != nil {
+		return UsageQueryHTTPResponse{}, fmt.Errorf("usage query returned HTTP %d with invalid JSON: %w", resp.StatusCode, err)
 	}
-	return response, nil
+	return UsageQueryHTTPResponse{
+		Status:  resp.StatusCode,
+		Headers: usageQueryResponseHeaders(resp.Header),
+		Body:    responseBody,
+	}, nil
+}
+
+func usageQueryResponseHeaders(headers http.Header) map[string]string {
+	result := make(map[string]string, len(headers))
+	for name, values := range headers {
+		result[strings.ToLower(name)] = strings.Join(values, ", ")
+	}
+	return result
+}
+
+func usageQueryScriptContext(now time.Time) UsageQueryScriptContext {
+	return UsageQueryScriptContext{
+		Now: now.Format("2006-01-02T15:04:05-07:00"),
+	}
 }
 
 func validateUsageQueryURL(ctx context.Context, rawURL, rawBaseURL string) (*url.URL, error) {
@@ -254,68 +281,62 @@ func setUsageQueryHeaders(target http.Header, headers map[string]string) error {
 }
 
 func normalizeUsageQueryResult(result UsageQueryResult) QuotaData {
-	text := result.resolvedText()
-	if text.Total == nil && text.Remaining != nil && text.Used != nil {
-		total := *text.Remaining + *text.Used
-		text.Total = &total
+	legacy := result.legacyFields()
+	if legacy.Total == nil && legacy.Remaining != nil && legacy.Used != nil {
+		total := *legacy.Remaining + *legacy.Used
+		legacy.Total = &total
 	}
-	if text.Remaining == nil && text.Total != nil && text.Used != nil {
-		remaining := *text.Total - *text.Used
-		text.Remaining = &remaining
+	if legacy.Remaining == nil && legacy.Total != nil && legacy.Used != nil {
+		remaining := *legacy.Total - *legacy.Used
+		legacy.Remaining = &remaining
+	}
+
+	balance := result.Balance
+	if balance == nil && legacy.Remaining != nil {
+		balance = &UsageQueryBalance{Remaining: *legacy.Remaining, Unit: legacy.Unit}
+	}
+	text := result.Text
+	if text == "" {
+		text = strings.TrimSpace(strings.Join([]string{legacy.PlanName, legacy.Extra}, "\n"))
 	}
 
 	status := "unknown"
-	isValid := text.IsValid == nil || *text.IsValid
+	isValid := legacy.IsValid == nil || *legacy.IsValid
 	if isValid {
 		status = "available"
-		if text.Remaining != nil && *text.Remaining <= 0 {
-			status = "exhausted"
-		} else if text.Total != nil && text.Used != nil && *text.Total > 0 && *text.Used/(*text.Total) >= WarningThresholdRatio {
-			status = "warning"
-		} else if result.Progress != nil {
+		hasProgressPercentage := false
+		if result.Progress != nil {
 			for _, window := range result.Progress.Windows {
-				percent, ok := usageQueryProgressPercent(window)
-				if !ok {
+				if window.RemainingPercent == nil {
 					continue
 				}
-				if percent >= 100 {
+				hasProgressPercentage = true
+				if *window.RemainingPercent <= 0 {
 					status = "exhausted"
 					break
 				}
-				if percent >= WarningThresholdRatio*100 {
+				if *window.RemainingPercent <= (1-WarningThresholdRatio)*100 {
 					status = "warning"
 				}
 			}
 		}
+		if !hasProgressPercentage && balance != nil && balance.Remaining <= 0 {
+			status = "exhausted"
+		}
 	}
 
 	rawData := map[string]any{"kind": usageQueryProviderType}
-	if text.IsValid != nil {
-		rawData["isValid"] = *text.IsValid
+	if balance != nil {
+		rawData["balance"] = balance
 	}
-	if text.InvalidMessage != "" {
-		rawData["invalidMessage"] = text.InvalidMessage
-	}
-	if text.Remaining != nil {
-		rawData["remaining"] = *text.Remaining
-	}
-	if text.Total != nil {
-		rawData["total"] = *text.Total
-	}
-	if text.Used != nil {
-		rawData["used"] = *text.Used
-	}
-	if text.Unit != "" {
-		rawData["unit"] = text.Unit
-	}
-	if text.PlanName != "" {
-		rawData["planName"] = text.PlanName
-	}
-	if text.Extra != "" {
-		rawData["extra"] = text.Extra
+	if text != "" {
+		rawData["text"] = text
 	}
 	if result.Progress != nil && len(result.Progress.Windows) > 0 {
 		rawData["progress"] = result.Progress
+	}
+	if legacy.IsValid != nil && !*legacy.IsValid {
+		rawData["error"] = legacy.InvalidMessage
 	}
 
 	return QuotaData{
@@ -324,20 +345,4 @@ func normalizeUsageQueryResult(result UsageQueryResult) QuotaData {
 		RawData:      rawData,
 		Ready:        IsReadyStatus(status),
 	}
-}
-
-func usageQueryProgressPercent(window UsageQueryProgressWindow) (float64, bool) {
-	if window.UsedPercent != nil {
-		return *window.UsedPercent, true
-	}
-	if window.Total == nil || *window.Total <= 0 {
-		return 0, false
-	}
-	if window.Used != nil {
-		return *window.Used / *window.Total * 100, true
-	}
-	if window.Remaining != nil {
-		return (*window.Total - *window.Remaining) / *window.Total * 100, true
-	}
-	return 0, false
 }

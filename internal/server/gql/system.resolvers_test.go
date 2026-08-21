@@ -65,7 +65,7 @@ func TestMutationResolver_UpdateProviderQuotaCollectionSettings_MergesProviders(
 	defer client.Close()
 
 	require.NoError(t, resolver.systemService.UpdateProviderQuotaCollectionSettings(ctx, nil, []biz.ProviderQuotaCollectionProvider{
-		{Provider: "codex", Enabled: false},
+		{Provider: "usage_query", Enabled: false},
 	}))
 
 	ok, err := resolver.UpdateProviderQuotaCollectionSettings(ctx, UpdateProviderQuotaCollectionSettingsInput{
@@ -78,7 +78,7 @@ func TestMutationResolver_UpdateProviderQuotaCollectionSettings_MergesProviders(
 
 	settings, err := resolver.systemService.ProviderQuotaCollectionSettings(ctx)
 	require.NoError(t, err)
-	require.False(t, settings.Providers["codex"])
+	require.False(t, settings.Providers["usage_query"])
 	require.False(t, settings.Providers["minimax"])
 	require.True(t, settings.Providers["zhipu"])
 }

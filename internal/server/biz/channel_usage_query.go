@@ -36,17 +36,10 @@ type ChannelUsageQueryConfigInput struct {
 }
 
 type ChannelUsageQueryTestResult struct {
-	Status         string
-	Text           *providerquota.UsageQueryTextResult
-	Progress       *providerquota.UsageQueryProgress
-	IsValid        *bool
-	InvalidMessage *string
-	Remaining      *float64
-	Unit           *string
-	PlanName       *string
-	Total          *float64
-	Used           *float64
-	Extra          *string
+	Status   string
+	Balance  *providerquota.UsageQueryBalance
+	Text     *string
+	Progress *providerquota.UsageQueryProgress
 }
 
 func (svc *ChannelService) ChannelUsageQueryConfig(ctx context.Context, channelID int) (*ChannelUsageQueryConfig, error) {
@@ -62,6 +55,7 @@ func (svc *ChannelService) SaveChannelUsageQueryConfig(
 	channelID int,
 	input ChannelUsageQueryConfigInput,
 ) (*ChannelUsageQueryConfig, error) {
+	input = canonicalizeUsageQueryPresetInput(input)
 	if err := validateChannelUsageQueryInput(input); err != nil {
 		return nil, err
 	}
@@ -116,6 +110,7 @@ func (svc *ChannelService) TestChannelUsageQuery(
 	channelID int,
 	input ChannelUsageQueryConfigInput,
 ) (*ChannelUsageQueryTestResult, error) {
+	input = canonicalizeUsageQueryPresetInput(input)
 	if err := validateChannelUsageQueryInput(input); err != nil {
 		return nil, err
 	}
@@ -147,7 +142,13 @@ func (svc *ChannelService) TestChannelUsageQuery(
 }
 
 func validateChannelUsageQueryInput(input ChannelUsageQueryConfigInput) error {
-	if input.Preset != objects.ChannelUsageQueryPresetNewAPI && input.Preset != objects.ChannelUsageQueryPresetCustom {
+	switch input.Preset {
+	case objects.ChannelUsageQueryPresetNewAPI,
+		objects.ChannelUsageQueryPresetCodex,
+		objects.ChannelUsageQueryPresetClaude,
+		objects.ChannelUsageQueryPresetOpenCode,
+		objects.ChannelUsageQueryPresetCustom:
+	default:
 		return fmt.Errorf("unsupported usage query preset: %q", input.Preset)
 	}
 	if strings.TrimSpace(input.Script) == "" {
@@ -192,23 +193,36 @@ func usageQuerySettingsFromInput(input ChannelUsageQueryConfigInput) *objects.Ch
 	return settings
 }
 
+func canonicalizeUsageQueryPresetInput(input ChannelUsageQueryConfigInput) ChannelUsageQueryConfigInput {
+	if script, ok := providerquota.UsageQueryPresetScript(input.Preset); ok {
+		input.Script = script
+	}
+	return input
+}
+
 func channelUsageQueryConfigFromEntity(ch *ent.Channel) *ChannelUsageQueryConfig {
 	result := &ChannelUsageQueryConfig{
 		Preset:              objects.ChannelUsageQueryPresetNewAPI,
 		ShowInProviderQuota: true,
 		APIKeyConfigured:    strings.TrimSpace(ch.Credentials.UsageQueryAPIKey) != "",
 	}
-	if ch.Settings == nil || ch.Settings.UsageQuery == nil {
+	var settings *objects.ChannelUsageQuerySettings
+	if ch.Settings != nil {
+		settings = ch.Settings.UsageQuery
+	}
+	if settings == nil {
+		settings = providerquota.BuiltInUsageQuerySettings(ch)
+	}
+	if settings == nil {
 		return result
 	}
 
-	settings := ch.Settings.UsageQuery
 	result.Enabled = settings.Enabled
 	if settings.ShowInProviderQuota != nil {
 		result.ShowInProviderQuota = *settings.ShowInProviderQuota
 	}
 	result.Preset = settings.Preset
-	result.Script = settings.Script
+	result.Script = providerquota.EffectiveUsageQueryScript(settings)
 	if settings.BaseURLOverride != "" {
 		result.BaseURLOverride = &settings.BaseURLOverride
 	}
@@ -221,39 +235,11 @@ func channelUsageQueryConfigFromEntity(ch *ent.Channel) *ChannelUsageQueryConfig
 func usageQueryTestResultFromQuotaData(quotaData providerquota.QuotaData) *ChannelUsageQueryTestResult {
 	result := &ChannelUsageQueryTestResult{Status: quotaData.Status}
 	data := quotaData.RawData
-	if value, ok := data["isValid"].(bool); ok {
-		result.IsValid = &value
+	if balance, ok := data["balance"].(*providerquota.UsageQueryBalance); ok {
+		result.Balance = balance
 	}
-	if value, ok := data["invalidMessage"].(string); ok {
-		result.InvalidMessage = &value
-	}
-	if value, ok := data["remaining"].(float64); ok {
-		result.Remaining = &value
-	}
-	if value, ok := data["unit"].(string); ok {
-		result.Unit = &value
-	}
-	if value, ok := data["planName"].(string); ok {
-		result.PlanName = &value
-	}
-	if value, ok := data["total"].(float64); ok {
-		result.Total = &value
-	}
-	if value, ok := data["used"].(float64); ok {
-		result.Used = &value
-	}
-	if value, ok := data["extra"].(string); ok {
-		result.Extra = &value
-	}
-	result.Text = &providerquota.UsageQueryTextResult{
-		IsValid:        result.IsValid,
-		InvalidMessage: lo.FromPtr(result.InvalidMessage),
-		Remaining:      result.Remaining,
-		Unit:           lo.FromPtr(result.Unit),
-		PlanName:       lo.FromPtr(result.PlanName),
-		Total:          result.Total,
-		Used:           result.Used,
-		Extra:          lo.FromPtr(result.Extra),
+	if value, ok := data["text"].(string); ok {
+		result.Text = &value
 	}
 	if progress, ok := usageQueryProgressFromRawData(data["progress"]); ok {
 		result.Progress = progress

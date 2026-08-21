@@ -633,6 +633,11 @@ type ComplexityRoot struct {
 		Type  func(childComplexity int) int
 	}
 
+	ChannelUsageQueryBalance struct {
+		Remaining func(childComplexity int) int
+		Unit      func(childComplexity int) int
+	}
+
 	ChannelUsageQueryConfig struct {
 		APIKeyConfigured    func(childComplexity int) int
 		BaseURLOverride     func(childComplexity int) int
@@ -653,40 +658,17 @@ type ComplexityRoot struct {
 	}
 
 	ChannelUsageQueryProgressWindow struct {
-		ID          func(childComplexity int) int
-		Label       func(childComplexity int) int
-		Remaining   func(childComplexity int) int
-		ResetAt     func(childComplexity int) int
-		Total       func(childComplexity int) int
-		Unit        func(childComplexity int) int
-		Used        func(childComplexity int) int
-		UsedPercent func(childComplexity int) int
-		WindowStart func(childComplexity int) int
+		DurationSeconds  func(childComplexity int) int
+		ID               func(childComplexity int) int
+		RemainingPercent func(childComplexity int) int
+		ResetAt          func(childComplexity int) int
 	}
 
 	ChannelUsageQueryTestResult struct {
-		Extra          func(childComplexity int) int
-		InvalidMessage func(childComplexity int) int
-		IsValid        func(childComplexity int) int
-		PlanName       func(childComplexity int) int
-		Progress       func(childComplexity int) int
-		Remaining      func(childComplexity int) int
-		Status         func(childComplexity int) int
-		Text           func(childComplexity int) int
-		Total          func(childComplexity int) int
-		Unit           func(childComplexity int) int
-		Used           func(childComplexity int) int
-	}
-
-	ChannelUsageQueryTextResult struct {
-		Extra          func(childComplexity int) int
-		InvalidMessage func(childComplexity int) int
-		IsValid        func(childComplexity int) int
-		PlanName       func(childComplexity int) int
-		Remaining      func(childComplexity int) int
-		Total          func(childComplexity int) int
-		Unit           func(childComplexity int) int
-		Used           func(childComplexity int) int
+		Balance  func(childComplexity int) int
+		Progress func(childComplexity int) int
+		Status   func(childComplexity int) int
+		Text     func(childComplexity int) int
 	}
 
 	CleanupOption struct {
@@ -4713,6 +4695,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ChannelTypeCount.Type(childComplexity), true
 
+	case "ChannelUsageQueryBalance.remaining":
+		if e.complexity.ChannelUsageQueryBalance.Remaining == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryBalance.Remaining(childComplexity), true
+	case "ChannelUsageQueryBalance.unit":
+		if e.complexity.ChannelUsageQueryBalance.Unit == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryBalance.Unit(childComplexity), true
+
 	case "ChannelUsageQueryConfig.apiKeyConfigured":
 		if e.complexity.ChannelUsageQueryConfig.APIKeyConfigured == nil {
 			break
@@ -4776,97 +4771,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ChannelUsageQueryProgress.Windows(childComplexity), true
 
+	case "ChannelUsageQueryProgressWindow.durationSeconds":
+		if e.complexity.ChannelUsageQueryProgressWindow.DurationSeconds == nil {
+			break
+		}
+
+		return e.complexity.ChannelUsageQueryProgressWindow.DurationSeconds(childComplexity), true
 	case "ChannelUsageQueryProgressWindow.id":
 		if e.complexity.ChannelUsageQueryProgressWindow.ID == nil {
 			break
 		}
 
 		return e.complexity.ChannelUsageQueryProgressWindow.ID(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.label":
-		if e.complexity.ChannelUsageQueryProgressWindow.Label == nil {
+	case "ChannelUsageQueryProgressWindow.remainingPercent":
+		if e.complexity.ChannelUsageQueryProgressWindow.RemainingPercent == nil {
 			break
 		}
 
-		return e.complexity.ChannelUsageQueryProgressWindow.Label(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.remaining":
-		if e.complexity.ChannelUsageQueryProgressWindow.Remaining == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryProgressWindow.Remaining(childComplexity), true
+		return e.complexity.ChannelUsageQueryProgressWindow.RemainingPercent(childComplexity), true
 	case "ChannelUsageQueryProgressWindow.resetAt":
 		if e.complexity.ChannelUsageQueryProgressWindow.ResetAt == nil {
 			break
 		}
 
 		return e.complexity.ChannelUsageQueryProgressWindow.ResetAt(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.total":
-		if e.complexity.ChannelUsageQueryProgressWindow.Total == nil {
+
+	case "ChannelUsageQueryTestResult.balance":
+		if e.complexity.ChannelUsageQueryTestResult.Balance == nil {
 			break
 		}
 
-		return e.complexity.ChannelUsageQueryProgressWindow.Total(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.unit":
-		if e.complexity.ChannelUsageQueryProgressWindow.Unit == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryProgressWindow.Unit(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.used":
-		if e.complexity.ChannelUsageQueryProgressWindow.Used == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryProgressWindow.Used(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.usedPercent":
-		if e.complexity.ChannelUsageQueryProgressWindow.UsedPercent == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryProgressWindow.UsedPercent(childComplexity), true
-	case "ChannelUsageQueryProgressWindow.windowStart":
-		if e.complexity.ChannelUsageQueryProgressWindow.WindowStart == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryProgressWindow.WindowStart(childComplexity), true
-
-	case "ChannelUsageQueryTestResult.extra":
-		if e.complexity.ChannelUsageQueryTestResult.Extra == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.Extra(childComplexity), true
-	case "ChannelUsageQueryTestResult.invalidMessage":
-		if e.complexity.ChannelUsageQueryTestResult.InvalidMessage == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.InvalidMessage(childComplexity), true
-	case "ChannelUsageQueryTestResult.isValid":
-		if e.complexity.ChannelUsageQueryTestResult.IsValid == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.IsValid(childComplexity), true
-	case "ChannelUsageQueryTestResult.planName":
-		if e.complexity.ChannelUsageQueryTestResult.PlanName == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.PlanName(childComplexity), true
+		return e.complexity.ChannelUsageQueryTestResult.Balance(childComplexity), true
 	case "ChannelUsageQueryTestResult.progress":
 		if e.complexity.ChannelUsageQueryTestResult.Progress == nil {
 			break
 		}
 
 		return e.complexity.ChannelUsageQueryTestResult.Progress(childComplexity), true
-	case "ChannelUsageQueryTestResult.remaining":
-		if e.complexity.ChannelUsageQueryTestResult.Remaining == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.Remaining(childComplexity), true
 	case "ChannelUsageQueryTestResult.status":
 		if e.complexity.ChannelUsageQueryTestResult.Status == nil {
 			break
@@ -4879,73 +4820,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelUsageQueryTestResult.Text(childComplexity), true
-	case "ChannelUsageQueryTestResult.total":
-		if e.complexity.ChannelUsageQueryTestResult.Total == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.Total(childComplexity), true
-	case "ChannelUsageQueryTestResult.unit":
-		if e.complexity.ChannelUsageQueryTestResult.Unit == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.Unit(childComplexity), true
-	case "ChannelUsageQueryTestResult.used":
-		if e.complexity.ChannelUsageQueryTestResult.Used == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTestResult.Used(childComplexity), true
-
-	case "ChannelUsageQueryTextResult.extra":
-		if e.complexity.ChannelUsageQueryTextResult.Extra == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.Extra(childComplexity), true
-	case "ChannelUsageQueryTextResult.invalidMessage":
-		if e.complexity.ChannelUsageQueryTextResult.InvalidMessage == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.InvalidMessage(childComplexity), true
-	case "ChannelUsageQueryTextResult.isValid":
-		if e.complexity.ChannelUsageQueryTextResult.IsValid == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.IsValid(childComplexity), true
-	case "ChannelUsageQueryTextResult.planName":
-		if e.complexity.ChannelUsageQueryTextResult.PlanName == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.PlanName(childComplexity), true
-	case "ChannelUsageQueryTextResult.remaining":
-		if e.complexity.ChannelUsageQueryTextResult.Remaining == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.Remaining(childComplexity), true
-	case "ChannelUsageQueryTextResult.total":
-		if e.complexity.ChannelUsageQueryTextResult.Total == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.Total(childComplexity), true
-	case "ChannelUsageQueryTextResult.unit":
-		if e.complexity.ChannelUsageQueryTextResult.Unit == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.Unit(childComplexity), true
-	case "ChannelUsageQueryTextResult.used":
-		if e.complexity.ChannelUsageQueryTextResult.Used == nil {
-			break
-		}
-
-		return e.complexity.ChannelUsageQueryTextResult.Used(childComplexity), true
 
 	case "CleanupOption.cleanupDays":
 		if e.complexity.CleanupOption.CleanupDays == nil {
@@ -26922,6 +26796,64 @@ func (ec *executionContext) fieldContext_ChannelTypeCount_count(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelUsageQueryBalance_remaining(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryBalance_remaining,
+		func(ctx context.Context) (any, error) {
+			return obj.Remaining, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryBalance_remaining(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryBalance",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelUsageQueryBalance_unit(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryBalance_unit,
+		func(ctx context.Context) (any, error) {
+			return obj.Unit, nil
+		},
+		nil,
+		ec.marshalOString2string,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryBalance_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryBalance",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelUsageQueryConfig_enabled(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryConfig) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -27209,20 +27141,10 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryProgress_windows(_ con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ChannelUsageQueryProgressWindow_id(ctx, field)
-			case "label":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_label(ctx, field)
-			case "used":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_used(ctx, field)
-			case "total":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_total(ctx, field)
-			case "remaining":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_remaining(ctx, field)
-			case "usedPercent":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_usedPercent(ctx, field)
-			case "unit":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_unit(ctx, field)
-			case "windowStart":
-				return ec.fieldContext_ChannelUsageQueryProgressWindow_windowStart(ctx, field)
+			case "durationSeconds":
+				return ec.fieldContext_ChannelUsageQueryProgressWindow_durationSeconds(ctx, field)
+			case "remainingPercent":
+				return ec.fieldContext_ChannelUsageQueryProgressWindow_remainingPercent(ctx, field)
 			case "resetAt":
 				return ec.fieldContext_ChannelUsageQueryProgressWindow_resetAt(ctx, field)
 			}
@@ -27242,9 +27164,9 @@ func (ec *executionContext) _ChannelUsageQueryProgressWindow_id(ctx context.Cont
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		ec.marshalNString2string,
 		true,
-		false,
+		true,
 	)
 }
 
@@ -27261,43 +27183,43 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_id(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_label(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChannelUsageQueryProgressWindow_durationSeconds(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_label,
+		ec.fieldContext_ChannelUsageQueryProgressWindow_durationSeconds,
 		func(ctx context.Context) (any, error) {
-			return obj.Label, nil
+			return obj.DurationSeconds, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		ec.marshalOInt2ᚖint,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_durationSeconds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ChannelUsageQueryProgressWindow",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_used(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
+func (ec *executionContext) _ChannelUsageQueryProgressWindow_remainingPercent(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_used,
+		ec.fieldContext_ChannelUsageQueryProgressWindow_remainingPercent,
 		func(ctx context.Context) (any, error) {
-			return obj.Used, nil
+			return obj.RemainingPercent, nil
 		},
 		nil,
 		ec.marshalOFloat2ᚖfloat64,
@@ -27306,7 +27228,7 @@ func (ec *executionContext) _ChannelUsageQueryProgressWindow_used(ctx context.Co
 	)
 }
 
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_used(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_remainingPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ChannelUsageQueryProgressWindow",
 		Field:      field,
@@ -27314,151 +27236,6 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_used(_ 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_total(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_total,
-		func(ctx context.Context) (any, error) {
-			return obj.Total, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryProgressWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_remaining(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_remaining,
-		func(ctx context.Context) (any, error) {
-			return obj.Remaining, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_remaining(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryProgressWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_usedPercent(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_usedPercent,
-		func(ctx context.Context) (any, error) {
-			return obj.UsedPercent, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_usedPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryProgressWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_unit(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_unit,
-		func(ctx context.Context) (any, error) {
-			return obj.Unit, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryProgressWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryProgressWindow_windowStart(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryProgressWindow) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryProgressWindow_windowStart,
-		func(ctx context.Context) (any, error) {
-			return obj.WindowStart, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryProgressWindow_windowStart(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryProgressWindow",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -27522,6 +27299,41 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_status(_ co
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelUsageQueryTestResult_balance(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelUsageQueryTestResult_balance,
+		func(ctx context.Context) (any, error) {
+			return obj.Balance, nil
+		},
+		nil,
+		ec.marshalOChannelUsageQueryBalance2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚋprovider_quotaᚐUsageQueryBalance,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_balance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelUsageQueryTestResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "remaining":
+				return ec.fieldContext_ChannelUsageQueryBalance_remaining(ctx, field)
+			case "unit":
+				return ec.fieldContext_ChannelUsageQueryBalance_unit(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryBalance", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelUsageQueryTestResult_text(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -27532,7 +27344,7 @@ func (ec *executionContext) _ChannelUsageQueryTestResult_text(ctx context.Contex
 			return obj.Text, nil
 		},
 		nil,
-		ec.marshalOChannelUsageQueryTextResult2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚋprovider_quotaᚐUsageQueryTextResult,
+		ec.marshalOString2ᚖstring,
 		true,
 		false,
 	)
@@ -27545,25 +27357,7 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_text(_ cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "isValid":
-				return ec.fieldContext_ChannelUsageQueryTextResult_isValid(ctx, field)
-			case "invalidMessage":
-				return ec.fieldContext_ChannelUsageQueryTextResult_invalidMessage(ctx, field)
-			case "remaining":
-				return ec.fieldContext_ChannelUsageQueryTextResult_remaining(ctx, field)
-			case "unit":
-				return ec.fieldContext_ChannelUsageQueryTextResult_unit(ctx, field)
-			case "planName":
-				return ec.fieldContext_ChannelUsageQueryTextResult_planName(ctx, field)
-			case "total":
-				return ec.fieldContext_ChannelUsageQueryTextResult_total(ctx, field)
-			case "used":
-				return ec.fieldContext_ChannelUsageQueryTextResult_used(ctx, field)
-			case "extra":
-				return ec.fieldContext_ChannelUsageQueryTextResult_extra(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryTextResult", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -27597,470 +27391,6 @@ func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_progress(_ 
 				return ec.fieldContext_ChannelUsageQueryProgress_windows(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryProgress", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_isValid(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_isValid,
-		func(ctx context.Context) (any, error) {
-			return obj.IsValid, nil
-		},
-		nil,
-		ec.marshalOBoolean2ᚖbool,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_isValid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_invalidMessage(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_invalidMessage,
-		func(ctx context.Context) (any, error) {
-			return obj.InvalidMessage, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_invalidMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_remaining(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_remaining,
-		func(ctx context.Context) (any, error) {
-			return obj.Remaining, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_remaining(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_unit(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_unit,
-		func(ctx context.Context) (any, error) {
-			return obj.Unit, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_planName(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_planName,
-		func(ctx context.Context) (any, error) {
-			return obj.PlanName, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_planName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_total(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_total,
-		func(ctx context.Context) (any, error) {
-			return obj.Total, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_used(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_used,
-		func(ctx context.Context) (any, error) {
-			return obj.Used, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_used(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTestResult_extra(ctx context.Context, field graphql.CollectedField, obj *biz.ChannelUsageQueryTestResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTestResult_extra,
-		func(ctx context.Context) (any, error) {
-			return obj.Extra, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTestResult_extra(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTestResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_isValid(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_isValid,
-		func(ctx context.Context) (any, error) {
-			return obj.IsValid, nil
-		},
-		nil,
-		ec.marshalOBoolean2ᚖbool,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_isValid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_invalidMessage(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_invalidMessage,
-		func(ctx context.Context) (any, error) {
-			return obj.InvalidMessage, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_invalidMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_remaining(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_remaining,
-		func(ctx context.Context) (any, error) {
-			return obj.Remaining, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_remaining(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_unit(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_unit,
-		func(ctx context.Context) (any, error) {
-			return obj.Unit, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_unit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_planName(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_planName,
-		func(ctx context.Context) (any, error) {
-			return obj.PlanName, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_planName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_total(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_total,
-		func(ctx context.Context) (any, error) {
-			return obj.Total, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_used(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_used,
-		func(ctx context.Context) (any, error) {
-			return obj.Used, nil
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_used(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult_extra(ctx context.Context, field graphql.CollectedField, obj *provider_quota.UsageQueryTextResult) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ChannelUsageQueryTextResult_extra,
-		func(ctx context.Context) (any, error) {
-			return obj.Extra, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ChannelUsageQueryTextResult_extra(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChannelUsageQueryTextResult",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -35265,26 +34595,12 @@ func (ec *executionContext) fieldContext_Mutation_testChannelUsageQuery(ctx cont
 			switch field.Name {
 			case "status":
 				return ec.fieldContext_ChannelUsageQueryTestResult_status(ctx, field)
+			case "balance":
+				return ec.fieldContext_ChannelUsageQueryTestResult_balance(ctx, field)
 			case "text":
 				return ec.fieldContext_ChannelUsageQueryTestResult_text(ctx, field)
 			case "progress":
 				return ec.fieldContext_ChannelUsageQueryTestResult_progress(ctx, field)
-			case "isValid":
-				return ec.fieldContext_ChannelUsageQueryTestResult_isValid(ctx, field)
-			case "invalidMessage":
-				return ec.fieldContext_ChannelUsageQueryTestResult_invalidMessage(ctx, field)
-			case "remaining":
-				return ec.fieldContext_ChannelUsageQueryTestResult_remaining(ctx, field)
-			case "unit":
-				return ec.fieldContext_ChannelUsageQueryTestResult_unit(ctx, field)
-			case "planName":
-				return ec.fieldContext_ChannelUsageQueryTestResult_planName(ctx, field)
-			case "total":
-				return ec.fieldContext_ChannelUsageQueryTestResult_total(ctx, field)
-			case "used":
-				return ec.fieldContext_ChannelUsageQueryTestResult_used(ctx, field)
-			case "extra":
-				return ec.fieldContext_ChannelUsageQueryTestResult_extra(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChannelUsageQueryTestResult", field.Name)
 		},
@@ -98417,6 +97733,47 @@ func (ec *executionContext) _ChannelTypeCount(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var channelUsageQueryBalanceImplementors = []string{"ChannelUsageQueryBalance"}
+
+func (ec *executionContext) _ChannelUsageQueryBalance(ctx context.Context, sel ast.SelectionSet, obj *provider_quota.UsageQueryBalance) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, channelUsageQueryBalanceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChannelUsageQueryBalance")
+		case "remaining":
+			out.Values[i] = ec._ChannelUsageQueryBalance_remaining(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unit":
+			out.Values[i] = ec._ChannelUsageQueryBalance_unit(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var channelUsageQueryConfigImplementors = []string{"ChannelUsageQueryConfig"}
 
 func (ec *executionContext) _ChannelUsageQueryConfig(ctx context.Context, sel ast.SelectionSet, obj *biz.ChannelUsageQueryConfig) graphql.Marshaler {
@@ -98573,20 +97930,13 @@ func (ec *executionContext) _ChannelUsageQueryProgressWindow(ctx context.Context
 			out.Values[i] = graphql.MarshalString("ChannelUsageQueryProgressWindow")
 		case "id":
 			out.Values[i] = ec._ChannelUsageQueryProgressWindow_id(ctx, field, obj)
-		case "label":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_label(ctx, field, obj)
-		case "used":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_used(ctx, field, obj)
-		case "total":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_total(ctx, field, obj)
-		case "remaining":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_remaining(ctx, field, obj)
-		case "usedPercent":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_usedPercent(ctx, field, obj)
-		case "unit":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_unit(ctx, field, obj)
-		case "windowStart":
-			out.Values[i] = ec._ChannelUsageQueryProgressWindow_windowStart(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "durationSeconds":
+			out.Values[i] = ec._ChannelUsageQueryProgressWindow_durationSeconds(ctx, field, obj)
+		case "remainingPercent":
+			out.Values[i] = ec._ChannelUsageQueryProgressWindow_remainingPercent(ctx, field, obj)
 		case "resetAt":
 			out.Values[i] = ec._ChannelUsageQueryProgressWindow_resetAt(ctx, field, obj)
 		default:
@@ -98628,76 +97978,12 @@ func (ec *executionContext) _ChannelUsageQueryTestResult(ctx context.Context, se
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "balance":
+			out.Values[i] = ec._ChannelUsageQueryTestResult_balance(ctx, field, obj)
 		case "text":
 			out.Values[i] = ec._ChannelUsageQueryTestResult_text(ctx, field, obj)
 		case "progress":
 			out.Values[i] = ec._ChannelUsageQueryTestResult_progress(ctx, field, obj)
-		case "isValid":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_isValid(ctx, field, obj)
-		case "invalidMessage":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_invalidMessage(ctx, field, obj)
-		case "remaining":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_remaining(ctx, field, obj)
-		case "unit":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_unit(ctx, field, obj)
-		case "planName":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_planName(ctx, field, obj)
-		case "total":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_total(ctx, field, obj)
-		case "used":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_used(ctx, field, obj)
-		case "extra":
-			out.Values[i] = ec._ChannelUsageQueryTestResult_extra(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var channelUsageQueryTextResultImplementors = []string{"ChannelUsageQueryTextResult"}
-
-func (ec *executionContext) _ChannelUsageQueryTextResult(ctx context.Context, sel ast.SelectionSet, obj *provider_quota.UsageQueryTextResult) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, channelUsageQueryTextResultImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ChannelUsageQueryTextResult")
-		case "isValid":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_isValid(ctx, field, obj)
-		case "invalidMessage":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_invalidMessage(ctx, field, obj)
-		case "remaining":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_remaining(ctx, field, obj)
-		case "unit":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_unit(ctx, field, obj)
-		case "planName":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_planName(ctx, field, obj)
-		case "total":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_total(ctx, field, obj)
-		case "used":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_used(ctx, field, obj)
-		case "extra":
-			out.Values[i] = ec._ChannelUsageQueryTextResult_extra(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -123227,6 +122513,13 @@ func (ec *executionContext) marshalOChannelType2ᚖgithubᚗcomᚋloopljᚋaxonh
 	return v
 }
 
+func (ec *executionContext) marshalOChannelUsageQueryBalance2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚋprovider_quotaᚐUsageQueryBalance(ctx context.Context, sel ast.SelectionSet, v *provider_quota.UsageQueryBalance) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ChannelUsageQueryBalance(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOChannelUsageQueryListSettings2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐChannelUsageQuerySettings(ctx context.Context, sel ast.SelectionSet, v *objects.ChannelUsageQuerySettings) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -123239,13 +122532,6 @@ func (ec *executionContext) marshalOChannelUsageQueryProgress2ᚖgithubᚗcomᚋ
 		return graphql.Null
 	}
 	return ec._ChannelUsageQueryProgress(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOChannelUsageQueryTextResult2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚋprovider_quotaᚐUsageQueryTextResult(ctx context.Context, sel ast.SelectionSet, v *provider_quota.UsageQueryTextResult) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ChannelUsageQueryTextResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOChannelWhereInput2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐChannelWhereInputᚄ(ctx context.Context, v any) ([]*ent.ChannelWhereInput, error) {

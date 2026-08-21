@@ -351,8 +351,6 @@ func NewProviderQuotaService(params ProviderQuotaServiceParams) *ProviderQuotaSe
 }
 
 func (svc *ProviderQuotaService) registerProviderQuotaSupport() {
-	svc.registerClaudeCodeSupport()
-	svc.registerCodexSupport()
 	svc.registerGithubCopilotSupport()
 	svc.registerNanoGPTSupport()
 	svc.registerClineSupport()
@@ -360,7 +358,6 @@ func (svc *ProviderQuotaService) registerProviderQuotaSupport() {
 	svc.registerSyntheticSupport()
 	svc.registerNeuralWattSupport()
 	svc.registerApertisSupport()
-	svc.registerOpenCodeGoSupport()
 	svc.registerKimiCodeSupport()
 	svc.registerMinimaxSupport()
 	svc.registerZhipuSupport()
@@ -375,14 +372,6 @@ func (svc *ProviderQuotaService) RegisterScheduledTasks(ctx context.Context, s *
 		CronExpr:    cronExpr,
 		Timezone:    "UTC",
 	}, svc.runQuotaCheckScheduled)
-}
-
-func (svc *ProviderQuotaService) registerClaudeCodeSupport() {
-	svc.checkers["claudecode"] = provider_quota.NewClaudeCodeQuotaChecker(svc.httpClient)
-}
-
-func (svc *ProviderQuotaService) registerCodexSupport() {
-	svc.checkers["codex"] = provider_quota.NewCodexQuotaChecker(svc.httpClient)
 }
 
 func (svc *ProviderQuotaService) registerGithubCopilotSupport() {
@@ -411,10 +400,6 @@ func (svc *ProviderQuotaService) registerNeuralWattSupport() {
 
 func (svc *ProviderQuotaService) registerApertisSupport() {
 	svc.checkers["apertis"] = provider_quota.NewApertisQuotaChecker(svc.httpClient)
-}
-
-func (svc *ProviderQuotaService) registerOpenCodeGoSupport() {
-	svc.checkers["opencode_go"] = provider_quota.NewOpenCodeGoQuotaChecker(svc.httpClient)
 }
 
 func (svc *ProviderQuotaService) registerKimiCodeSupport() {
@@ -579,7 +564,7 @@ func (svc *ProviderQuotaService) RefreshUsageQueryChannel(ctx context.Context, c
 	if err != nil {
 		return fmt.Errorf("failed to load channel for usage query refresh: %w", err)
 	}
-	if !hasEnabledUsageQuery(ch) {
+	if provider_quota.BuiltInUsageQuerySettings(ch) == nil && !hasEnabledUsageQuery(ch) {
 		return fmt.Errorf("usage query is not enabled for channel %d", channelID)
 	}
 
@@ -602,7 +587,7 @@ func (svc *ProviderQuotaService) RefreshUsageQueries(ctx context.Context) error 
 		return fmt.Errorf("failed to load channels for usage query refresh: %w", err)
 	}
 	channels = lo.Filter(channels, func(ch *ent.Channel, _ int) bool {
-		return hasEnabledUsageQuery(ch)
+		return provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch)
 	})
 	if len(channels) == 0 {
 		return nil
@@ -652,27 +637,17 @@ func (svc *ProviderQuotaService) ResetChannelQuotaNow(ctx context.Context, chann
 	if ch.Type != channel.TypeCodex {
 		return fmt.Errorf("reset is only supported for codex channels")
 	}
-	if enabled, err := svc.SystemService.IsProviderQuotaCollectionEnabled(ctx, "codex"); err != nil {
+	if enabled, err := svc.SystemService.IsProviderQuotaCollectionEnabled(ctx, "usage_query"); err != nil {
 		return fmt.Errorf("failed to read provider quota collection settings: %w", err)
 	} else if !enabled {
-		return fmt.Errorf("provider quota collection is disabled for codex")
+		return fmt.Errorf("provider quota collection is disabled for usage queries")
 	}
 
 	if !hasCredentialsForProvider(ch) {
 		return fmt.Errorf("channel has no credentials")
 	}
 
-	checker, ok := svc.checkers["codex"]
-	if !ok {
-		return fmt.Errorf("no quota checker registered for codex")
-	}
-
-	codexChecker, ok := checker.(*provider_quota.CodexQuotaChecker)
-	if !ok {
-		return fmt.Errorf("invalid codex quota checker type")
-	}
-
-	if _, err := codexChecker.ResetNow(ctx, ch); err != nil {
+	if _, err := provider_quota.NewCodexQuotaChecker(svc.httpClient).ResetNow(ctx, ch); err != nil {
 		return fmt.Errorf("failed to reset codex quota: %w", err)
 	}
 
@@ -947,15 +922,11 @@ func (svc *ProviderQuotaService) saveQuotaError(
 }
 
 func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
-	if hasEnabledUsageQuery(ch) {
+	if provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch) {
 		return "usage_query"
 	}
 
 	switch ch.Type { //nolint:exhaustive
-	case channel.TypeClaudecode:
-		return "claudecode"
-	case channel.TypeCodex:
-		return "codex"
 	case channel.TypeGithubCopilot:
 		return "github_copilot"
 	case channel.TypeNanogpt, channel.TypeNanogptResponses:
@@ -964,8 +935,6 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 		return "cline"
 	case channel.TypeOpenai, channel.TypeOpenaiResponses:
 		return provider_quota.DetectProviderFromURL(ch.BaseURL)
-	case channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic:
-		return "opencode_go"
 	case channel.TypeMoonshotCoding:
 		return "kimi_code"
 	case channel.TypeMinimax, channel.TypeMinimaxAnthropic:
@@ -978,7 +947,7 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 }
 
 func hasCredentialsForProvider(ch *ent.Channel) bool {
-	if hasEnabledUsageQuery(ch) {
+	if provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch) {
 		// A custom query may be unauthenticated. If its script references an
 		// unavailable key, the checker will persist a useful extraction error.
 		return true
@@ -1005,10 +974,6 @@ func hasCredentialsForProvider(ch *ent.Channel) bool {
 			}
 		}
 		return false
-	}
-
-	if ch.Type == channel.TypeOpencodeGo || ch.Type == channel.TypeOpencodeGoAnthropic {
-		return hasOpenCodeGoQuotaCredentials(ch)
 	}
 
 	return ch.Credentials.OAuth != nil || isOAuthJSON(ch.Credentials.APIKey) ||

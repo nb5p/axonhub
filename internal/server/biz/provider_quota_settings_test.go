@@ -27,7 +27,7 @@ func TestSystemService_ProviderQuotaCollectionSettings_DefaultsToEnabled(t *test
 
 	require.NoError(t, err)
 	require.True(t, settings.Enabled)
-	require.True(t, settings.Providers["codex"])
+	require.True(t, settings.Providers["usage_query"])
 	require.True(t, settings.Providers["minimax"])
 	require.True(t, settings.Providers["zhipu"])
 }
@@ -56,8 +56,8 @@ func TestSystemService_ProviderQuotaCollectionSettings_DefaultsMissingProvidersT
 	stored, err := json.Marshal(ProviderQuotaCollectionSettings{
 		Enabled: true,
 		Providers: map[string]bool{
-			"codex":   true,
-			"minimax": false,
+			"usage_query": true,
+			"minimax":     false,
 		},
 	})
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestSystemService_ProviderQuotaCollectionSettings_UpdateMergesProviders(t *
 	require.NoError(t, err)
 	require.True(t, settings.Enabled)
 	require.False(t, settings.Providers["minimax"])
-	require.True(t, settings.Providers["codex"])
+	require.True(t, settings.Providers["usage_query"])
 	require.True(t, settings.Providers["zhipu"])
 }
 

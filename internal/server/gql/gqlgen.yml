@@ -193,9 +193,9 @@ models:
   ChannelUsageQueryTestResult:
     model:
       - github.com/looplj/axonhub/internal/server/biz.ChannelUsageQueryTestResult
-  ChannelUsageQueryTextResult:
+  ChannelUsageQueryBalance:
     model:
-      - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryTextResult
+      - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryBalance
   ChannelUsageQueryProgress:
     model:
       - github.com/looplj/axonhub/internal/server/biz/provider_quota.UsageQueryProgress

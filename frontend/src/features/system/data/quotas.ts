@@ -64,7 +64,14 @@ type ProviderQuotaDataCommon = {
 };
 
 export type ProviderUsageQueryProgressWindow = {
+  // New v2 fields.
   id?: string;
+  durationSeconds?: number;
+  remainingPercent?: number;
+  resetAt?: string;
+
+  // Read-only compatibility for result JSON saved before v2. It can remain in
+  // the quota cache until the next successful polling cycle.
   label?: string;
   used?: number;
   total?: number;
@@ -72,11 +79,20 @@ export type ProviderUsageQueryProgressWindow = {
   usedPercent?: number;
   unit?: string;
   windowStart?: string;
-  resetAt?: string;
 };
 
 export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
   kind?: 'usage_query';
+  balance?: {
+    remaining: number;
+    unit?: string;
+  };
+  text?: string;
+  progress?: {
+    windows?: ProviderUsageQueryProgressWindow[];
+  };
+
+  // Read-only compatibility for result JSON saved before v2.
   isValid?: boolean;
   invalidMessage?: string;
   remaining?: number;
@@ -85,9 +101,6 @@ export type ProviderUsageQueryQuotaData = ProviderQuotaDataCommon & {
   total?: number;
   used?: number;
   extra?: string;
-  progress?: {
-    windows?: ProviderUsageQueryProgressWindow[];
-  };
 };
 
 type ProviderClaudeQuotaData = ProviderQuotaDataCommon & {
