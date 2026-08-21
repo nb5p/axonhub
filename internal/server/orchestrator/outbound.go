@@ -649,9 +649,9 @@ func (p *PersistentOutboundTransformer) CanRetry(err error) bool {
 }
 
 // ShouldStopRetry reports errors for which the current channel explicitly
-// skips both same-channel retry and cross-channel failover. It controls retry
-// selection only; the API layer's upstream error policy independently decides
-// what error response, if any, is exposed to the caller.
+// requires the pipeline to return without trying another model or channel.
+// The API layer's upstream error policy independently decides what error
+// response, if any, is exposed to the caller.
 func (p *PersistentOutboundTransformer) ShouldStopRetry(err error) bool {
 	return !isChannelQueueError(err) &&
 		!isLocalRPMExhaustedError(err) &&

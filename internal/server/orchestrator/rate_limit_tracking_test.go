@@ -289,7 +289,7 @@ func TestRateLimitTracking_OnOutboundRawError_429(t *testing.T) {
 	assert.True(t, tracker.IsCoolingDown(channel.ID))
 }
 
-func TestRateLimitTracking_OnOutboundRawError_ConfiguredNonRetryable429StillCoolsDown(t *testing.T) {
+func TestRateLimitTracking_OnOutboundRawError_ConfiguredNonRetryable429DoesNotCoolDown(t *testing.T) {
 	tracker := NewChannelRequestTracker()
 	channel := &biz.Channel{Channel: &ent.Channel{
 		ID:       1,
@@ -306,7 +306,7 @@ func TestRateLimitTracking_OnOutboundRawError_ConfiguredNonRetryable429StillCool
 		Headers:    http.Header{"Retry-After": []string{"30"}},
 	})
 
-	assert.True(t, tracker.IsCoolingDown(channel.ID), "a retry decision must not suppress upstream Retry-After cooldown")
+	assert.False(t, tracker.IsCoolingDown(channel.ID))
 }
 
 func TestRateLimitTracking_OnOutboundRawError_QueueErrorIgnored(t *testing.T) {

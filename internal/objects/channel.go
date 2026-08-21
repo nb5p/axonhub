@@ -200,9 +200,9 @@ type ChannelSettings struct {
 	RateLimit *ChannelRateLimit `json:"rateLimit,omitempty"`
 
 	// Treat429AsNonRetryable marks an upstream HTTP 429 as non-retryable. It
-	// skips both same-channel retries and cross-channel failover. The system
-	// upstream error policy still controls what is returned to the caller, and a
-	// Retry-After header still creates the normal channel cooldown.
+	// skips both same-channel retries and cross-channel failover, without
+	// disabling or cooling down the channel. The system upstream error policy
+	// still controls what is returned to the caller.
 	Treat429AsNonRetryable bool `json:"treat429AsNonRetryable,omitempty"`
 
 	// RetryableStatusCodes configures additional HTTP status codes that should
