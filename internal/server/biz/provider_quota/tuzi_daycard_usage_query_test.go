@@ -3,6 +3,7 @@ package provider_quota
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,4 +97,26 @@ func TestTuziDayCardUsageQueryScript_ExtractsAllSubscriptionWindows(t *testing.T
 	require.InDelta(t, 33.519719, *result.Progress.Windows[1].RemainingPercent, 0.000001)
 	require.InDelta(t, 84.890845, *result.Progress.Windows[2].RemainingPercent, 0.000001)
 	require.Equal(t, "2026-08-22T04:30:00+08:00", result.Progress.Windows[0].ResetAt)
+}
+
+func TestTuziDayCardUsageQueryResult_ControlsChannelReadiness(t *testing.T) {
+	available := normalizeUsageQueryResult(UsageQueryResult{
+		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
+			{ID: "daily", RemainingPercent: lo.ToPtr(76.66)},
+			{ID: "weekly", RemainingPercent: lo.ToPtr(33.52)},
+			{ID: "monthly", RemainingPercent: lo.ToPtr(84.89)},
+		}},
+	})
+	require.Equal(t, "available", available.Status)
+	require.True(t, available.Ready)
+
+	exhausted := normalizeUsageQueryResult(UsageQueryResult{
+		Progress: &UsageQueryProgress{Windows: []UsageQueryProgressWindow{
+			{ID: "daily", RemainingPercent: lo.ToPtr(0.0)},
+			{ID: "weekly", RemainingPercent: lo.ToPtr(33.52)},
+			{ID: "monthly", RemainingPercent: lo.ToPtr(84.89)},
+		}},
+	})
+	require.Equal(t, "exhausted", exhausted.Status)
+	require.False(t, exhausted.Ready)
 }
