@@ -31,27 +31,20 @@ test('Codex usage bar color tracks used percentage, not reset-window elapsed tim
   // severity reflects actual usage rather than elapsed reset-window time.
   assert.match(
     codexBlock,
-    /percentage=\{qd\.rate_limit\.primary_window\.used_percent/,
-    'Codex primary usage bar should render the primary window used percentage'
+    /usagePercent=\{primaryWindow\.used_percent \|\| 0\}[\s\S]*?timeAffectsSeverity=\{false\}/,
+    'Codex primary usage bar should use the primary-window percentage without time-based severity'
   );
   assert.match(
     codexBlock,
-    /percentage=\{qd\.rate_limit\.secondary_window\.used_percent/,
-    'Codex secondary usage bar should render the secondary window used percentage'
+    /usagePercent=\{secondaryWindow\.used_percent\}[\s\S]*?timeAffectsSeverity=\{false\}/,
+    'Codex secondary usage bar should use the secondary-window percentage without time-based severity'
   );
 
-  // Reset-window elapsed time stays on separate duration bars...
+  // Reset-window elapsed time stays visible through UsageTimeBar's marker or
+  // duration bar, but does not alter Codex usage severity.
   assert.equal(
-    (codexBlock.match(/ProgressBar\s*\n?\s*type='duration'/g) || []).length,
+    (codexBlock.match(/timeAffectsSeverity=\{false\}/g) || []).length,
     2,
-    'Codex should keep a separate duration bar for the primary and secondary windows'
-  );
-
-  // ...so the usage bars must NOT feed durationPercentage into ProgressBar,
-  // which would severity-adjust their color by elapsed window time.
-  assert.doesNotMatch(
-    codexBlock,
-    /durationPercentage/,
-    'Codex usage bar color must not be severity-adjusted by reset-window elapsed time'
+    'Codex should opt both quota windows out of time-based severity'
   );
 });

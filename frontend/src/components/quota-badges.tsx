@@ -300,6 +300,7 @@ function UsageTimeBar({
   durationPercent,
   timeWindowDisplayStyle = 'TRIANGLE',
   reverseTimeProgress = false,
+  timeAffectsSeverity = true,
   durationLabel,
   tooltip,
 }: {
@@ -308,6 +309,7 @@ function UsageTimeBar({
   durationPercent?: number;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
   reverseTimeProgress?: boolean;
+  timeAffectsSeverity?: boolean;
   durationLabel?: ReactNode;
   tooltip: ReactNode;
 }) {
@@ -323,7 +325,7 @@ function UsageTimeBar({
           <ProgressBar
             percentage={displayPercent}
             severityPercentage={usagePercent}
-            durationPercentage={durationPercent}
+            durationPercentage={timeAffectsSeverity ? durationPercent : undefined}
           />
           {!showTriangle && displayDurationPercent !== undefined && (
             <div className='space-y-1'>
@@ -985,6 +987,7 @@ function QuotaRow({
                       durationPercent={primaryDurationPct}
                       timeWindowDisplayStyle={timeWindowDisplayStyle}
                       reverseTimeProgress={reverseUsageDisplay}
+                      timeAffectsSeverity={false}
                       durationLabel={timeProgressLabel}
                       tooltip={
                         <div className='space-y-0.5'>
@@ -1026,6 +1029,7 @@ function QuotaRow({
                       durationPercent={secondaryDurationPct}
                       timeWindowDisplayStyle={timeWindowDisplayStyle}
                       reverseTimeProgress={reverseUsageDisplay}
+                      timeAffectsSeverity={false}
                       durationLabel={timeProgressLabel}
                       tooltip={
                         <div className='space-y-0.5'>
