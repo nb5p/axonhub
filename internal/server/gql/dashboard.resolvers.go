@@ -1693,6 +1693,49 @@ func (r *queryResolver) TokenStatsByChannel(ctx context.Context, timeWindow *str
 	}), nil
 }
 
+// ProviderQuotaTodayUsageStats is the resolver for the providerQuotaTodayUsageStats field.
+func (r *queryResolver) ProviderQuotaTodayUsageStats(ctx context.Context) ([]*ProviderQuotaTodayUsageStats, error) {
+	// Provider quota visibility requires read_channels rather than dashboard
+	// access, so use the same permission boundary as the surrounding popover.
+	ctx = authz.WithScopeDecision(ctx, scopes.ScopeReadChannels)
+	period := xtime.GetCalendarPeriods(r.systemService.TimeLocation(ctx))
+
+	type todayUsage struct {
+		ChannelID    int     `json:"channel_id"`
+		RequestCount int64   `json:"request_count"`
+		TotalTokens  int64   `json:"total_tokens"`
+		ActualCost   float64 `json:"actual_cost"`
+	}
+
+	var results []todayUsage
+	if err := r.client.UsageLog.Query().
+		Where(
+			usagelog.ChannelIDNotNil(),
+			usagelog.CreatedAtGTE(period.Today.Start),
+		).
+		Modify(func(s *sql.Selector) {
+			s.GroupBy(s.C(usagelog.FieldChannelID))
+			s.Select(
+				sql.As(s.C(usagelog.FieldChannelID), "channel_id"),
+				sql.As(sql.Count(s.C(usagelog.FieldID)), "request_count"),
+				sql.As(fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(usagelog.FieldTotalTokens)), "total_tokens"),
+				sql.As(fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(usagelog.FieldTotalCost)), "actual_cost"),
+			)
+		}).
+		Scan(ctx, &results); err != nil {
+		return nil, fmt.Errorf("query today's provider quota usage: %w", err)
+	}
+
+	return lo.Map(results, func(item todayUsage, _ int) *ProviderQuotaTodayUsageStats {
+		return &ProviderQuotaTodayUsageStats{
+			ChannelID:    objects.GUID{Type: "Channel", ID: item.ChannelID},
+			RequestCount: int(item.RequestCount),
+			TotalTokens:  int(item.TotalTokens),
+			ActualCost:   item.ActualCost,
+		}
+	}), nil
+}
+
 // TokenStatsByModel is the resolver for the tokenStatsByModel field.
 func (r *queryResolver) TokenStatsByModel(ctx context.Context, timeWindow *string) ([]*TokenStatsByModel, error) {
 	ctx = authz.WithScopeDecision(ctx, scopes.ScopeReadDashboard)

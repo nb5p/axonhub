@@ -423,6 +423,16 @@ type ProviderQuotaCollectionProviderInput struct {
 	Enabled  bool   `json:"enabled"`
 }
 
+// Today's completed usage, grouped by channel for the provider quota popover.
+// actualCost is the channel's recorded internal cost; it excludes downstream
+// customer billing.
+type ProviderQuotaTodayUsageStats struct {
+	ChannelID    objects.GUID `json:"channelId"`
+	RequestCount int          `json:"requestCount"`
+	TotalTokens  int          `json:"totalTokens"`
+	ActualCost   float64      `json:"actualCost"`
+}
+
 type QueryModelsInput struct {
 	StatusIn                []channel.Status `json:"statusIn,omitempty"`
 	IncludeMapping          *bool            `json:"includeMapping,omitempty"`

@@ -190,6 +190,18 @@ type TokenStatsByChannel {
 }
 
 """
+Today's completed usage, grouped by channel for the provider quota popover.
+actualCost is the channel's recorded internal cost; it excludes downstream
+customer billing.
+"""
+type ProviderQuotaTodayUsageStats {
+  channelId: ID!
+  requestCount: Int!
+  totalTokens: Int!
+  actualCost: Float!
+}
+
+"""
 Token usage statistics grouped by model
 """
 type TokenStatsByModel {
@@ -265,6 +277,7 @@ extend type Query {
   """
   channelPerformanceStats: [ChannelPerformanceStat!]!
   tokenStatsByChannel(timeWindow: String): [TokenStatsByChannel!]!
+  providerQuotaTodayUsageStats: [ProviderQuotaTodayUsageStats!]!
   tokenStatsByModel(timeWindow: String): [TokenStatsByModel!]!
   costStatsByChannel(timeWindow: String): [CostStatsByChannel!]!
   costStatsByModel(timeWindow: String): [CostStatsByModel!]!

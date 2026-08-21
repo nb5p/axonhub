@@ -1407,6 +1407,13 @@ type ComplexityRoot struct {
 		UpdatedAt    func(childComplexity int) int
 	}
 
+	ProviderQuotaTodayUsageStats struct {
+		ActualCost   func(childComplexity int) int
+		ChannelID    func(childComplexity int) int
+		RequestCount func(childComplexity int) int
+		TotalTokens  func(childComplexity int) int
+	}
+
 	ProxyConfig struct {
 		DisableConnectionReuse func(childComplexity int) int
 		Password               func(childComplexity int) int
@@ -1472,6 +1479,7 @@ type ComplexityRoot struct {
 		PromptProtectionRules           func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.PromptProtectionRuleOrder, where *ent.PromptProtectionRuleWhereInput) int
 		Prompts                         func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.PromptOrder, where *ent.PromptWhereInput) int
 		ProviderQuotaCollectionSettings func(childComplexity int) int
+		ProviderQuotaTodayUsageStats    func(childComplexity int) int
 		ProxyPresets                    func(childComplexity int) int
 		QueryChannels                   func(childComplexity int, input biz.QueryChannelsInput) int
 		QueryModelChannelConnections    func(childComplexity int, associations []*objects.ModelAssociation) int
@@ -2479,6 +2487,7 @@ type QueryResolver interface {
 	ModelPerformanceStats(ctx context.Context) ([]*ModelPerformanceStat, error)
 	ChannelPerformanceStats(ctx context.Context) ([]*ChannelPerformanceStat, error)
 	TokenStatsByChannel(ctx context.Context, timeWindow *string) ([]*TokenStatsByChannel, error)
+	ProviderQuotaTodayUsageStats(ctx context.Context) ([]*ProviderQuotaTodayUsageStats, error)
 	TokenStatsByModel(ctx context.Context, timeWindow *string) ([]*TokenStatsByModel, error)
 	CostStatsByChannel(ctx context.Context, timeWindow *string) ([]*CostStatsByChannel, error)
 	CostStatsByModel(ctx context.Context, timeWindow *string) ([]*CostStatsByModel, error)
@@ -8428,6 +8437,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ProviderQuotaStatus.UpdatedAt(childComplexity), true
 
+	case "ProviderQuotaTodayUsageStats.actualCost":
+		if e.complexity.ProviderQuotaTodayUsageStats.ActualCost == nil {
+			break
+		}
+
+		return e.complexity.ProviderQuotaTodayUsageStats.ActualCost(childComplexity), true
+	case "ProviderQuotaTodayUsageStats.channelId":
+		if e.complexity.ProviderQuotaTodayUsageStats.ChannelID == nil {
+			break
+		}
+
+		return e.complexity.ProviderQuotaTodayUsageStats.ChannelID(childComplexity), true
+	case "ProviderQuotaTodayUsageStats.requestCount":
+		if e.complexity.ProviderQuotaTodayUsageStats.RequestCount == nil {
+			break
+		}
+
+		return e.complexity.ProviderQuotaTodayUsageStats.RequestCount(childComplexity), true
+	case "ProviderQuotaTodayUsageStats.totalTokens":
+		if e.complexity.ProviderQuotaTodayUsageStats.TotalTokens == nil {
+			break
+		}
+
+		return e.complexity.ProviderQuotaTodayUsageStats.TotalTokens(childComplexity), true
+
 	case "ProxyConfig.disableConnectionReuse":
 		if e.complexity.ProxyConfig.DisableConnectionReuse == nil {
 			break
@@ -8948,6 +8982,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ProviderQuotaCollectionSettings(childComplexity), true
+	case "Query.providerQuotaTodayUsageStats":
+		if e.complexity.Query.ProviderQuotaTodayUsageStats == nil {
+			break
+		}
+
+		return e.complexity.Query.ProviderQuotaTodayUsageStats(childComplexity), true
 	case "Query.proxyPresets":
 		if e.complexity.Query.ProxyPresets == nil {
 			break
@@ -45329,6 +45369,122 @@ func (ec *executionContext) fieldContext_ProviderQuotaStatus_channel(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _ProviderQuotaTodayUsageStats_channelId(ctx context.Context, field graphql.CollectedField, obj *ProviderQuotaTodayUsageStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProviderQuotaTodayUsageStats_channelId,
+		func(ctx context.Context) (any, error) {
+			return obj.ChannelID, nil
+		},
+		nil,
+		ec.marshalNID2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProviderQuotaTodayUsageStats_channelId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProviderQuotaTodayUsageStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProviderQuotaTodayUsageStats_requestCount(ctx context.Context, field graphql.CollectedField, obj *ProviderQuotaTodayUsageStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProviderQuotaTodayUsageStats_requestCount,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProviderQuotaTodayUsageStats_requestCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProviderQuotaTodayUsageStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProviderQuotaTodayUsageStats_totalTokens(ctx context.Context, field graphql.CollectedField, obj *ProviderQuotaTodayUsageStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProviderQuotaTodayUsageStats_totalTokens,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalTokens, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProviderQuotaTodayUsageStats_totalTokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProviderQuotaTodayUsageStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProviderQuotaTodayUsageStats_actualCost(ctx context.Context, field graphql.CollectedField, obj *ProviderQuotaTodayUsageStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProviderQuotaTodayUsageStats_actualCost,
+		func(ctx context.Context) (any, error) {
+			return obj.ActualCost, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProviderQuotaTodayUsageStats_actualCost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProviderQuotaTodayUsageStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProxyConfig_type(ctx context.Context, field graphql.CollectedField, obj *httpclient.ProxyConfig) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -47727,6 +47883,45 @@ func (ec *executionContext) fieldContext_Query_tokenStatsByChannel(ctx context.C
 	if fc.Args, err = ec.field_Query_tokenStatsByChannel_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_providerQuotaTodayUsageStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_providerQuotaTodayUsageStats,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ProviderQuotaTodayUsageStats(ctx)
+		},
+		nil,
+		ec.marshalNProviderQuotaTodayUsageStats2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐProviderQuotaTodayUsageStatsᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_providerQuotaTodayUsageStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "channelId":
+				return ec.fieldContext_ProviderQuotaTodayUsageStats_channelId(ctx, field)
+			case "requestCount":
+				return ec.fieldContext_ProviderQuotaTodayUsageStats_requestCount(ctx, field)
+			case "totalTokens":
+				return ec.fieldContext_ProviderQuotaTodayUsageStats_totalTokens(ctx, field)
+			case "actualCost":
+				return ec.fieldContext_ProviderQuotaTodayUsageStats_actualCost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProviderQuotaTodayUsageStats", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -103870,6 +104065,60 @@ func (ec *executionContext) _ProviderQuotaStatus(ctx context.Context, sel ast.Se
 	return out
 }
 
+var providerQuotaTodayUsageStatsImplementors = []string{"ProviderQuotaTodayUsageStats"}
+
+func (ec *executionContext) _ProviderQuotaTodayUsageStats(ctx context.Context, sel ast.SelectionSet, obj *ProviderQuotaTodayUsageStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, providerQuotaTodayUsageStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProviderQuotaTodayUsageStats")
+		case "channelId":
+			out.Values[i] = ec._ProviderQuotaTodayUsageStats_channelId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requestCount":
+			out.Values[i] = ec._ProviderQuotaTodayUsageStats_requestCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalTokens":
+			out.Values[i] = ec._ProviderQuotaTodayUsageStats_totalTokens(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "actualCost":
+			out.Values[i] = ec._ProviderQuotaTodayUsageStats_actualCost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var proxyConfigImplementors = []string{"ProxyConfig"}
 
 func (ec *executionContext) _ProxyConfig(ctx context.Context, sel ast.SelectionSet, obj *httpclient.ProxyConfig) graphql.Marshaler {
@@ -104912,6 +105161,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tokenStatsByChannel(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "providerQuotaTodayUsageStats":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_providerQuotaTodayUsageStats(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -118003,6 +118274,60 @@ func (ec *executionContext) marshalNProviderQuotaStatusStatus2githubᚗcomᚋloo
 func (ec *executionContext) unmarshalNProviderQuotaStatusWhereInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐProviderQuotaStatusWhereInput(ctx context.Context, v any) (*ent.ProviderQuotaStatusWhereInput, error) {
 	res, err := ec.unmarshalInputProviderQuotaStatusWhereInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNProviderQuotaTodayUsageStats2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐProviderQuotaTodayUsageStatsᚄ(ctx context.Context, sel ast.SelectionSet, v []*ProviderQuotaTodayUsageStats) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProviderQuotaTodayUsageStats2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐProviderQuotaTodayUsageStats(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNProviderQuotaTodayUsageStats2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋgqlᚐProviderQuotaTodayUsageStats(ctx context.Context, sel ast.SelectionSet, v *ProviderQuotaTodayUsageStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ProviderQuotaTodayUsageStats(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProxyPreset2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐProxyPresetᚄ(ctx context.Context, sel ast.SelectionSet, v []*biz.ProxyPreset) graphql.Marshaler {

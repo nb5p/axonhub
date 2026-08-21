@@ -15,6 +15,12 @@ const RESET_CHANNEL_QUOTA_NOW_MUTATION = `
 
 const PROVIDER_QUOTA_STATUSES_QUERY = `
   query ProviderQuotaStatuses($input: QueryChannelInput!) {
+    providerQuotaTodayUsageStats {
+      channelId
+      requestCount
+      totalTokens
+      actualCost
+    }
     queryChannels(input: $input) {
       edges {
         node {
@@ -497,6 +503,13 @@ export type ProviderQuotaChannel = {
     }
 );
 
+export type ProviderQuotaTodayUsageStats = {
+  channelId: string;
+  requestCount: number;
+  totalTokens: number;
+  actualCost: number;
+};
+
 type ProviderQuotaStatusNode = {
   status: 'available' | 'warning' | 'exhausted' | 'unknown';
   nextResetAt: string | null;
@@ -528,6 +541,10 @@ type QueryChannelsResponse = {
       node: QueryChannelNode | null;
     } | null>;
   };
+};
+
+type ProviderQuotaStatusesResponse = QueryChannelsResponse & {
+  providerQuotaTodayUsageStats: ProviderQuotaTodayUsageStats[];
 };
 
 type QueryChannelNodeWithQuota = QueryChannelNode & {
@@ -691,7 +708,7 @@ export function useProviderQuotaStatuses() {
           statusIn: ['enabled'],
         },
       };
-      return graphqlRequest<QueryChannelsResponse>(PROVIDER_QUOTA_STATUSES_QUERY, { input });
+      return graphqlRequest<ProviderQuotaStatusesResponse>(PROVIDER_QUOTA_STATUSES_QUERY, { input });
     },
     refetchInterval: 60000,
     refetchIntervalInBackground: true,
@@ -710,8 +727,13 @@ export function useProviderQuotaStatuses() {
     })
     .map(parseChannelNode);
 
+  const todayUsageByChannelId = new Map(
+    (query.data?.providerQuotaTodayUsageStats ?? []).map((usage) => [usage.channelId, usage])
+  );
+
   return {
     channels,
+    todayUsageByChannelId,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

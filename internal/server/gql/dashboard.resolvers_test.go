@@ -2,7 +2,18 @@ package gql
 
 import (
 	"testing"
+	"time"
 
+	"github.com/looplj/axonhub/internal/authz"
+	"github.com/looplj/axonhub/internal/ent"
+	"github.com/looplj/axonhub/internal/ent/channel"
+	"github.com/looplj/axonhub/internal/ent/enttest"
+	"github.com/looplj/axonhub/internal/ent/request"
+	"github.com/looplj/axonhub/internal/ent/usagelog"
+	"github.com/looplj/axonhub/internal/objects"
+	"github.com/looplj/axonhub/internal/pkg/xcache"
+	"github.com/looplj/axonhub/internal/pkg/xtime"
+	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,6 +24,82 @@ type testStats struct {
 	Name         string
 	RequestCount int64
 	Throughput   float64
+}
+
+func TestProviderQuotaTodayUsageStats(t *testing.T) {
+	client := enttest.NewEntClient(t, "sqlite3", "file:provider-quota-today-usage?mode=memory&_fk=1")
+	t.Cleanup(func() { _ = client.Close() })
+
+	ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
+	projectEntity := client.Project.Create().SetName("Default").SaveX(ctx)
+	firstChannel := client.Channel.Create().
+		SetName("First channel").
+		SetType(channel.TypeOpenai).
+		SetStatus(channel.StatusEnabled).
+		SetCredentials(objects.ChannelCredentials{APIKey: "first-key"}).
+		SetSupportedModels([]string{"test-model"}).
+		SetDefaultTestModel("test-model").
+		SaveX(ctx)
+	secondChannel := client.Channel.Create().
+		SetName("Second channel").
+		SetType(channel.TypeOpenai).
+		SetStatus(channel.StatusEnabled).
+		SetCredentials(objects.ChannelCredentials{APIKey: "second-key"}).
+		SetSupportedModels([]string{"test-model"}).
+		SetDefaultTestModel("test-model").
+		SaveX(ctx)
+
+	systemService := biz.NewSystemService(biz.SystemServiceParams{
+		Ent:         client,
+		CacheConfig: xcache.Config{Mode: xcache.ModeMemory},
+	})
+	period := xtime.GetCalendarPeriods(systemService.TimeLocation(ctx))
+
+	createUsage := func(channelID int, tokens int64, cost float64, createdAt time.Time) {
+		requestEntity := client.Request.Create().
+			SetProjectID(projectEntity.ID).
+			SetChannelID(channelID).
+			SetModelID("test-model").
+			SetFormat("openai/chat_completions").
+			SetStatus(request.StatusCompleted).
+			SetRequestBody(objects.JSONRawMessage([]byte(`{}`))).
+			SetCreatedAt(createdAt).
+			SaveX(ctx)
+
+		client.UsageLog.Create().
+			SetRequestID(requestEntity.ID).
+			SetProjectID(projectEntity.ID).
+			SetChannelID(channelID).
+			SetModelID("test-model").
+			SetSource(usagelog.SourceAPI).
+			SetFormat("openai/chat_completions").
+			SetTotalTokens(tokens).
+			SetTotalCost(cost).
+			SetCreatedAt(createdAt).
+			SaveX(ctx)
+	}
+
+	createUsage(firstChannel.ID, 100, 0.125, period.Today.Start.Add(time.Hour))
+	createUsage(firstChannel.ID, 200, 0.25, period.Today.Start.Add(2*time.Hour))
+	createUsage(secondChannel.ID, 50, 0.5, period.Today.Start.Add(3*time.Hour))
+	createUsage(firstChannel.ID, 999, 99, period.Today.Start.Add(-time.Second))
+
+	resolver := &queryResolver{&Resolver{client: client, systemService: systemService}}
+	stats, err := resolver.ProviderQuotaTodayUsageStats(ctx)
+	require.NoError(t, err)
+	require.Len(t, stats, 2)
+
+	statsByChannelID := make(map[int]*ProviderQuotaTodayUsageStats, len(stats))
+	for _, stat := range stats {
+		statsByChannelID[stat.ChannelID.ID] = stat
+	}
+
+	assert.Equal(t, 2, statsByChannelID[firstChannel.ID].RequestCount)
+	assert.Equal(t, 300, statsByChannelID[firstChannel.ID].TotalTokens)
+	assert.InDelta(t, 0.375, statsByChannelID[firstChannel.ID].ActualCost, 0.000001)
+	assert.Equal(t, 1, statsByChannelID[secondChannel.ID].RequestCount)
+	assert.Equal(t, 50, statsByChannelID[secondChannel.ID].TotalTokens)
+	assert.InDelta(t, 0.5, statsByChannelID[secondChannel.ID].ActualCost, 0.000001)
 }
 
 // TestCalculateConfidenceAndSort_EmptyResults tests behavior with empty input.

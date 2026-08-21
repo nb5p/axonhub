@@ -19,6 +19,7 @@ import {
   ProviderSyntheticQuotaData,
   ProviderNeuralWattQuotaData,
   ProviderApertisQuotaData,
+  ProviderQuotaTodayUsageStats,
   ProviderUsageQueryQuotaData,
   ProviderOpenCodeGoQuotaData,
   OpenCodeGoQuotaWindow,
@@ -34,6 +35,7 @@ import {
 import {
   useQuotaDisplaySettings,
   useQuotaEnforcementSettings,
+  useGeneralSettings,
   type QuotaEnforcementMode,
   type QuotaTimeWindowDisplayStyle,
 } from '@/features/system/data/system';
@@ -323,17 +325,20 @@ function formatTokenCount(n: number): string {
 
 function QuotaRow({
   channel,
+  todayUsage,
   enforcementMode,
   reverseUsageDisplay = false,
   timeWindowDisplayStyle = 'TRIANGLE',
 }: {
   channel: ProviderQuotaChannel;
+  todayUsage?: ProviderQuotaTodayUsageStats;
   enforcementMode?: QuotaEnforcementMode | null;
   reverseUsageDisplay?: boolean;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const { data: settings } = useGeneralSettings();
   const [isResetting, setIsResetting] = useState(false);
   const quota = channel.quotaStatus;
 
@@ -357,6 +362,13 @@ function QuotaRow({
       percent: Math.round(displayPercentage),
     });
   };
+  const formatActualCost = (actualCost: number) =>
+    `A${t('currencies.format', {
+      val: actualCost,
+      currency: settings?.currencyCode ?? 'USD',
+      locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+      minimumFractionDigits: 6,
+    })}`;
   const timeProgressLabel = t(reverseUsageDisplay ? 'quota.label.time_remaining' : 'quota.label.time_elapsed');
   const getTimeDisplayPercentage = (elapsedPercentage: number) =>
     getQuotaDisplayPercentage(elapsedPercentage, reverseUsageDisplay);
@@ -511,16 +523,28 @@ function QuotaRow({
     return format(date, 'yyyy-MM-dd HH:mm');
   };
   const quotaData = quota.quotaData;
+  const channelTodayUsage = todayUsage ?? { requestCount: 0, totalTokens: 0, actualCost: 0 };
   return (
     <div className='space-y-3 border-b py-3 first:pt-1 last:border-0 last:pb-1'>
       <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
+        <div className='flex min-w-0 items-center gap-2'>
           <BatteryIcon
             className={`h-4 w-4 ${status === 'exhausted' ? 'text-red-500' : status === 'warning' ? 'text-yellow-500' : 'text-muted-foreground'}`}
           />
-          <span className='text-foreground font-medium'>{channel.name}</span>
+          <span className='text-foreground truncate font-medium'>{channel.name}</span>
         </div>
-        <div className='flex items-center gap-1.5'>
+        <div className='flex shrink-0 flex-wrap items-center justify-end gap-1.5'>
+          <div className='flex items-center gap-1 text-[9px] text-muted-foreground'>
+            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
+              {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
+            </span>
+            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
+              {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
+            </span>
+            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
+              {formatActualCost(channelTodayUsage.actualCost)}
+            </span>
+          </div>
           <Badge
             variant={
               status === 'available' ? 'outline' : status === 'warning' ? 'secondary' : status === 'exhausted' ? 'destructive' : 'outline'
@@ -1706,7 +1730,7 @@ function QuotaBadgeTrigger({ channels, isLoading, isError }: { channels: Provide
 
 export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean; onRefresh: () => void }) {
   const { t } = useTranslation();
-  const { channels, isLoading, isError, error } = useProviderQuotaStatuses();
+  const { channels, todayUsageByChannelId, isLoading, isError, error } = useProviderQuotaStatuses();
   const { data: enforcementSettings } = useQuotaEnforcementSettings();
   const { data: displaySettings } = useQuotaDisplaySettings();
   const enforcementMode = enforcementSettings?.enabled ? enforcementSettings.mode : null;
@@ -1766,6 +1790,7 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
           <QuotaRow
             key={channel.id}
             channel={channel}
+            todayUsage={todayUsageByChannelId.get(channel.id)}
             enforcementMode={enforcementMode}
             reverseUsageDisplay={displaySettings?.reverseUsageDisplay}
             timeWindowDisplayStyle={displaySettings?.timeWindowDisplayStyle}
