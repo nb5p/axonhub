@@ -66,6 +66,7 @@
 | `table-column-visibility` | `none` | 是 | 无 | 仅调整前端列定义、翻译和浏览器本地偏好。 |
 | `list-pagination-settings` | `none` | 是 | 无 | 复用现有系统键值表保存独立 JSON 配置，不修改 Ent Schema；旧版本会忽略新增键。 |
 | `channel-model-test-api-formats` | `none` | 是 | 无 | 仅扩展 GraphQL 测试输入和运行时请求构造，不修改渠道配置或 Ent Schema。 |
+| `sub2api-oauth-account-import` | `additive` | 是 | 既有 `channels.credentials` JSON 增加可选 OAuth 字段形态 | 不新增 Ent Schema；导入结果保存在既有单渠道 OAuth 凭据 JSON 中。 |
 | `test-request-list-visibility` | `none` | 是 | 无 | 使用现有系统键值表保存独立 JSON 配置；旧版本忽略该键，缺失时默认关闭。 |
 
 截至上游比较基线 `9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`，`channel-usage-query` 是当前有效私有差异中登记的增量 Ent Schema 变化；不需要数据回填。
@@ -139,12 +140,23 @@
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`
-- 本地 commit：`a683e9122d639c5a1273cc28d509d7019f2a6c35`、本次提交（2026-08-21，多格式测试）。
+- 本地 commit：`a683e9122d639c5a1273cc28d509d7019f2a6c35`、`35a08783a1fc5c07d475afdcd506b8aa0e384d4b`。
 - 影响结构：无；新增 `GEMINI_CONTENTS` GraphQL 测试枚举，扩展运行时请求格式和前端临时测试结果；不新增或修改持久化字段。
 - 旧数据库验证样本：不适用；不读取或写入新的持久化字段。
 - 备份与恢复：本次未创建备份；不需要数据库迁移。
 - 回滚能力：回退代码不会影响任何数据库结构或数据。
-- 最低升级版本：本次提交（2026-08-21，多格式测试）。
+- 最低升级版本：`35a08783a1fc5c07d475afdcd506b8aa0e384d4b`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-21 — sub2api-oauth-account-import
+
+- 兼容等级：`additive`。
+- 本地 commit：`23117cab665eaa7e61a04b57689f727ac456cc96`。
+- 影响结构：不新增 Ent Schema、表、列或索引。既有 `channels.credentials` JSON 可新增 `apiKey` 中的规范 OAuth JSON，包含可选 `project_id`（Gemini Code Assist）；令牌刷新后同时写回既有 `oauth` 镜像字段。
+- 旧数据库验证样本：内存 SQLite 上已构建并验证 xAI OAuth 渠道；四个平台的 Sub2API 导出结构（Codex、Claude、Gemini、Grok）由解析单测覆盖。旧数据不需要回填。
+- 备份与恢复：本次未创建备份。部署到绿色 SQLite 前按蓝绿规则执行 `.backup` 和 `PRAGMA quick_check`；回退时恢复该一致性快照。
+- 回滚能力：旧版本会把导入后的 JSON 当作现有 OAuth 凭据读取或忽略新增 `project_id`；如需保留一次刷新后的完整 Gemini OAuth 元数据，回退前避免用旧版编辑对应渠道或恢复部署前快照。
+- 最低升级版本：`23117cab665eaa7e61a04b57689f727ac456cc96`。
 - 用户批准（仅 breaking）：不适用。
 
 ### 2026-08-21 — test-request-list-visibility

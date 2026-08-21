@@ -17,7 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - a683e9122d639c5a1273cc28d509d7019f2a6c35
-    - 本次提交（2026-08-21，多格式测试）
+    - 35a08783a1fc5c07d475afdcd506b8aa0e384d4b
   modules:
     - frontend/src/features/channels
     - frontend/src/locales
@@ -80,4 +80,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-21 | `upstream/unstable@9fb6f1af` | `a683e9122d639c5a1273cc28d509d7019f2a6c35` | original：新增测试接口格式选择、原生请求转换与精确端点强制路由。 |
-| 2026-08-21 | 本地需求 | 本次提交（多格式测试） | original：多选格式结果列、渠道×格式批量健康检查、Gemini Contents 原生请求与安全恢复判断。 |
+| 2026-08-21 | 本地需求 | `35a08783a1fc5c07d475afdcd506b8aa0e384d4b` | original：多选格式结果列、渠道×格式批量健康检查、Gemini Contents 原生请求与安全恢复判断。 |
