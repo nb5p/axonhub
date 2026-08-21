@@ -1245,9 +1245,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         shouldValidate: true,
       });
       form.setValue('credentials.apiKeys', [], { shouldDirty: true });
-      if (result.base_url) {
-        form.setValue('baseURL', result.base_url, { shouldDirty: true });
-      }
       toast.success(t('channels.dialogs.sub2apiImport.messages.applied'));
     } catch {
       toast.error(t('channels.dialogs.sub2apiImport.messages.invalid'));

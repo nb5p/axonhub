@@ -172,63 +172,6 @@ func getAPIKeyProvider(ch *Channel) auth.APIKeyProvider {
 	panic(fmt.Errorf("no enabled api key configured for channel %s", ch.Name))
 }
 
-type oauthAccessTokenProvider struct {
-	provider *oauth.TokenProvider
-}
-
-func (p *oauthAccessTokenProvider) Get(ctx context.Context) string {
-	creds, err := p.provider.Get(ctx)
-	if err != nil {
-		log.Warn(ctx, "failed to refresh imported OAuth credential", log.Cause(err))
-		return ""
-	}
-
-	return creds.AccessToken
-}
-
-func channelOAuthCredentials(c *ent.Channel) (*oauth.OAuthCredentials, error) {
-	if c.Credentials.OAuth != nil && c.Credentials.OAuth.AccessToken != "" {
-		return &oauth.OAuthCredentials{
-			ClientID:     c.Credentials.OAuth.ClientID,
-			ProjectID:    c.Credentials.OAuth.ProjectID,
-			AccessToken:  c.Credentials.OAuth.AccessToken,
-			RefreshToken: c.Credentials.OAuth.RefreshToken,
-			IDToken:      c.Credentials.OAuth.IDToken,
-			ExpiresAt:    c.Credentials.OAuth.ExpiresAt,
-			TokenType:    c.Credentials.OAuth.TokenType,
-			Scopes:       c.Credentials.OAuth.Scopes,
-		}, nil
-	}
-
-	return oauth.ParseCredentialsJSON(c.Credentials.APIKey)
-}
-
-func (svc *ChannelService) importedXAIKeyProvider(c *ent.Channel, ch *Channel, httpClient *httpclient.HttpClient) (auth.APIKeyProvider, error) {
-	if !c.Credentials.IsOAuth() {
-		return getAPIKeyProvider(ch), nil
-	}
-
-	creds, err := channelOAuthCredentials(c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse xAI OAuth credentials: %w", err)
-	}
-	if creds.ClientID == "" {
-		return nil, errors.New("xAI OAuth credentials require client_id")
-	}
-
-	tokens := oauth.NewTokenProvider(oauth.TokenProviderParams{
-		Credentials: creds,
-		HTTPClient:  httpClient,
-		OAuthUrls: oauth.OAuthUrls{
-			TokenUrl: xai.OAuthTokenURL,
-		},
-		OnRefreshed: svc.onTokenRefreshed(c),
-	})
-	setupAutoRefresh(ch, tokens, oauth.AutoRefreshOptions{})
-
-	return &oauthAccessTokenProvider{provider: tokens}, nil
-}
-
 // BuildOutboundByAPIFormat returns the outbound transformer for a resolved endpoint API format.
 // If the channel does not support the format, returns an error.
 func BuildOutboundByAPIFormat(ch *Channel, apiFormat string) (transformer.Outbound, error) {
@@ -559,8 +502,8 @@ func (svc *ChannelService) buildChannelWithTransformer(c *ent.Channel, apiKeyOve
 			return nil, fmt.Errorf("missing api key for channel %s", c.Name)
 		}
 	case channel.TypeXai:
-		if !c.Credentials.IsOAuth() && len(enabledKeys) == 0 {
-			return nil, fmt.Errorf("missing api key or OAuth credentials for channel %s", c.Name)
+		if len(enabledKeys) == 0 {
+			return nil, fmt.Errorf("missing api key for channel %s", c.Name)
 		}
 	case channel.TypeAnthropicGcp, channel.TypeAnthropicFake, channel.TypeOpenaiFake:
 		// These channel types don't use API keys:
@@ -717,13 +660,9 @@ func (svc *ChannelService) buildChannelWithTransformer(c *ent.Channel, apiKeyOve
 
 		return ch, nil
 	case channel.TypeXai:
-		apiKeyProvider, err := svc.importedXAIKeyProvider(c, ch, httpClient)
-		if err != nil {
-			return nil, err
-		}
 		transformer, err := xai.NewOutboundTransformerWithConfig(&xai.Config{
 			BaseURL:        c.BaseURL,
-			APIKeyProvider: apiKeyProvider,
+			APIKeyProvider: getAPIKeyProvider(ch),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create outbound transformer: %w", err)
@@ -1195,7 +1134,7 @@ func (svc *ChannelService) buildChannelWithTransformer(c *ent.Channel, apiKeyOve
 		var importedCreds *oauth.OAuthCredentials
 		var err error
 		if strings.HasPrefix(strings.TrimSpace(c.Credentials.APIKey), "{") {
-			importedCreds, err = channelOAuthCredentials(c)
+			importedCreds, err = c.Credentials.ResolveOAuthCredentials()
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse Gemini OAuth credentials: %w", err)
 			}

@@ -8,7 +8,6 @@ import (
 	"io"
 	"math"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +18,6 @@ import (
 	"github.com/looplj/axonhub/llm/transformer/anthropic/claudecode"
 	"github.com/looplj/axonhub/llm/transformer/antigravity"
 	"github.com/looplj/axonhub/llm/transformer/openai/codex"
-	"github.com/looplj/axonhub/llm/transformer/xai"
 )
 
 // OAuthImportHandlers accepts one exported Sub2API account object and converts
@@ -39,7 +37,6 @@ type importOAuthCredentialsRequest struct {
 
 type importOAuthCredentialsResponse struct {
 	Credentials string `json:"credentials"`
-	BaseURL     string `json:"base_url,omitempty"`
 }
 
 // ImportSub2APICredentials normalizes a single Sub2API account export locally.
@@ -145,25 +142,7 @@ func normalizeSub2APICredentials(provider, raw string, now time.Time) (*importOA
 		return nil, fmt.Errorf("serialize credentials: %w", err)
 	}
 
-	result := &importOAuthCredentialsResponse{Credentials: credentials}
-	if provider == "grok" {
-		baseURL, err := trustedImportedBaseURL(firstString(candidate, "base_url", "baseUrl"))
-		if err != nil {
-			return nil, err
-		}
-		if baseURL == "" {
-			baseURL, err = trustedImportedBaseURL(firstString(root, "base_url", "baseUrl"))
-			if err != nil {
-				return nil, err
-			}
-		}
-		if baseURL == "" {
-			baseURL = xai.OAuthBaseURL
-		}
-		result.BaseURL = baseURL
-	}
-
-	return result, nil
+	return &importOAuthCredentialsResponse{Credentials: credentials}, nil
 }
 
 // validateSub2APIAccountProvider rejects an account export whose explicit
@@ -345,15 +324,4 @@ func unixCredentialTime(value float64) (time.Time, error) {
 
 func isFinite(value float64) bool {
 	return !math.IsNaN(value) && !math.IsInf(value, 0)
-}
-
-func trustedImportedBaseURL(raw string) (string, error) {
-	if raw == "" {
-		return "", nil
-	}
-	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
-		return "", errors.New("imported base_url must be an HTTPS URL without credentials")
-	}
-	return strings.TrimRight(parsed.String(), "/"), nil
 }

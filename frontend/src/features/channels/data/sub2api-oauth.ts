@@ -5,7 +5,7 @@ export type Sub2APIOAuthProvider = 'codex' | 'claudecode' | 'gemini' | 'grok'
 export async function importSub2APIOAuthCredentials(input: {
   provider: Sub2APIOAuthProvider
   accountJSON: string
-}): Promise<{ credentials: string; base_url?: string }> {
+}): Promise<{ credentials: string }> {
   return apiRequest('/admin/oauth/import/sub2api', {
     method: 'POST',
     body: {
