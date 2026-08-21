@@ -9,8 +9,8 @@ source:
   branch: unstable
   baseline_commit: 9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca
   adopted_commits: []
-  last_checked_commit: 9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca
-  last_checked_at: 2026-08-21
+  last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
+  last_checked_at: 2026-08-22
   license: Apache-2.0
 local:
   branch: ai-slop
@@ -28,7 +28,7 @@ upstream:
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-21
+  last_compared_at: 2026-08-22
 reconciliations: []
 history_rewrites: []
 database:
@@ -45,7 +45,7 @@ database:
 ## 来源与采用范围
 
 - 本地原创功能，不移植外部代码。
-- 2026-08-21 对比 `upstream/unstable@9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`，未发现同类测试接口格式选择或格式强制路由实现。
+- 2026-08-22 对比 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，未发现同类测试接口格式选择或格式强制路由实现。
 
 ## 本地实现
 

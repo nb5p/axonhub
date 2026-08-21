@@ -159,6 +159,17 @@
 - 最低升级版本：`23117cab665eaa7e61a04b57689f727ac456cc96`。
 - 用户批准（仅 breaking）：不适用。
 
+### 2026-08-22 — upstream-unstable-49ade6f2
+
+- 兼容等级：`additive`。
+- 本地 merge：`187501350b7faca9188ce5ce1774592e1fc3e8a0`；上游：`49ade6f279eae7aed46858dc121258e922ec9870`。
+- 影响结构：`channels.type` 枚举新增 `xai_responses`、`xai_subscription`；`provider_quota_status.provider_type` 枚举新增 `xai_subscription`、`charm_hyper`。既有的私有 `usage_query` 枚举值在合并中保留。
+- 旧数据库验证样本：本地 Ent/业务层测试覆盖 xAI Subscription 和既有用量查询；部署前仍须在绿色现有 SQLite 副本上执行自动迁移并完成健康检查。
+- 备份与恢复：部署前必须以 SQLite `.backup` 创建 `/Users/tux/Playground/AxonHub/data/axonhub.db` 的一致性副本，分别对源与副本执行 `PRAGMA quick_check`，并登记 Obsidian 备份日志。失败或回退时恢复该副本。
+- 回滚能力：新增枚举值不会要求旧数据回填；回退到旧版本前避免保存新的 xAI Subscription 渠道，若已写入则使用部署前快照完整恢复。
+- 最低升级版本：`187501350b7faca9188ce5ce1774592e1fc3e8a0`。
+- 用户批准（仅 breaking）：不适用。
+
 ### 2026-08-21 — test-request-list-visibility
 
 - 兼容等级：`none`

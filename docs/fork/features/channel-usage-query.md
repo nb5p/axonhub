@@ -10,7 +10,7 @@ source:
   baseline_commit: b2148eda3f0d68967398287857ff35d27ff5485b
   adopted_commits: []
   last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
-  last_checked_at: 2026-08-21
+  last_checked_at: 2026-08-22
   license: Apache-2.0
 local:
   branch: ai-slop
@@ -43,7 +43,7 @@ upstream:
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-21
+  last_compared_at: 2026-08-22
 reconciliations: []
 history_rewrites: []
 database:
@@ -201,7 +201,7 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 - `channels.settings.usageQuery` 和 `channels.credentials.usageQueryApiKey` 都是既有 JSON 列中的可选字段；`provider_quota_status.provider_type` 的 `usage_query` 枚举由早期功能引入。本次 v2 不新增 Schema、表、字段或数据回填。
 - 历史的 `claudecode`、`codex`、`opencode_go` 采集开关会在规范化系统设置时忽略；三者现在统一受 `usage_query` 采集开关控制。旧的已保存状态仍可安全读取，首次脚本刷新会写成 `usage_query`。
 - 回退到旧版本后编辑含新 JSON 的渠道，旧版本可能重序列化并丢弃未知字段；若需回退，先恢复部署前 SQLite 快照。
-- 2026-08-21 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，上游未包含此脚本协议或预设，关系为 `none`。
+- 2026-08-22 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，上游未包含此脚本协议或预设，关系为 `none`。
 
 ## 验证
 

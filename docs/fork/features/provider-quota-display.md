@@ -10,7 +10,7 @@ source:
   baseline_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
   adopted_commits: []
   last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
-  last_checked_at: 2026-08-21
+  last_checked_at: 2026-08-22
   license: Apache-2.0
 references:
   - repository: https://github.com/Wei-Shaw/sub2api
@@ -28,6 +28,7 @@ local:
     - 287c77a51d625fcd372be8ed80ae07ff6d9445c2
     - 698dfa1c36a00eca5d93de68052f361a8a15fcc5
     - bc4f80a4f60ef4a95bab146a0cc83705c93394ca
+    - 129e16cc1fbd27aee6ed5deb1a20ba7a376dc43b
   modules:
     - frontend/src/components/quota-badges.tsx
     - frontend/src/features/system/data/quotas.ts
@@ -45,7 +46,7 @@ upstream:
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-21
+  last_compared_at: 2026-08-22
 reconciliations: []
 history_rewrites: []
 database:
@@ -73,6 +74,7 @@ database:
 - 反转模式也将时间窗口改为剩余时间：三角标记从右向左移动，时间进度条和悬停文案同步显示剩余百分比。
 - 已用与剩余文案统一为“已使用 X%”和“剩余 X%”。
 - Codex 窗口在持久化配额数据中优先使用绝对 `reset_at` 计算剩余时间和时间进度，仅当它缺失时才回退到快照 `reset_after_seconds`；primary 和 secondary 窗口共用同一规则。
+- Codex 的时间标记/时间条仅展示重置窗口进度，不参与用量条的颜色严重度计算；颜色始终由真实已用百分比决定。
 - 新字段保存在现有 `quota_enforcement_settings` JSON 中；旧值缺少字段时默认显示已用量并采用三角标记。
 - 提供商配额渠道行将当天的请求数、总 Token 和 A$ 放在标题下一行、各配额窗口进度条之前，避免挤压渠道名与可用状态；A$ 来自 `usage_logs.total_cost` 的渠道实际成本，不展示下游客户计费的 U$，并固定两位小数。
 - GraphQL 通过当天 `usage_logs` 的渠道分组一次性查询该三项数据，沿用弹层的 `read_channels` 授权边界和 60 秒刷新周期；未改动 Ent Schema 或数据库结构。
@@ -83,7 +85,7 @@ database:
 
 ## 上游收敛
 
-2026-08-21 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，未发现同类全局显示设置、绝对 Codex 重置时间修复或提供商配额弹层当日用量标签；关系保持 `none`。
+2026-08-22 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，未发现同类全局显示设置、绝对 Codex 重置时间修复或提供商配额弹层当日用量标签；关系保持 `none`。本次在吸收上游通用时间条组件后，显式保留 Codex 的“按真实用量着色”语义。
 
 ## 数据库兼容
 
@@ -112,3 +114,4 @@ database:
 | 2026-08-20 | `upstream/unstable@9fb6f1af` | `287c77a51d625fcd372be8ed80ae07ff6d9445c2` | Codex 倒计时和时间进度以绝对 `reset_at` 为权威来源，避免持久化快照过期后与本地日期矛盾。 |
 | 2026-08-21 | `upstream/unstable@49ade6f2`；Sub2API `2bc139ab`（仅语义参考） | `698dfa1c36a00eca5d93de68052f361a8a15fcc5` | 在提供商配额弹层增加今日 req、Token 和 A$ 实际成本；不展示 U$，不复制 LGPL 源码。 |
 | 2026-08-21 | 本地显示修正 | `bc4f80a4f60ef4a95bab146a0cc83705c93394ca` | 将今日标签移至标题下一行、配额窗口进度条之前，并将 A$ 固定为两位小数。 |
+| 2026-08-22 | 上游 `49ade6f2` 时间条重构 | `129e16cc1fbd27aee6ed5deb1a20ba7a376dc43b` | 保留时间标记与时间条，同时明确 Codex 的颜色严重度不受窗口经过时间影响。 |
