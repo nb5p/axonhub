@@ -103,6 +103,17 @@
 - 最低升级版本：`f71cae9869c3f1e4aeed25593f555bf20b460a50`。
 - 用户批准（仅 breaking）：不适用。
 
+### 2026-08-21 — channel-usage-query-oauth-gate
+
+- 兼容等级：`none`
+- 本地 commit：`f2c91bef0f0c50a4b2db141e97736e637cb5faa4`。
+- 影响结构：无；只改变未保存内置查询的自动适用条件。已存在的 `channels.settings.usageQuery` JSON 保持优先级，不读写或迁移现有数据。
+- 旧数据库验证样本：普通 Codex／Claude API Key 渠道不再创建 `usage_query` 配额状态；OAuth 渠道和 OpenCode Go 保持原有轮询行为。
+- 备份与恢复：本次未创建备份；不需要数据库迁移。
+- 回滚能力：回退代码仅恢复自动轮询，不改变数据库内容。
+- 最低升级版本：`f2c91bef0f0c50a4b2db141e97736e637cb5faa4`。
+- 用户批准（仅 breaking）：不适用。
+
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`

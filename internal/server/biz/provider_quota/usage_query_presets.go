@@ -36,9 +36,15 @@ func BuiltInUsageQuerySettings(ch *ent.Channel) *objects.ChannelUsageQuerySettin
 	var baseURL string
 	switch ch.Type { //nolint:exhaustive
 	case channel.TypeCodex:
+		if !ch.Credentials.IsOAuth() {
+			return nil
+		}
 		preset = objects.ChannelUsageQueryPresetCodex
 		baseURL = "https://chatgpt.com"
 	case channel.TypeClaudecode:
+		if !ch.Credentials.IsOAuth() {
+			return nil
+		}
 		preset = objects.ChannelUsageQueryPresetClaude
 		baseURL = "https://api.anthropic.com"
 	case channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic:

@@ -20,6 +20,7 @@ local:
     - 466f201927f231eb1b164176bf667fc21c76eb1d
     - 89b60f42031d7870c02d63a594d635af567752c2
     - f71cae9869c3f1e4aeed25593f555bf20b460a50
+    - f2c91bef0f0c50a4b2db141e97736e637cb5faa4
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -54,8 +55,8 @@ database:
 
 以下渠道已统一改走这个 JavaScript 运行时，不再注册或调用原有的 Claude Code、Codex、OpenCode Go 用量 checker：
 
-- Codex：内置 `CODEX` 预设，OAuth 请求 `https://chatgpt.com/backend-api/wham/usage`。
-- Claude Code：内置 `CLAUDE_OAUTH` 预设，OAuth 请求 `https://api.anthropic.com/api/oauth/usage`，带 `anthropic-beta: oauth-2025-04-20`。
+- Codex：仅 OAuth 渠道自动启用内置 `CODEX` 预设，请求 `https://chatgpt.com/backend-api/wham/usage`。
+- Claude Code：仅 OAuth 渠道自动启用内置 `CLAUDE_OAUTH` 预设，请求 `https://api.anthropic.com/api/oauth/usage`，带 `anthropic-beta: oauth-2025-04-20`。
 - OpenCode Go（含 Anthropic 变体）：内置 `OPENCODE_GO` 预设，请求渠道 Base URL 下的 `/usage`；不再使用网页登录 Cookie 或 HTML 抓取。
 - New API：内置 `NEW_API` 预设，请求 `/api/user/self`。
 
@@ -211,3 +212,4 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 | 2026-08-21 | 本地交互扩展；上游比较至 `9fb6f1af` | `466f2019` | original：增加列表结果列、手动刷新和右上角展示开关。 |
 | 2026-08-21 | 本地协议扩展；上游比较至 `49ade6f2` | `89b60f42` | superseded：首次引入多窗口结果，已由当前 v2 三段式协议替代。 |
 | 2026-08-21 | 本地需求；上游比较至 `49ade6f2` | `f71cae98` | original：确立三段式 v2 协议、四个不可改写的系统预设，并令 Codex／Claude／OpenCode Go 统一使用脚本 checker。 |
+| 2026-08-21 | 本地行为修正；上游比较至 `49ade6f2` | `f2c91bef` | original：仅在渠道凭据是 OAuth 时自动启用 Codex／Claude 预设；普通 API Key 渠道保持未配置，显式保存的自定义查询不受影响。 |

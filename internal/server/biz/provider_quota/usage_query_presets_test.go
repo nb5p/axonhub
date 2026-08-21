@@ -80,7 +80,12 @@ func TestUsageQueryPresetScripts_ParseAndExtract(t *testing.T) {
 }
 
 func TestBuiltInUsageQuerySettings_UsesPresetsAndHonorsSavedDisable(t *testing.T) {
-	codex := &ent.Channel{Type: channel.TypeCodex}
+	codex := &ent.Channel{
+		Type: channel.TypeCodex,
+		Credentials: objects.ChannelCredentials{
+			OAuth: &objects.OAuthCredentials{AccessToken: "token"},
+		},
+	}
 	settings := BuiltInUsageQuerySettings(codex)
 	require.NotNil(t, settings)
 	require.Equal(t, objects.ChannelUsageQueryPresetCodex, settings.Preset)
@@ -88,4 +93,20 @@ func TestBuiltInUsageQuerySettings_UsesPresetsAndHonorsSavedDisable(t *testing.T
 
 	codex.Settings = &objects.ChannelSettings{UsageQuery: &objects.ChannelUsageQuerySettings{Enabled: false}}
 	require.Nil(t, BuiltInUsageQuerySettings(codex))
+}
+
+func TestBuiltInUsageQuerySettings_RequiresOAuthForCodexAndClaude(t *testing.T) {
+	for _, channelType := range []channel.Type{channel.TypeCodex, channel.TypeClaudecode} {
+		t.Run(channelType.String(), func(t *testing.T) {
+			require.Nil(t, BuiltInUsageQuerySettings(&ent.Channel{
+				Type:        channelType,
+				Credentials: objects.ChannelCredentials{APIKey: "plain-api-key"},
+			}))
+
+			require.NotNil(t, BuiltInUsageQuerySettings(&ent.Channel{
+				Type:        channelType,
+				Credentials: objects.ChannelCredentials{OAuth: &objects.OAuthCredentials{AccessToken: "token"}},
+			}))
+		})
+	}
 }
