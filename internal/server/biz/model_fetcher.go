@@ -24,6 +24,7 @@ import (
 	"github.com/looplj/axonhub/llm/transformer/gemini/vertex"
 	"github.com/looplj/axonhub/llm/transformer/openai/codex"
 	"github.com/looplj/axonhub/llm/transformer/openai/copilot"
+	"github.com/looplj/axonhub/llm/transformer/xai/subscription"
 )
 
 const providerConfCacheDuration = 1 * time.Hour
@@ -187,6 +188,8 @@ func (f *ModelFetcher) getDefaultModelsByType(ctx context.Context, typ channel.T
 		return lo.Map(codex.DefaultModels(), func(id string, _ int) ModelIdentify { return ModelIdentify{ID: id} })
 	case channel.TypeClaudecode:
 		return lo.Map(claudecode.DefaultModels(), func(id string, _ int) ModelIdentify { return ModelIdentify{ID: id} })
+	case channel.TypeXaiSubscription:
+		return lo.Map(subscription.DefaultModels(), func(id string, _ int) ModelIdentify { return ModelIdentify{ID: id} })
 	case channel.TypeGithubCopilot:
 		return f.fetchCopilotModels(ctx)
 	case channel.TypeGeminiVertex:
@@ -200,7 +203,7 @@ func (f *ModelFetcher) getDefaultModelsByType(ctx context.Context, typ channel.T
 // only be returned for official (OAuth) channels. Non-official channels of these
 // types should fetch models from the provider API instead.
 func isOfficialOnlyType(typ channel.Type) bool {
-	return typ == channel.TypeClaudecode || typ == channel.TypeCodex
+	return typ == channel.TypeClaudecode || typ == channel.TypeCodex || typ == channel.TypeXaiSubscription
 }
 
 // fetchCopilotModels fetches GitHub Copilot models from PublicProviderConf with caching.
@@ -644,6 +647,8 @@ func (f *ModelFetcher) prepareModelsEndpoint(channelType channel.Type, baseURL s
 		useRawURL = true
 	}
 
+	baseURL = httpModelsBaseURL(baseURL)
+
 	switch {
 	case channelType.IsAnthropic() || channelType == channel.TypeClaudecode:
 		headers.Set("Anthropic-Version", "2023-06-01")
@@ -705,6 +710,24 @@ func (f *ModelFetcher) prepareModelsEndpoint(channelType channel.Type, baseURL s
 
 		return baseURL + "/v1/models", headers
 	}
+}
+
+// httpModelsBaseURL converts a channel's WebSocket endpoint to the matching
+// HTTP endpoint used by the provider's model listing API.
+func httpModelsBaseURL(baseURL string) string {
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		return baseURL
+	}
+
+	switch parsed.Scheme {
+	case "ws":
+		parsed.Scheme = "http"
+	case "wss":
+		parsed.Scheme = "https"
+	}
+
+	return parsed.String()
 }
 
 type GeminiModelResponse struct {

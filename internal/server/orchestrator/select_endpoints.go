@@ -211,41 +211,13 @@ func SelectAPIFormat(endpoints []objects.ChannelEndpoint, req *llm.Request) stri
 		return ""
 	}
 
-	requestType := req.RequestType
 	preferredFormat := string(req.APIFormat)
-
-	var allowed map[string]struct{}
-
-	//nolint:exhaustive // checked.
-	switch requestType {
-	case llm.RequestTypeChat:
-		allowed = chatCapableAPIFormats
-		if isOpenAIResponsesRemoteCompaction(req) {
-			allowed = remoteCompactionCapableAPIFormats
-			preferredFormat = llm.APIFormatOpenAIResponse.String()
-		}
-	case llm.RequestTypeCompact:
-		allowed = compactCapableAPIFormats
-	case llm.RequestTypeAlphaSearch:
+	allowed := llm.CapableAPIFormats(req.RequestType)
+	if isOpenAIResponsesRemoteCompaction(req) {
+		allowed = remoteCompactionCapableAPIFormats
+		preferredFormat = llm.APIFormatOpenAIResponse.String()
+	} else if req.RequestType == llm.RequestTypeAlphaSearch {
 		allowed = alphaSearchCapableAPIFormats
-	case llm.RequestTypeCompletion:
-		allowed = completionCapableAPIFormats
-	case llm.RequestTypeEmbedding:
-		allowed = embeddingCapableAPIFormats
-	case llm.RequestTypeModeration:
-		allowed = moderationCapableAPIFormats
-	case llm.RequestTypeImage:
-		allowed = imageCapableAPIFormats
-	case llm.RequestTypeRerank:
-		allowed = rerankCapableAPIFormats
-	case llm.RequestTypeVideo:
-		allowed = videoCapableAPIFormats
-	case llm.RequestTypeSpeech:
-		allowed = speechCapableAPIFormats
-	case llm.RequestTypeTranscription:
-		allowed = transcriptionCapableAPIFormats
-	case llm.RequestTypeTranslation:
-		allowed = translationCapableAPIFormats
 	}
 
 	if allowed != nil {

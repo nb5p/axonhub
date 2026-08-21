@@ -13,6 +13,7 @@ import { getQuotaWindowDurationPercent, getQuotaWindowResetAfterSeconds } from '
 import {
   useProviderQuotaStatuses,
   ProviderQuotaChannel,
+  ProviderQuotaLimit,
   ProviderNanoGPTQuotaData,
   NanoGPTQuotaWindow,
   ProviderWaferQuotaData,
@@ -22,6 +23,7 @@ import {
   ProviderQuotaTodayUsageStats,
   ProviderUsageQueryQuotaData,
   ProviderUsageQueryProgressWindow,
+  ProviderCharmHyperQuotaData,
   ProviderOpenCodeGoQuotaData,
   OpenCodeGoQuotaWindow,
   ProviderKimiCodeQuotaData,
@@ -47,6 +49,7 @@ const BADGE_COLOR_CLASSES: Record<string, string> = {
   green: 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20',
   red: 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20',
   amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20',
+  blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20',
 };
 
 const STATUS_LABELS = {
@@ -92,14 +95,6 @@ function isOpenCodeGoType(t: string): t is 'opencode_go' | 'opencode_go_anthropi
 
 function isMinimaxType(t: string): t is 'minimax' | 'minimax_anthropic' {
   return t === 'minimax' || t === 'minimax_anthropic';
-}
-
-// Dedup key for OpenCode Go channels: the quota is per workspace, so channels
-// sharing a workspace id collapse to one row, while a channel with no workspace
-// id configured falls back to its unique channel id (never merged with others).
-function openCodeGoWorkspaceKey(channel: ProviderQuotaChannel): string {
-  const workspaceId = (channel as { workspaceId?: string | null }).workspaceId;
-  return workspaceId && workspaceId.trim() !== '' ? `ws:${workspaceId}` : `id:${channel.id}`;
 }
 
 function getClineUsagePercent(window?: ClineQuotaWindow): number {
@@ -152,6 +147,9 @@ function getChannelPercentage(channel: ProviderQuotaChannel): number {
   } else if (channel.type === 'codex') {
     const qd = channel.quotaStatus.quotaData;
     percentage = qd.rate_limit?.primary_window?.used_percent || 0;
+  } else if (channel.type === 'xai_subscription') {
+    const qd = channel.quotaStatus.quotaData;
+    percentage = Math.max(qd.billing?.weekly?.usage_percent ?? 0, qd.billing?.monthly?.usage_percent ?? 0);
   } else if (channel.type === 'cline') {
     const qd = channel.quotaStatus.quotaData;
     percentage = isClineActivePassQuotaData(qd)
@@ -225,6 +223,12 @@ function getChannelPercentage(channel: ProviderQuotaChannel): number {
     }
   } else if (isOpenaiType(channel.type) && channel.providerType === 'apertis') {
     percentage = getApertisPercentage(channel.quotaStatus.quotaData as ProviderApertisQuotaData | undefined);
+  } else if (isOpenaiType(channel.type) && channel.providerType === 'charm_hyper') {
+    const qd = channel.quotaStatus.quotaData as ProviderCharmHyperQuotaData | undefined;
+    const balance = qd?.balance;
+    if (typeof balance === 'number') {
+      percentage = Math.max(0, Math.min(100, (1.0 - balance / 100) * 100));
+    }
   }
   return percentage;
 }
@@ -351,18 +355,86 @@ function formatTokenCount(n: number): string {
   return `${n}`;
 }
 
+const WINDOW_LABEL_KEYS: Record<string, string> = {
+  '5h': 'quota.window.5h',
+  '7d': 'quota.window.7d',
+  '30d': 'quota.window.30d',
+  daily: 'quota.window.daily',
+  weekly: 'quota.window.weekly',
+  monthly: 'quota.window.monthly',
+  primary: 'quota.label.primary_window',
+  secondary: 'quota.label.secondary_window',
+  overage: 'quota.label.overage_window',
+  cycle: 'quota.label.subscription',
+};
+
+// PeriodQuotaEstimate prices each limit window: the backend sums what the
+// channel cost during the window from AxonHub usage logs and divides by the
+// usage ratio the provider reported, which yields what the whole window is
+// worth. Windows the backend could not price are simply absent.
+function PeriodQuotaEstimate({ limits }: { limits: ProviderQuotaLimit[] }) {
+  const { t, i18n } = useTranslation();
+  const { data: generalSettings } = useGeneralSettings();
+
+  const priced = limits.filter((limit) => limit.periodQuota != null);
+  if (priced.length === 0) return null;
+
+  const formatCurrency = (val: number) =>
+    t('currencies.format', {
+      val,
+      currency: generalSettings?.currencyCode || 'USD',
+      locale: i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  return (
+    <div className='border-border/60 mt-3 space-y-2 border-t border-dashed pt-3'>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className='text-muted-foreground cursor-default text-xs font-medium'>{t('quota.label.period_quota')}</span>
+        </TooltipTrigger>
+        <TooltipContent side='top' className='max-w-[260px]'>
+          {t('quota.label.period_quota_hint')}
+        </TooltipContent>
+      </Tooltip>
+
+      {priced.map((limit, index) => {
+        const labelKey = limit.window ? WINDOW_LABEL_KEYS[limit.window] : undefined;
+        const label = labelKey ? t(labelKey) : limit.window || t('quota.label.token_usage');
+
+        return (
+          <div key={`${limit.window ?? limit.type}-${index}`} className='flex items-center justify-between text-xs'>
+            <span className='text-muted-foreground'>{label}</span>
+            <span className='text-foreground font-medium'>
+              {t('quota.label.period_quota_value', {
+                // The backend only estimates a quota once it has a cost, so
+                // both figures are always available here.
+                used: formatCurrency(limit.periodCost ?? 0),
+                total: formatCurrency(limit.periodQuota as number),
+              })}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function QuotaRow({
   channel,
   todayUsage,
   enforcementMode,
   reverseUsageDisplay = false,
   timeWindowDisplayStyle = 'TRIANGLE',
+  allowedChannelIDs,
 }: {
   channel: ProviderQuotaChannel;
   todayUsage?: ProviderQuotaTodayUsageStats;
   enforcementMode?: QuotaEnforcementMode | null;
   reverseUsageDisplay?: boolean;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
+  allowedChannelIDs?: string[] | null;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -374,8 +446,10 @@ function QuotaRow({
   const clinePassUnavailable = channel.type === 'cline' && isClineUnavailablePassQuotaData(channel.quotaStatus.quotaData);
   const statusLabel = clinePassUnavailable ? t('quota.status.cline_pass_unavailable') : t(STATUS_LABELS[status]);
 
+  const isAllowed = allowedChannelIDs?.includes(channel.id) ?? false;
+
   const enforcementEffect =
-    enforcementMode && (status === 'exhausted' || (status === 'warning' && enforcementMode === 'DE_PRIORITIZE'))
+    enforcementMode && !isAllowed && (status === 'exhausted' || (status === 'warning' && enforcementMode === 'DE_PRIORITIZE'))
       ? enforcementMode === 'EXHAUSTED_ONLY'
         ? ('blocked' as const)
         : ('deprioritized' as const)
@@ -578,6 +652,11 @@ function QuotaRow({
               {t(`quota.status.${enforcementEffect}`)}
             </Badge>
           )}
+          {isAllowed && (status === 'exhausted' || status === 'warning') && (
+            <Badge variant='outline' className={BADGE_COLOR_CLASSES.blue}>
+              {t('quota.status.bypassed')}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -739,6 +818,12 @@ function QuotaRow({
                       </div>
                       <ProgressBar type='duration' percentage={getClaudeDurationPercent('7d', qd.windows['7d'].reset) || 0} />
                     </div>
+                    {qd.windows['7d'].reset && (
+                      <div className='text-muted-foreground pt-0.5 text-right text-[11px]'>
+                        {formatTimeToReset(new Date(qd.windows['7d'].reset * 1000).toISOString())} (
+                        {formatDate(qd.windows['7d'].reset)})
+                      </div>
+                    )}
                   </div>
                 )}
                 {qd.windows?.['overage'] && (
@@ -978,6 +1063,75 @@ function QuotaRow({
                     </Button>
                   </div>
                 )}
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {channel.type === 'xai_subscription' && (
+        <div className='mt-4 space-y-4'>
+          {(() => {
+            const qd = channel.quotaStatus.quotaData;
+            const weekly = qd.billing?.weekly;
+            const monthly = qd.billing?.monthly;
+            return (
+              <>
+                {qd.plan_type ? (
+                  <div className='text-muted-foreground flex items-center justify-between text-xs'>
+                    <span>{t('quota.label.plan')}</span>
+                    <span className='text-foreground font-medium'>{qd.plan_type}</span>
+                  </div>
+                ) : null}
+                {weekly ? (
+                  <div className='space-y-1.5'>
+                    <div className='flex items-center justify-between text-xs'>
+                      <span className='text-muted-foreground font-medium'>{t('quota.window.weekly')}</span>
+                      <span className='text-foreground font-medium'>
+                        {t('quota.label.percent_used', { percent: Math.round(weekly.usage_percent ?? 0) })}
+                      </span>
+                    </div>
+                    <ProgressBar percentage={weekly.usage_percent ?? 0} />
+                    {weekly.reset_at ? (
+                      <div className='text-muted-foreground text-right text-[11px]'>{formatTimeToReset(weekly.reset_at)}</div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {monthly ? (
+                  <div className='border-border/60 space-y-1.5 border-t border-dashed pt-3'>
+                    <div className='flex items-center justify-between text-xs'>
+                      <span className='text-muted-foreground font-medium'>
+                        {t('quota.window.monthly')}{' '}
+                        {monthly.limit_usd ? (
+                          <span className='font-normal opacity-70'>
+                            (
+                            {t('currencies.format', {
+                              val: monthly.used_usd ?? 0,
+                              currency: 'USD',
+                              locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+                              minimumFractionDigits: 2,
+                            })}
+                            {' / '}
+                            {t('currencies.format', {
+                              val: monthly.limit_usd,
+                              currency: 'USD',
+                              locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+                              minimumFractionDigits: 2,
+                            })}
+                            )
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className='text-foreground font-medium'>
+                        {t('quota.label.percent_used', { percent: Math.round(monthly.usage_percent ?? 0) })}
+                      </span>
+                    </div>
+                    <ProgressBar percentage={monthly.usage_percent ?? 0} />
+                    {monthly.reset_at ? (
+                      <div className='text-muted-foreground text-right text-[11px]'>{formatTimeToReset(monthly.reset_at)}</div>
+                    ) : null}
+                  </div>
+                ) : null}
               </>
             );
           })()}
@@ -1758,6 +1912,30 @@ function QuotaRow({
           })()}
         </div>
       )}
+
+      {isOpenaiType(channel.type) && channel.providerType === 'charm_hyper' && (
+        <div className='mt-3 space-y-3'>
+          {(() => {
+            const qd = channel.quotaStatus.quotaData as ProviderCharmHyperQuotaData | undefined;
+            if (!qd || typeof qd.balance !== 'number') return null;
+            const balance = qd.balance;
+            const usedPct = Math.max(0, Math.min(100, (1.0 - balance / 100) * 100));
+            return (
+              <div className='space-y-2.5'>
+                <div className='space-y-1'>
+                  <div className='flex items-center justify-between text-xs'>
+                    <span className='text-muted-foreground font-medium'>{t('quota.label.credits_remaining')}</span>
+                    <span className='text-foreground font-medium'>{Number.isInteger(balance) ? balance : balance.toFixed(2)}</span>
+                  </div>
+                  <ProgressBar percentage={usedPct} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      <PeriodQuotaEstimate limits={quota.limits} />
     </div>
   );
 }
@@ -1794,22 +1972,13 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
   const { data: enforcementSettings } = useQuotaEnforcementSettings();
   const { data: displaySettings } = useQuotaDisplaySettings();
   const enforcementMode = enforcementSettings?.enabled ? enforcementSettings.mode : null;
+  const allowedChannelIDs = enforcementSettings?.enabled ? enforcementSettings.allowedChannelIDs : null;
 
   if (!isLoading && !isError && channels.length === 0) return null;
 
   const groupedChannels = channels.reduce((acc: ProviderQuotaChannel[], channel: ProviderQuotaChannel) => {
     if (channel.type === 'nanogpt_responses') {
       const existing = acc.find((c) => c.type === 'nanogpt');
-      if (!existing) {
-        acc.push(channel);
-      }
-    } else if (isOpenCodeGoType(channel.type)) {
-      // Collapse only channels that share a workspace (e.g. the openai + anthropic
-      // variants of one workspace); distinct workspaces each get their own row.
-      // Channels with no workspace id configured fall back to their unique id so
-      // they are never silently merged.
-      const key = openCodeGoWorkspaceKey(channel);
-      const existing = acc.find((c) => isOpenCodeGoType(c.type) && openCodeGoWorkspaceKey(c) === key);
       if (!existing) {
         acc.push(channel);
       }
@@ -1854,6 +2023,7 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
             enforcementMode={enforcementMode}
             reverseUsageDisplay={displaySettings?.reverseUsageDisplay}
             timeWindowDisplayStyle={displaySettings?.timeWindowDisplayStyle}
+            allowedChannelIDs={allowedChannelIDs}
           />
         ))}
       </div>

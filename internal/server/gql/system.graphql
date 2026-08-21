@@ -186,6 +186,7 @@ type QuotaEnforcementSettings {
   mode: QuotaEnforcementMode!
   reverseUsageDisplay: Boolean!
   timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle!
+  allowedChannelIDs: [ID!]!
 }
 
 input UpdateQuotaEnforcementSettingsInput {
@@ -193,6 +194,7 @@ input UpdateQuotaEnforcementSettingsInput {
   mode: QuotaEnforcementMode
   reverseUsageDisplay: Boolean
   timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle
+  allowedChannelIDs: [ID!]
 }
 
 type ProviderQuotaCollectionProvider {
@@ -231,6 +233,7 @@ type SystemModelSettings {
   defaultModelAPIIncludeAll: Boolean!
   autoReasoningEffort: Boolean!
   modelBlacklistRegex: String!
+  hideUnroutableModelsInList: Boolean!
   developerSettings: [DeveloperModelSettings!]!
 }
 
@@ -240,6 +243,7 @@ input UpdateSystemModelSettingsInput {
   defaultModelAPIIncludeAll: Boolean
   autoReasoningEffort: Boolean
   modelBlacklistRegex: String
+  hideUnroutableModelsInList: Boolean
   developerSettings: [DeveloperModelSettingsInput!]
 }
 
@@ -430,6 +434,9 @@ input SaveProxyPresetInput {
 input TriggerGcCleanupInput {
     requestsCleanupDays: Int!
     usageLogsCleanupDays: Int!
+    requestBodiesCleanupDays: Int
+    responseBodiesCleanupDays: Int
+    responseChunksCleanupDays: Int
 }
 
 type GcCleanupPreviewItem {

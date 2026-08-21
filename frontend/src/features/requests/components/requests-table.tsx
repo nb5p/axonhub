@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ColumnFiltersState,
+  ColumnOrderState,
   RowData,
   SortingState,
   VisibilityState,
@@ -16,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { DateTimeRangeValue } from '@/utils/date-range';
+import type { AutoRefreshInterval } from '@/hooks/use-auto-refresh-interval';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
 import { usePersistedColumnOrder, usePersistedColumnSizing } from '@/hooks/use-persisted-column-sizing';
 import { useAnimatedList } from '@/hooks/useAnimatedList';
@@ -30,10 +32,12 @@ import {
 import { ServerSidePagination } from '@/components/server-side-pagination';
 import { Request, RequestConnection } from '../data/schema';
 import { DataTableToolbar } from './data-table-toolbar';
+import { RequestBodyDrawer } from './request-body-drawer';
 import { DEFAULT_HIDDEN_COLUMN_IDS, DEFAULT_MOBILE_HIDDEN_COLUMN_IDS, useRequestsColumns } from './requests-columns';
+import { readColumnOrder, writeColumnOrder, reconcileColumnOrder, isReorderableColumn } from '@/lib/column-order';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'requests-table-column-visibility';
-const COLUMN_VISIBILITY_STORAGE_VERSION = 3;
+const COLUMN_VISIBILITY_STORAGE_VERSION = 6;
 const COLUMN_SIZING_STORAGE_KEY = 'requests-table-column-sizing';
 const COLUMN_ORDER_STORAGE_KEY = 'requests-table-column-order';
 
@@ -59,6 +63,7 @@ interface RequestsTableProps {
   apiKeyFilter: string[];
   modelIDFilter: string;
   dateRange?: DateTimeRangeValue;
+  queryWhere?: Record<string, any>;
   onNextPage: () => void;
   onPreviousPage: () => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -68,8 +73,9 @@ interface RequestsTableProps {
   onViewDetail: (request: Request) => void;
   onRefresh: () => void;
   showRefresh: boolean;
-  autoRefresh?: boolean;
-  onAutoRefreshChange?: (enabled: boolean) => void;
+  autoRefreshInterval?: AutoRefreshInterval;
+  autoRefreshResumeKey?: number;
+  onAutoRefreshIntervalChange?: (interval: AutoRefreshInterval) => void;
   infiniteScroll?: boolean;
   hasMore?: boolean;
   loadingMore?: boolean;
@@ -107,6 +113,7 @@ export function RequestsTable({
   apiKeyFilter,
   modelIDFilter,
   dateRange,
+  queryWhere,
   onNextPage,
   onPreviousPage,
   onPageSizeChange,
@@ -116,8 +123,9 @@ export function RequestsTable({
   onViewDetail,
   onRefresh,
   showRefresh,
-  autoRefresh = false,
-  onAutoRefreshChange,
+  autoRefreshInterval = null,
+  autoRefreshResumeKey = 0,
+  onAutoRefreshIntervalChange,
   infiniteScroll = false,
   hasMore = false,
   loadingMore = false,
@@ -125,7 +133,17 @@ export function RequestsTable({
 }: RequestsTableProps) {
   const { t } = useTranslation();
 
-  const requestsColumns = useRequestsColumns({ onViewDetail });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerInitialRequestId, setDrawerInitialRequestId] = useState<string | null>(null);
+  const [drawerInitialIndex, setDrawerInitialIndex] = useState(0);
+
+  const handleBodyClick = useCallback((requestId: string, index: number) => {
+    setDrawerInitialRequestId(requestId);
+    setDrawerInitialIndex(index);
+    setDrawerOpen(true);
+  }, []);
+
+  const requestsColumns = useRequestsColumns({ onBodyClick: handleBodyClick, onViewDetail });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(COLUMN_SIZING_STORAGE_KEY);
   const [columnOrder, setColumnOrder] = usePersistedColumnOrder(COLUMN_ORDER_STORAGE_KEY);
@@ -213,7 +231,11 @@ export function RequestsTable({
     });
   }, [isMobile, visibilityReady]);
 
-  const displayedData = useAnimatedList(data, autoRefresh, paginationEnabled ? pageSize : data.length || pageSize);
+  const animationResetKey = useMemo(
+    () => JSON.stringify({ queryWhere: queryWhere ?? null, autoRefreshResumeKey }),
+    [queryWhere, autoRefreshResumeKey]
+  );
+  const displayedData = useAnimatedList(data, showRefresh && autoRefreshInterval !== null, pageSize, animationResetKey);
 
   useEffect(() => {
     if (!infiniteScroll || !hasMore || loadingMore || !onLoadMore) return;
@@ -225,10 +247,7 @@ export function RequestsTable({
       ([entry]) => {
         if (entry.isIntersecting) onLoadMore();
       },
-      {
-        root: scrollContainerRef.current,
-        rootMargin: '0px 0px 240px 0px',
-      }
+      { root: scrollContainerRef.current, rootMargin: '0px 0px 240px 0px' }
     );
     observer.observe(target);
     return () => observer.disconnect();
@@ -324,8 +343,10 @@ export function RequestsTable({
         onResetFilters={onResetFilters}
         onRefresh={onRefresh}
         showRefresh={showRefresh}
-        autoRefresh={autoRefresh}
-        onAutoRefreshChange={onAutoRefreshChange}
+        autoRefreshInterval={autoRefreshInterval}
+        onAutoRefreshIntervalChange={onAutoRefreshIntervalChange}
+        enableColumnOrdering
+        getColumnLabel={(id) => t(`requests.columns.${id}`, { defaultValue: id })}
       />
       <div
         ref={scrollContainerRef}
@@ -422,6 +443,17 @@ export function RequestsTable({
           />
         </div>
       )}
+
+      <RequestBodyDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        initialRequestId={drawerInitialRequestId}
+        initialIndex={drawerInitialIndex}
+        initialRequests={data}
+        pageInfo={pageInfo}
+        queryWhere={queryWhere}
+        onViewDetail={onViewDetail}
+      />
     </div>
   );
 }

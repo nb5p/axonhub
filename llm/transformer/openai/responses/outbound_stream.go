@@ -22,7 +22,9 @@ import (
 
 // ErrStreamIncomplete is returned when the stream ends without a terminal event
 // (response.completed, response.failed, response.cancelled, or response.incomplete).
-var ErrStreamIncomplete = errors.New("stream ended without terminal event")
+// Keep this package alias for callers that already reference the Responses
+// transformer sentinel; retry policy should depend on the shared llm error.
+var ErrStreamIncomplete = llm.ErrStreamIncomplete
 
 // TransformStream transforms OpenAI Responses API SSE events to unified llm.Response stream.
 func (t *OutboundTransformer) TransformStream(
@@ -30,11 +32,7 @@ func (t *OutboundTransformer) TransformStream(
 	req *httpclient.Request,
 	stream streams.Stream[*httpclient.StreamEvent],
 ) (streams.Stream[*llm.Response], error) {
-	// Append the DONE event to the stream
-	doneEvent := lo.ToPtr(llm.DoneStreamEvent)
-	streamWithDone := streams.AppendStream(stream, doneEvent)
-
-	return streams.NoNil(newResponsesOutboundStream(streamWithDone)), nil
+	return streams.NoNil(newResponsesOutboundStream(stream)), nil
 }
 
 // responsesOutboundStream wraps a stream and maintains state during processing.
@@ -47,8 +45,10 @@ type responsesOutboundStream struct {
 	queueIndex int
 	err        error
 
-	// Track whether the response completed successfully
+	// Track whether the response reached a real terminal event. A synthetic or
+	// provider `[DONE]` marker is valid only after this becomes true.
 	responseCompleted bool
+	doneEmitted       bool
 }
 
 // outboundStreamState holds the state for a streaming session.
@@ -105,13 +105,13 @@ func (s *responsesOutboundStream) Next() bool {
 
 	// Try to get the next chunk from source
 	if !s.stream.Next() {
-		// Stream ended - check if we received a terminal event
-		// If not, this is an incomplete stream (e.g., upstream EOF)
-		if s.err == nil && !s.responseCompleted && s.stream.Err() == nil {
-			// Only set this error if we had started receiving response data
-			// This distinguishes between "no response" and "incomplete response"
-			if s.state.responseID != "" {
+		if s.err == nil && s.stream.Err() == nil {
+			if !s.responseCompleted {
 				s.err = ErrStreamIncomplete
+			} else if !s.doneEmitted {
+				s.doneEmitted = true
+				s.enqueue(llm.DoneResponse)
+				return true
 			}
 		}
 		return false
@@ -138,9 +138,11 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		return nil
 	}
 
-	// Handle [DONE] marker
+	// A bare [DONE] is only a transport marker. It never proves semantic
+	// completion, and it must not stop source consumption: a decoder/network
+	// error may only become visible when the source is advanced to exhaustion.
+	// Clean EOF without a semantic terminal is classified by Next().
 	if string(event.Data) == "[DONE]" {
-		s.enqueue(llm.DoneResponse)
 		return nil
 	}
 
@@ -581,6 +583,9 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		return nil // Intentionally skip this event
 
 	case StreamEventTypeResponseCompleted:
+		if s.responseCompleted {
+			return nil
+		}
 		// Response completed - emit two events: one with finish_reason, one with usage
 		s.responseCompleted = true
 		if streamEvent.Response != nil {
@@ -656,6 +661,9 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		}
 
 	case StreamEventTypeResponseFailed:
+		if s.responseCompleted {
+			return nil
+		}
 		// Response failed
 		s.responseCompleted = true
 		finishReason := "error"
@@ -667,6 +675,9 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		}
 
 	case StreamEventTypeResponseIncomplete:
+		if s.responseCompleted {
+			return nil
+		}
 		// Response incomplete (e.g., max tokens)
 		s.responseCompleted = true
 		finishReason := "length"
@@ -678,6 +689,9 @@ func (s *responsesOutboundStream) transformStreamChunk(event *httpclient.StreamE
 		}
 
 	case StreamEventTypeResponseCancelled:
+		if s.responseCompleted {
+			return nil
+		}
 		// Response cancelled
 		s.responseCompleted = true
 		finishReason := "cancelled"

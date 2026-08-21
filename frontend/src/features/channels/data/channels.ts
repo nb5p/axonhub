@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { graphqlRequest } from '@/gql/graphql';
 import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
 import { pageInfoSchema } from '@/gql/pagination';
@@ -118,12 +118,6 @@ const CREATE_CHANNEL_MUTATION = `
           pattern
           regex
         }
-        providerQuota {
-          opencodeGo {
-            workspaceId
-            authCookie
-          }
-        }
       }
       orderingWeight
       remark
@@ -193,12 +187,6 @@ const DUPLICATE_CHANNEL_MUTATION = `
         retryableErrorPatterns {
           pattern
           regex
-        }
-        providerQuota {
-          opencodeGo {
-            workspaceId
-            authCookie
-          }
         }
       }
       orderingWeight
@@ -270,12 +258,6 @@ const BULK_CREATE_CHANNELS_MUTATION = `
           pattern
           regex
         }
-        providerQuota {
-          opencodeGo {
-            workspaceId
-            authCookie
-          }
-        }
       }
       orderingWeight
       remark
@@ -345,12 +327,6 @@ const UPDATE_CHANNEL_MUTATION = `
         retryableErrorPatterns {
           pattern
           regex
-        }
-        providerQuota {
-          opencodeGo {
-            workspaceId
-            authCookie
-          }
         }
       }
       orderingWeight
@@ -536,12 +512,6 @@ const BULK_IMPORT_CHANNELS_MUTATION = `
           retryableErrorPatterns {
             pattern
             regex
-          }
-          providerQuota {
-            opencodeGo {
-              workspaceId
-              authCookie
-            }
           }
         }
       }
@@ -768,12 +738,6 @@ const BULK_UPDATE_CHANNEL_ORDERING_MUTATION = `
           retryableErrorPatterns {
             pattern
             regex
-          }
-          providerQuota {
-            opencodeGo {
-              workspaceId
-              authCookie
-            }
           }
         }
       }
@@ -1103,6 +1067,9 @@ export function useQueryChannels(
     // 5s is light traffic; pause when the tab is hidden.
     refetchInterval: 5000,
     refetchIntervalInBackground: false,
+    // Keep showing the previous data while a refetch is in-flight or fails,
+    // so the component never renders with data = undefined and crashes.
+    placeholderData: keepPreviousData,
   });
 }
 

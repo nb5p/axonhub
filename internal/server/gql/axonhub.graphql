@@ -241,7 +241,6 @@ input ChannelSettingsInput {
   treat429AsNonRetryable: Boolean
   retryableStatusCodes: [Int!]
   retryableErrorPatterns: [RetryableErrorPatternInput!]
-  providerQuota: ChannelProviderQuotaSettingsInput
 }
 
 input ChannelRateLimitInput {

@@ -658,6 +658,7 @@ type UpdateQuotaEnforcementSettingsInput struct {
 	Mode                   *biz.QuotaEnforcementMode        `json:"mode,omitempty"`
 	ReverseUsageDisplay    *bool                            `json:"reverseUsageDisplay,omitempty"`
 	TimeWindowDisplayStyle *biz.QuotaTimeWindowDisplayStyle `json:"timeWindowDisplayStyle,omitempty"`
+	AllowedChannelIDs      []*objects.GUID                  `json:"allowedChannelIDs,omitempty"`
 }
 
 type UpdateSecuritySettingsInput struct {

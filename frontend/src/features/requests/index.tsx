@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -10,6 +10,7 @@ import {
   type DateTimeRangeValue,
   type TimeValue,
 } from '@/utils/date-range';
+import { useAutoRefreshInterval } from '@/hooks/use-auto-refresh-interval';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { DEFAULT_LIST_PAGINATION_SETTINGS, useListPaginationSettings } from '@/features/system/data/system';
@@ -196,7 +197,7 @@ function RequestsContent() {
     ? searchFilters
     : persistedFilters;
   const debouncedModelIDFilter = useDebounce(modelIDFilter, 300);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useAutoRefreshInterval('requests-auto-refresh-interval-ms');
 
   useEffect(() => {
     if (!paginationEnabled) {
@@ -288,11 +289,12 @@ function RequestsContent() {
 
   const isFirstPage = !paginationEnabled || (!paginationArgs.after && cursorHistory.length === 0);
 
-  useInterval(
+  const autoRefreshResumeKey = useInterval(
     () => {
       handleRefresh();
     },
-    autoRefresh && isFirstPage ? 10000 : null
+    isFirstPage ? autoRefreshInterval : null,
+    { refreshOnResume: true }
   );
 
   const handleNextPage = () => {
@@ -436,6 +438,7 @@ function RequestsContent() {
         apiKeyFilter={apiKeyFilter}
         modelIDFilter={modelIDFilter}
         dateRange={dateRange}
+        queryWhere={whereClause}
         onNextPage={handleNextPage}
         onPreviousPage={handlePreviousPage}
         onPageSizeChange={handlePageSizeChange}
@@ -445,12 +448,13 @@ function RequestsContent() {
         onViewDetail={handleViewDetail}
         onRefresh={handleRefresh}
         showRefresh={isFirstPage}
-        autoRefresh={autoRefresh}
-        onAutoRefreshChange={setAutoRefresh}
         infiniteScroll={!paginationEnabled}
         hasMore={infiniteQuery.hasNextPage}
         loadingMore={infiniteQuery.isFetchingNextPage}
         onLoadMore={handleLoadMore}
+        autoRefreshInterval={autoRefreshInterval}
+        autoRefreshResumeKey={autoRefreshResumeKey}
+        onAutoRefreshIntervalChange={setAutoRefreshInterval}
       />
     </div>
   );

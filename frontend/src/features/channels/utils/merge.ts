@@ -114,7 +114,6 @@ export function mergeChannelSettingsForUpdate(
     treat429AsNonRetryable: pick('treat429AsNonRetryable', existing?.treat429AsNonRetryable ?? false),
     retryableStatusCodes: pick('retryableStatusCodes', existing?.retryableStatusCodes ?? []),
     retryableErrorPatterns: pick('retryableErrorPatterns', existing?.retryableErrorPatterns ?? []),
-    providerQuota: pick('providerQuota', existing?.providerQuota ?? null),
   };
 }
 

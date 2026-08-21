@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateRangePicker } from '@/components/date-range-picker';
 import type { DateTimeRangeValue } from '@/utils/date-range';
+import { formatUserName } from '@/lib/utils';
 import { DataTableFacetedFilter } from '@/components/data-table-faceted-filter';
 import { useHorizontalScroll } from '@/hooks/use-horizontal-scroll';
 import { useUsers } from '@/features/users/data/users';
@@ -47,7 +48,7 @@ export function DataTableToolbar<TData>({
 
     return usersData.edges.map((edge) => ({
       value: edge.node.id,
-      label: `${edge.node.firstName} ${edge.node.lastName} (${edge.node.email})`,
+      label: `${formatUserName(edge.node.firstName, edge.node.lastName)} (${edge.node.email})`,
     }));
   }, [canViewCreators, usersData]);
 

@@ -12,8 +12,10 @@ import (
 const SystemKeyProviderQuotaCollectionSettings = "provider_quota_collection_settings"
 
 var supportedProviderQuotaTypes = []string{
-	"github_copilot", "nanogpt", "cline", "wafer", "synthetic", "neuralwatt", "apertis",
-	"kimi_code", "minimax", "zhipu", "usage_query",
+	"claudecode", "codex", "github_copilot", "nanogpt", "cline",
+	"xai_subscription",
+	"wafer", "synthetic", "neuralwatt", "apertis", "opencode_go",
+	"kimi_code", "minimax", "zhipu", "charm_hyper", "usage_query",
 }
 
 var supportedProviderQuotaTypeSet = func() map[string]struct{} {

@@ -212,6 +212,7 @@ func (r *mutationResolver) UpdateQuotaEnforcementSettings(ctx context.Context, i
 		Mode:                   current.Mode,
 		ReverseUsageDisplay:    current.ReverseUsageDisplay,
 		TimeWindowDisplayStyle: current.TimeWindowDisplayStyle,
+		AllowedChannelIDs:      current.AllowedChannelIDs,
 	}
 	if input.Enabled != nil {
 		newSettings.Enabled = *input.Enabled
@@ -224,6 +225,9 @@ func (r *mutationResolver) UpdateQuotaEnforcementSettings(ctx context.Context, i
 	}
 	if input.TimeWindowDisplayStyle != nil {
 		newSettings.TimeWindowDisplayStyle = *input.TimeWindowDisplayStyle
+	}
+	if input.AllowedChannelIDs != nil {
+		newSettings.AllowedChannelIDs = objects.IntGuids(input.AllowedChannelIDs)
 	}
 
 	err = r.systemService.SetQuotaEnforcementSettings(ctx, newSettings)
@@ -732,9 +736,22 @@ func (r *queryResolver) GetCacheDiagnostics(ctx context.Context, input *GetCache
 	}, nil
 }
 
+// AllowedChannelIDs is the resolver for the allowedChannelIDs field.
+func (r *quotaEnforcementSettingsResolver) AllowedChannelIDs(ctx context.Context, obj *biz.QuotaEnforcementSettings) ([]*objects.GUID, error) {
+	return lo.Map(obj.AllowedChannelIDs, func(id int, _ int) *objects.GUID {
+		return &objects.GUID{Type: "Channel", ID: id}
+	}), nil
+}
+
 // ProviderQuotaCollectionSettings returns ProviderQuotaCollectionSettingsResolver implementation.
 func (r *Resolver) ProviderQuotaCollectionSettings() ProviderQuotaCollectionSettingsResolver {
 	return &providerQuotaCollectionSettingsResolver{r}
 }
 
+// QuotaEnforcementSettings returns QuotaEnforcementSettingsResolver implementation.
+func (r *Resolver) QuotaEnforcementSettings() QuotaEnforcementSettingsResolver {
+	return &quotaEnforcementSettingsResolver{r}
+}
+
 type providerQuotaCollectionSettingsResolver struct{ *Resolver }
+type quotaEnforcementSettingsResolver struct{ *Resolver }

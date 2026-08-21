@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDateRangeWhereClause, type DateTimeRangeValue } from '@/utils/date-range';
+import { useAutoRefreshInterval } from '@/hooks/use-auto-refresh-interval';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePersistedFilter } from '@/hooks/use-persisted-filter';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
@@ -19,7 +20,7 @@ function ThreadsContent() {
   const [dateRange, setDateRange] = usePersistedFilter<DateTimeRangeValue | undefined>('threads', 'date-range', undefined);
   const [threadIdFilter, setThreadIdFilter] = usePersistedFilter<string>('threads', 'thread-id', '');
   const [statusFilter, setStatusFilter] = usePersistedFilter<string[]>('threads', 'statuses', []);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useAutoRefreshInterval('threads-auto-refresh-interval-ms');
   const debouncedThreadIdFilter = useDebounce(threadIdFilter, 300);
 
   const whereClause = (() => {
@@ -54,11 +55,12 @@ function ThreadsContent() {
   const pageInfo = data?.pageInfo;
   const isFirstPage = !paginationArgs.after && cursorHistory.length === 0;
 
-  useInterval(
+  const autoRefreshResumeKey = useInterval(
     () => {
       refetch();
     },
-    autoRefresh && isFirstPage ? 30000 : null
+    isFirstPage ? autoRefreshInterval : null,
+    { refreshOnResume: true }
   );
 
   const handleNextPage = () => {
@@ -124,8 +126,9 @@ function ThreadsContent() {
         onStatusFilterChange={handleStatusFilterChange}
         onRefresh={refetch}
         showRefresh={isFirstPage}
-        autoRefresh={autoRefresh}
-        onAutoRefreshChange={setAutoRefresh}
+        autoRefreshInterval={autoRefreshInterval}
+        autoRefreshResumeKey={autoRefreshResumeKey}
+        onAutoRefreshIntervalChange={setAutoRefreshInterval}
       />
     </div>
   );
@@ -140,7 +143,7 @@ export default function ThreadsManagement() {
         <div className='flex flex-1 items-center justify-between'>
           <div>
             <h2 className='text-xl font-bold tracking-tight'>{t('threads.title')}</h2>
-            <p className='text-muted-foreground hidden text-sm sm:block'>{t('threads.description')}</p>
+            <p className='text-muted-foreground text-sm'>{t('threads.description')}</p>
           </div>
         </div>
       </Header>

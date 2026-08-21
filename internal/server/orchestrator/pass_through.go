@@ -14,11 +14,12 @@ import (
 	"github.com/looplj/axonhub/llm/httpclient"
 	"github.com/looplj/axonhub/llm/pipeline"
 	"github.com/looplj/axonhub/llm/streams"
+	"github.com/looplj/axonhub/llm/transformer"
 )
 
-// codexResponsesPassThroughHeaders contains client metadata that Codex-compatible
-// Responses upstreams use to select protocol behavior. Keep this as an explicit
-// allowlist: inbound credentials and transport headers must never be copied.
+// codexResponsesPassThroughHeaders contains Codex identity metadata that can
+// accompany a pass-through body. Keep this as an explicit allowlist: inbound
+// credentials, transport headers, and protocol-selection headers are never copied.
 var codexResponsesPassThroughHeaders = []string{
 	"X-Codex-Turn-Metadata",
 	"X-Codex-Window-Id",
@@ -26,7 +27,6 @@ var codexResponsesPassThroughHeaders = []string{
 	"X-Codex-Beta-Features",
 	"Session-Id",
 	"Originator",
-	"X-OpenAI-Internal-Codex-Responses-Lite",
 	"Thread-Id",
 }
 
@@ -97,6 +97,9 @@ func applyPassThroughRequestBody(outbound *PersistentOutboundTransformer, system
 
 		channel := outbound.GetCurrentChannel()
 		llmReq := outbound.state.LlmRequest
+		if !outbound.allowPassThroughBody(ctx, llmReq, request) {
+			return request, nil
+		}
 
 		// Multipart bodies cannot be reused: the outbound transformer rebuilds the
 		// multipart payload with a new boundary in Content-Type, so replaying the inbound
@@ -128,10 +131,18 @@ func applyPassThroughRequestBody(outbound *PersistentOutboundTransformer, system
 	})
 }
 
-// applyPassThroughRequestHeaders forwards the Codex Responses metadata paired with
-// a pass-through body. These headers are part of the client's protocol negotiation;
-// dropping them while replaying the original body can change how a compatible
-// upstream interprets the same request.
+func (p *PersistentOutboundTransformer) allowPassThroughBody(ctx context.Context, llmReq *llm.Request, providerReq *httpclient.Request) bool {
+	policy, ok := p.wrapped.(transformer.PassThroughBodyPolicy)
+	if !ok {
+		return true
+	}
+
+	return policy.AllowPassThroughBody(ctx, llmReq, providerReq)
+}
+
+// applyPassThroughRequestHeaders forwards Codex identity metadata paired with
+// a pass-through body. Protocol-selection headers such as Responses Lite are
+// deliberately excluded: the Codex transformer decides whether they apply.
 func applyPassThroughRequestHeaders(outbound *PersistentOutboundTransformer) pipeline.Middleware {
 	return pipeline.OnRawRequest("pass-through-request-headers", func(_ context.Context, request *httpclient.Request) (*httpclient.Request, error) {
 		if !outbound.state.PassThroughApplied || outbound.state.LlmRequest == nil ||

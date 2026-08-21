@@ -339,6 +339,9 @@ export interface CleanupOptionInput {
 export interface TriggerGcCleanupInput {
   requestsCleanupDays: number;
   usageLogsCleanupDays: number;
+  requestBodiesCleanupDays?: number;
+  responseBodiesCleanupDays?: number;
+  responseChunksCleanupDays?: number;
 }
 
 export interface GcCleanupPreviewItem {
@@ -588,6 +591,19 @@ export function usePreviewGcCleanup() {
       return data.previewGcCleanup;
     },
   });
+}
+
+export async function previewGcCleanup(
+  input: TriggerGcCleanupInput,
+  signal?: AbortSignal
+): Promise<GcCleanupPreviewItem[]> {
+  const data = await graphqlRequest<{ previewGcCleanup: GcCleanupPreviewItem[] }>(
+    PREVIEW_GC_CLEANUP_QUERY,
+    { input },
+    undefined,
+    { signal }
+  );
+  return data.previewGcCleanup;
 }
 
 export function useRetryPolicy() {
@@ -854,6 +870,7 @@ const MODEL_SETTINGS_QUERY = `
       defaultModelAPIIncludeAll
       autoReasoningEffort
       modelBlacklistRegex
+      hideUnroutableModelsInList
       developerSettings {
         developer
         associations {
@@ -1047,6 +1064,7 @@ export interface ModelSettings {
   defaultModelAPIIncludeAll: boolean;
   autoReasoningEffort: boolean;
   modelBlacklistRegex: string;
+  hideUnroutableModelsInList: boolean;
   developerSettings: DeveloperModelSettings[];
 }
 
@@ -1056,6 +1074,7 @@ export interface UpdateModelSettingsInput {
   defaultModelAPIIncludeAll?: boolean;
   autoReasoningEffort?: boolean;
   modelBlacklistRegex?: string;
+  hideUnroutableModelsInList?: boolean;
   developerSettings?: DeveloperModelSettings[];
 }
 
@@ -1922,6 +1941,7 @@ const QUOTA_ENFORCEMENT_SETTINGS_QUERY = `
       mode
       reverseUsageDisplay
       timeWindowDisplayStyle
+      allowedChannelIDs
     }
   }
 `;
@@ -1949,6 +1969,7 @@ export interface QuotaEnforcementSettings {
   mode: QuotaEnforcementMode;
   reverseUsageDisplay: boolean;
   timeWindowDisplayStyle: QuotaTimeWindowDisplayStyle;
+  allowedChannelIDs: string[];
 }
 
 export type QuotaDisplaySettings = Pick<QuotaEnforcementSettings, 'reverseUsageDisplay' | 'timeWindowDisplayStyle'>;
@@ -1958,6 +1979,7 @@ export interface UpdateQuotaEnforcementSettingsInput {
   mode?: QuotaEnforcementMode;
   reverseUsageDisplay?: boolean;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
+  allowedChannelIDs?: string[];
 }
 
 export function useQuotaEnforcementSettings() {

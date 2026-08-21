@@ -43,6 +43,7 @@ import {
 import { claudecodeOAuthExchange, claudecodeOAuthStart } from '../data/claudecode';
 import { codexDecodeAuthJSON, codexOAuthExchange, codexOAuthStart } from '../data/codex';
 import { importSub2APIOAuthCredentials, Sub2APIOAuthProvider } from '../data/sub2api-oauth';
+import { xaiDecodeSSO, xaiOAuthExchange, xaiOAuthStart } from '../data/xai';
 import {
   getDefaultBaseURL,
   getDefaultModels,
@@ -179,10 +180,6 @@ function getResponsesWebSocketBaseURL(channelType: ChannelType): string | undefi
   return undefined;
 }
 
-function isOpenCodeGoChannelType(channelType: ChannelType | undefined): channelType is 'opencode_go' | 'opencode_go_anthropic' {
-  return channelType === 'opencode_go' || channelType === 'opencode_go_anthropic';
-}
-
 // Custom hook for debounced value
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -292,7 +289,7 @@ function getNextDuplicateName(name: string, existingNames: Set<string>) {
 }
 
 // Providers that are always OAuth (no third-party API key mode)
-const alwaysOAuthProviderKeys = ['antigravity', 'github_copilot'];
+const alwaysOAuthProviderKeys = ['antigravity', 'github_copilot', 'xai_subscription'];
 
 function isOfficialCodexChannel(channel: { credentials?: { apiKey?: string } }): boolean {
   try {
@@ -373,10 +370,11 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const [confirmRemoveSelectedOpen, setConfirmRemoveSelectedOpen] = useState(false);
   const [confirmRemoveKey, setConfirmRemoveKey] = useState<string | null>(null);
   const [confirmDisableKey, setConfirmDisableKey] = useState<string | null>(null);
-  const [showOpenCodeGoAuthCookie, setShowOpenCodeGoAuthCookie] = useState(false);
   const [authMode, setAuthMode] = useState<'official' | 'auth-json' | 'third-party'>('official');
   const [codexAuthJSONText, setCodexAuthJSONText] = useState('');
-	const [sub2apiAccountJSONText, setSub2apiAccountJSONText] = useState('');
+  const [sub2apiAccountJSONText, setSub2apiAccountJSONText] = useState('');
+  const [xaiSSOToken, setXaiSSOToken] = useState('');
+  const [isImportingXAISSO, setIsImportingXAISSO] = useState(false);
   const [patternError, setPatternError] = useState<string | null>(null);
 
   // Debounced search values for better performance
@@ -453,6 +451,15 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
     },
   });
 
+  const xaiOAuth = useOAuthFlow({
+    startFn: xaiOAuthStart,
+    exchangeFn: xaiOAuthExchange,
+    proxyConfig,
+    onSuccess: (credentials) => {
+      form.setValue('credentials.apiKey', credentials);
+    },
+  });
+
   const antigravityOAuth = useOAuthFlow({
     startFn: antigravityOAuthStart,
     exchangeFn: antigravityOAuthExchange,
@@ -522,10 +529,12 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
       codexOAuth.reset();
       claudecodeOAuth.reset();
       antigravityOAuth.reset();
+      xaiOAuth.reset();
       setCodexAuthJSONText('');
-		setSub2apiAccountJSONText('');
+      setSub2apiAccountJSONText('');
+      setXaiSSOToken('');
     }
-  }, [open, codexOAuth, claudecodeOAuth, antigravityOAuth]);
+  }, [open, codexOAuth.reset, claudecodeOAuth.reset, antigravityOAuth.reset, xaiOAuth.reset]);
 
   useEffect(() => {
     if (!open) {
@@ -536,7 +545,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
       setConfirmRemoveSelectedOpen(false);
       setConfirmRemoveKey(null);
       setConfirmDisableKey(null);
-      setShowOpenCodeGoAuthCookie(false);
       setPatternError(null);
       setFetchedModels([]);
       setUseFetchedModels(false);
@@ -690,7 +698,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
             tags: currentRow.tags || [],
             remark: currentRow.remark || '',
             credentials: {
-              // OAuth 类型 (codex/claudecode/antigravity) 的凭据存储在 apiKey 字段，不放入 apiKeys
+              // OAuth 类型的凭据存储在 apiKey 字段，不放入 apiKeys
               apiKey: currentRow.credentials?.apiKey || undefined,
               apiKeys: currentRow.credentials?.apiKeys || [],
               gcp: {
@@ -715,7 +723,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
               remark: duplicateFromRow.remark || '',
               settings: duplicateFromRow.settings ?? undefined,
               credentials: {
-                // OAuth 类型 (codex/claudecode/antigravity) 的凭据存储在 apiKey 字段，不放入 apiKeys
+                // OAuth 类型的凭据存储在 apiKey 字段，不放入 apiKeys
                 apiKey: duplicateFromRow.credentials?.apiKey || undefined,
                 apiKeys: duplicateFromRow.credentials?.apiKeys || [],
                 gcp: {
@@ -786,25 +794,22 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const activeChannelType = selectedType || derivedChannelType;
   const isCodexType = activeChannelType === 'codex';
   const isAntigravityType = activeChannelType === 'antigravity';
-  const isXAIType = activeChannelType === 'xai';
   const isClineType = activeChannelType === 'cline';
   const isClaudeCodeType = activeChannelType === 'claudecode';
   const isCopilotType = activeChannelType === 'github_copilot';
   const isOpenCodeGoType = isOpenCodeGoChannelType(activeChannelType);
-  const hasXaiOAuthCredentials = isXAIType && isOAuthCredentialJSON(form.watch('credentials.apiKey'));
+  const isXAISubscriptionType = activeChannelType === 'xai_subscription';
 
   // OAuth providers cannot have their provider/API format changed during edit.
   // Derived from currentRow credentials so it stays stable across re-renders
   // and is not affected by mutable authMode state.
   const isOAuthChannel = useMemo(() => {
-    if (hasXaiOAuthCredentials) return true;
     if (!isEdit || !currentRow) return false;
     if (alwaysOAuthProviderKeys.includes(currentRow.type)) return true;
     if (currentRow.type === 'codex') return isOfficialCodexChannel(currentRow);
     if (currentRow.type === 'claudecode') return isOfficialClaudeCodeChannel(currentRow);
-    if (currentRow.type === 'xai') return isOAuthCredentialJSON(currentRow.credentials?.apiKey);
     return false;
-  }, [currentRow, hasXaiOAuthCredentials, isEdit]);
+  }, [currentRow, isEdit]);
 
   const wrapUnsupported = useCallback(
     (enabled: boolean, children: React.ReactNode, wrapperClassName: string) => {
@@ -861,6 +866,21 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         form.setValue('type', 'codex');
         if (!isEdit) {
           const baseURL = responsesTransport === 'websocket' ? getResponsesWebSocketBaseURL('codex') : getDefaultBaseURL('codex');
+          if (baseURL) {
+            form.setValue('baseURL', baseURL, { shouldDirty: true });
+          }
+          setFetchedModels([]);
+          setUseFetchedModels(false);
+        }
+        return;
+      }
+
+      if (provider === 'xai_subscription') {
+        setSelectedApiFormat(OPENAI_RESPONSES);
+        setResponsesTransport('http');
+        form.setValue('type', 'xai_subscription');
+        if (!isEdit) {
+          const baseURL = getDefaultBaseURL('xai_subscription');
           if (baseURL) {
             form.setValue('baseURL', baseURL, { shouldDirty: true });
           }
@@ -1069,11 +1089,16 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
     if (selectedProvider !== 'antigravity') {
       antigravityOAuth.reset();
     }
+    if (selectedProvider !== 'xai_subscription') {
+      xaiOAuth.reset();
+      setXaiSSOToken('');
+    }
 
     const providerToChannelType: Partial<Record<string, ChannelType>> = {
       claudecode: authMode === 'official' ? 'claudecode' : undefined,
       codex: authMode === 'official' || authMode === 'auth-json' ? 'codex' : undefined,
       antigravity: 'antigravity',
+      xai_subscription: 'xai_subscription',
     };
 
     const channelTypeForURL: ChannelType | undefined = providerToChannelType[selectedProvider];
@@ -1098,9 +1123,10 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
     selectedProvider,
     authMode,
     form,
-    codexOAuth,
-    claudecodeOAuth,
-    antigravityOAuth,
+    codexOAuth.reset,
+    claudecodeOAuth.reset,
+    antigravityOAuth.reset,
+    xaiOAuth.reset,
     responsesTransport,
   ]);
 
@@ -1167,6 +1193,33 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
     ),
     [t]
   );
+
+  const applyXAISSO = useCallback(async () => {
+    const token = xaiSSOToken.trim();
+    if (!token) {
+      toast.error(t('channels.dialogs.xaiSso.errors.required'));
+      return;
+    }
+
+    setIsImportingXAISSO(true);
+    try {
+      const result = await xaiDecodeSSO({
+        sso_token: token,
+        ...(proxyConfig ? { proxy: proxyConfig } : {}),
+      });
+      form.setValue('credentials.apiKey', result.credentials, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setXaiSSOToken('');
+      toast.success(t('channels.dialogs.xaiSso.messages.imported'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsImportingXAISSO(false);
+    }
+  }, [form, proxyConfig, t, xaiSSOToken]);
 
   const applyCodexAuthJSON = useCallback(async () => {
     try {
@@ -1260,16 +1313,12 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         manualModels,
         credentials: valuesForSubmit.credentials,
       };
-      const settingsForSubmit = isOpenCodeGoChannelType(dataWithModels.type as ChannelType | undefined)
-        ? values.settings
-        : {
-            ...(values.settings ?? {}),
-            providerQuota: null,
-          };
+      const settingsForSubmit = values.settings;
 
       const shouldUseProtocolDefaultBaseURL =
         (isCodexType && (authMode === 'official' || authMode === 'auth-json')) ||
-        (isClaudeCodeType && authMode === 'official' && !isDuplicate);
+        (isClaudeCodeType && authMode === 'official' && !isDuplicate) ||
+        isXAISubscriptionType;
       if (shouldUseProtocolDefaultBaseURL) {
         const currentType = selectedType || derivedChannelType;
         const baseURL =
@@ -1299,7 +1348,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
         const updateInput = {
           ...dataWithModels,
           settings: nextSettings,
-          ...(isOAuthChannel ? { type: undefined } : {}),
+          ...(isOAuthChannel ? { type: currentRow.type } : {}),
         } as z.infer<typeof updateChannelInputSchema>;
 
         const apiKey = values.credentials?.apiKey || '';
@@ -1544,7 +1593,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
     const apiKeys = form.watch('credentials.apiKeys');
     const hasApiKey = apiKeys?.some((key) => key.trim().length > 0);
 
-    if (isCodexType || isAntigravityType || isClineType) {
+    if (isCodexType || isAntigravityType || isClineType || isXAISubscriptionType) {
       return !!baseURL;
     }
 
@@ -1768,7 +1817,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
             setConfirmRemoveKey(null);
             setConfirmDisableKey(null);
             setShowApiKey(false);
-            setShowOpenCodeGoAuthCookie(false);
             // Reset proxy state
             if (initialRow?.settings?.proxy?.type) {
               setProxyType(initialRow.settings.proxy.type as ProxyType);
@@ -2075,13 +2123,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                         </div>
                       )}
 
-                      {isXAIType && (
-                        <div className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
-                          <div className='col-span-2' />
-                          <div className='md:col-span-6'>{renderSub2APIImport('grok')}</div>
-                        </div>
-                      )}
-
                       <FormField
                         control={form.control}
                         name='name'
@@ -2247,6 +2288,43 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                         </div>
                       )}
 
+                      {isXAISubscriptionType && (
+                        <div className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
+                          <div className='col-span-2' />
+                          <div className='space-y-4 md:col-span-6'>
+                            {renderOAuthSection(xaiOAuth, t('channels.dialogs.fields.apiFormat.xaiSubscription.description'))}
+                            {renderSub2APIImport('grok')}
+                            <div className='rounded-md border p-3'>
+                              <div className='space-y-2'>
+                                <FormLabel htmlFor='xai-sso-token' className='text-sm font-medium'>
+                                  {t('channels.dialogs.xaiSso.label')}
+                                </FormLabel>
+                                <Textarea
+                                  id='xai-sso-token'
+                                  value={xaiSSOToken}
+                                  onChange={(event) => setXaiSSOToken(event.target.value)}
+                                  spellCheck={false}
+                                  autoComplete='off'
+                                  placeholder={t('channels.dialogs.xaiSso.placeholder')}
+                                  className='min-h-[96px] resize-y font-mono text-xs'
+                                />
+                                <Button
+                                  type='button'
+                                  variant='secondary'
+                                  onClick={applyXAISSO}
+                                  disabled={isImportingXAISSO || !xaiSSOToken.trim()}
+                                >
+                                  {isImportingXAISSO
+                                    ? t('channels.dialogs.xaiSso.buttons.importing')
+                                    : t('channels.dialogs.xaiSso.buttons.import')}
+                                </Button>
+                                <p className='text-muted-foreground text-xs'>{t('channels.dialogs.xaiSso.description')}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <FormField
                         control={form.control}
                         name='baseURL'
@@ -2263,7 +2341,10 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                                 aria-invalid={!!fieldState.error}
                                 data-testid='channel-base-url-input'
                                 disabled={
-                                  (isCodexType && authMode !== 'third-party') || (isClaudeCodeType && authMode === 'official') || selectedProvider === 'antigravity'
+                                  (isCodexType && authMode !== 'third-party') ||
+                                  (isClaudeCodeType && authMode === 'official') ||
+                                  isXAISubscriptionType ||
+                                  selectedProvider === 'antigravity'
                                 }
                                 {...field}
                               />
@@ -2273,7 +2354,7 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                         )}
                       />
 
-                      {(!(isCodexType || isClaudeCodeType || isCopilotType || hasXaiOAuthCredentials) || authMode === 'third-party') &&
+                      {(!(isCodexType || isClaudeCodeType || isCopilotType || isXAISubscriptionType) || authMode === 'third-party') &&
                         selectedProvider !== 'antigravity' &&
                         selectedType !== 'anthropic_gcp' && (
                           <FormField
@@ -2410,79 +2491,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
                             )}
                           />
                         )}
-
-                      {isOpenCodeGoType && (
-                        <>
-                          <FormField
-                            control={form.control}
-                            name='settings.providerQuota.opencodeGo.workspaceId'
-                            render={({ field }) => (
-                              <FormItem className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
-                                <FormLabel className='pt-2 font-medium md:col-span-2 md:text-right'>
-                                  {t('channels.dialogs.fields.opencodeGoQuota.workspaceId.label')}
-                                </FormLabel>
-                                <div className='space-y-1 md:col-span-6'>
-                                  <Input
-                                    placeholder={t('channels.dialogs.fields.opencodeGoQuota.workspaceId.placeholder')}
-                                    autoComplete='off'
-                                    spellCheck={false}
-                                    className='font-mono text-sm'
-                                    data-testid='channel-opencode-go-workspace-id-input'
-                                    {...field}
-                                    value={field.value ?? ''}
-                                  />
-                                  <p className='text-muted-foreground text-xs'>
-                                    {t('channels.dialogs.fields.opencodeGoQuota.workspaceId.description')}
-                                  </p>
-                                  <FormMessage />
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name='settings.providerQuota.opencodeGo.authCookie'
-                            render={({ field, fieldState }) => (
-                              <FormItem className='grid grid-cols-1 items-start gap-x-6 gap-y-2 md:grid-cols-8'>
-                                <FormLabel className='pt-2 font-medium md:col-span-2 md:text-right'>
-                                  {t('channels.dialogs.fields.opencodeGoQuota.authCookie.label')}
-                                </FormLabel>
-                                <div className='space-y-1 md:col-span-6'>
-                                  <div className='relative'>
-                                    <Input
-                                      type={showOpenCodeGoAuthCookie ? 'text' : 'password'}
-                                      placeholder={t('channels.dialogs.fields.opencodeGoQuota.authCookie.placeholder')}
-                                      autoComplete='new-password'
-                                      data-form-type='other'
-                                      spellCheck={false}
-                                      className='pr-10 font-mono text-sm'
-                                      aria-invalid={!!fieldState.error}
-                                      data-testid='channel-opencode-go-auth-cookie-input'
-                                      {...field}
-                                      value={field.value ?? ''}
-                                    />
-                                    <Button
-                                      type='button'
-                                      variant='ghost'
-                                      size='sm'
-                                      className='absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 p-0'
-                                      aria-label={t('channels.dialogs.fields.opencodeGoQuota.authCookie.toggleVisibility')}
-                                      onClick={() => setShowOpenCodeGoAuthCookie((visible) => !visible)}
-                                    >
-                                      {showOpenCodeGoAuthCookie ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
-                                    </Button>
-                                  </div>
-                                  <p className='text-muted-foreground text-xs'>
-                                    {t('channels.dialogs.fields.opencodeGoQuota.authCookie.description')}
-                                  </p>
-                                  <FormMessage />
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-                        </>
-                      )}
 
                       <FormField
                         control={form.control}

@@ -147,7 +147,7 @@ const (
 
 // SystemGeneralSettings represents general system configuration settings.
 type SystemGeneralSettings struct {
-	// CurrencyCode is the code used for currency display (e.g., USD, RMB).
+	// CurrencyCode is the code used for currency display (e.g., USD, CNY).
 	CurrencyCode string `json:"currency_code"`
 	Timezone     string `json:"timezone"`
 }
@@ -317,6 +317,8 @@ type QuotaEnforcementSettings struct {
 	ReverseUsageDisplay bool `json:"reverse_usage_display"`
 	// TimeWindowDisplayStyle controls whether elapsed time uses a triangle or bar.
 	TimeWindowDisplayStyle QuotaTimeWindowDisplayStyle `json:"time_window_display_style"`
+	// AllowedChannelIDs contains channel IDs that bypass quota filtering.
+	AllowedChannelIDs []int `json:"allowedChannelIDs"`
 }
 
 // SecuritySettings represents system-wide request access controls.
@@ -396,6 +398,19 @@ type CleanupOption struct {
 	Enabled      bool   `json:"enabled"`
 	CleanupDays  int    `json:"cleanup_days"`
 }
+
+const (
+	// CleanupResourceRequests deletes request rows, executions, traces, and threads.
+	CleanupResourceRequests = "requests"
+	// CleanupResourceUsageLogs deletes usage log rows.
+	CleanupResourceUsageLogs = "usage_logs"
+	// CleanupResourceRequestBodies strips stored request bodies and headers only.
+	CleanupResourceRequestBodies = "request_bodies"
+	// CleanupResourceResponseBodies strips stored response bodies only.
+	CleanupResourceResponseBodies = "response_bodies"
+	// CleanupResourceResponseChunks strips stored stream chunks only.
+	CleanupResourceResponseChunks = "response_chunks"
+)
 
 const (
 	// LoadBalancerStrategyAdaptive is a dynamic load balancer strategy that adapts to the current load.
@@ -595,6 +610,12 @@ type SystemModelSettings struct {
 	// API output. Configured Model entities are not affected. An empty string
 	// disables the filter. Only effective when QueryAllChannelModels is true.
 	ModelBlacklistRegex string `json:"model_blacklist_regex"`
+
+	// HideUnroutableModelsInList hides configured Model entities from public
+	// model-list APIs when the current API key has no structurally routable
+	// channel for that entity. It does not change request 422 semantics and
+	// does not affect the admin GraphQL models table.
+	HideUnroutableModelsInList bool `json:"hide_unroutable_models_in_list"`
 
 	// DeveloperSettings stores reusable channel association rules keyed by model developer.
 	// Models with the same developer inherit these associations before applying their
@@ -1125,6 +1146,8 @@ func (s *SystemService) StoragePolicy(ctx context.Context) (*StoragePolicy, erro
 	if !strings.Contains(value, "\"store_response_body\"") {
 		policy.StoreResponseBody = true
 	}
+
+	policy.CleanupOptions = mergeCleanupOptions(policy.CleanupOptions)
 
 	return &policy, nil
 }

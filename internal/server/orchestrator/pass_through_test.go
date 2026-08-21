@@ -1009,6 +1009,12 @@ type passthroughOutbound struct {
 	format llm.APIFormat
 }
 
+type passthroughPolicyOutbound struct {
+	passthroughOutbound
+
+	allow bool
+}
+
 func (t *passthroughOutbound) APIFormat() llm.APIFormat { return t.format }
 
 func (t *passthroughOutbound) TransformRequest(ctx context.Context, req *llm.Request) (*httpclient.Request, error) {
@@ -1031,6 +1037,10 @@ func (t *passthroughOutbound) TransformError(ctx context.Context, err *httpclien
 
 func (t *passthroughOutbound) AggregateStreamChunks(ctx context.Context, _ *httpclient.Request, chunks []*httpclient.StreamEvent) ([]byte, llm.ResponseMeta, error) {
 	return nil, llm.ResponseMeta{}, nil
+}
+
+func (t *passthroughPolicyOutbound) AllowPassThroughBody(ctx context.Context, llmReq *llm.Request, providerReq *httpclient.Request) bool {
+	return t.allow
 }
 
 // passthroughInbound is an inbound transformer that maps llm responses 1:1 to raw events.
@@ -1383,6 +1393,51 @@ func TestApplyPassThroughBodyPreservesMappedModel(t *testing.T) {
 	require.Equal(t, `{"model":"my-alias","messages":[{"role":"user","content":"hi"}],"temperature":0.4}`, string(outbound.state.LlmRequest.RawRequest.Body))
 }
 
+func TestApplyPassThroughBodySkipsWhenOutboundPolicyRejects(t *testing.T) {
+	ctx := context.Background()
+
+	channel := &biz.Channel{
+		Channel: &ent.Channel{
+			ID:   1,
+			Name: "policy-pass-through",
+			Settings: &objects.ChannelSettings{
+				PassThroughBody: lo.ToPtr(true),
+			},
+		},
+	}
+
+	outbound := &PersistentOutboundTransformer{
+		wrapped: &passthroughPolicyOutbound{
+			passthroughOutbound: passthroughOutbound{format: llm.APIFormatOpenAIResponse},
+			allow:               false,
+		},
+		state: &PersistenceState{
+			CurrentCandidate:      &ChannelModelsCandidate{Channel: channel},
+			OriginalRequestStream: lo.ToPtr(true),
+			LlmRequest: &llm.Request{
+				Model:     "gpt-5.4-mini",
+				APIFormat: llm.APIFormatOpenAIResponse,
+				Stream:    lo.ToPtr(true),
+				RawRequest: &httpclient.Request{
+					APIFormat: string(llm.APIFormatOpenAIResponse),
+					Body:      []byte(`{"model":"gpt-5.4-mini","input":"hi","stream":true,"temperature":0.4}`),
+				},
+			},
+		},
+	}
+
+	request := &httpclient.Request{
+		APIFormat: string(llm.APIFormatOpenAIResponse),
+		Body:      []byte(`{"model":"gpt-5.4-mini","input":[{"role":"user","content":"hi"}],"stream":true}`),
+	}
+
+	processed, err := applyPassThroughRequestBody(outbound, nil).OnOutboundRawRequest(ctx, request)
+	require.NoError(t, err)
+	require.False(t, outbound.state.PassThroughApplied)
+	require.Equal(t, request, processed)
+	require.False(t, gjson.GetBytes(processed.Body, "temperature").Exists())
+}
+
 func TestApplyPassThroughRequestHeaders(t *testing.T) {
 	inboundHeaders := http.Header{
 		"X-Codex-Turn-Metadata":                  {`{"session_id":"session-123","turn_id":"turn-456"}`},
@@ -1391,7 +1446,7 @@ func TestApplyPassThroughRequestHeaders(t *testing.T) {
 		"X-Codex-Beta-Features":                  {"js_repl"},
 		"Session-Id":                             {"session-123"},
 		"Originator":                             {"codex_desktop_rs"},
-		"X-OpenAI-Internal-Codex-Responses-Lite": {"true"},
+		"X-Openai-Internal-Codex-Responses-Lite": {"true"},
 		"Thread-Id":                              {"thread-123"},
 		"Authorization":                          {"Bearer inbound-secret"},
 		"Cookie":                                 {"session=inbound-secret"},
@@ -1420,6 +1475,7 @@ func TestApplyPassThroughRequestHeaders(t *testing.T) {
 		require.Equal(t, inboundHeaders.Values(header), processed.Headers.Values(header), header)
 	}
 	require.Equal(t, "Bearer provider-secret", processed.Headers.Get("Authorization"))
+	require.Empty(t, processed.Headers.Get("X-Openai-Internal-Codex-Responses-Lite"))
 	require.Empty(t, processed.Headers.Get("Cookie"))
 	require.Empty(t, processed.Headers.Get("Host"))
 	require.Empty(t, processed.Headers.Get("Content-Length"))
