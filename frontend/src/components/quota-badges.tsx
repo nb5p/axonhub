@@ -367,7 +367,8 @@ function QuotaRow({
       val: actualCost,
       currency: settings?.currencyCode ?? 'USD',
       locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-      minimumFractionDigits: 6,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     })}`;
   const timeProgressLabel = t(reverseUsageDisplay ? 'quota.label.time_remaining' : 'quota.label.time_elapsed');
   const getTimeDisplayPercentage = (elapsedPercentage: number) =>
@@ -533,18 +534,7 @@ function QuotaRow({
           />
           <span className='text-foreground truncate font-medium'>{channel.name}</span>
         </div>
-        <div className='flex shrink-0 flex-wrap items-center justify-end gap-1.5'>
-          <div className='flex items-center gap-1 text-[9px] text-muted-foreground'>
-            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
-              {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
-            </span>
-            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
-              {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
-            </span>
-            <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
-              {formatActualCost(channelTodayUsage.actualCost)}
-            </span>
-          </div>
+        <div className='flex shrink-0 items-center gap-1.5'>
           <Badge
             variant={
               status === 'available' ? 'outline' : status === 'warning' ? 'secondary' : status === 'exhausted' ? 'destructive' : 'outline'
@@ -559,6 +549,18 @@ function QuotaRow({
             </Badge>
           )}
         </div>
+      </div>
+
+      <div className='ml-6 flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
+        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
+          {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
+        </span>
+        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
+          {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
+        </span>
+        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
+          {formatActualCost(channelTodayUsage.actualCost)}
+        </span>
       </div>
 
       {quotaData.error && (
