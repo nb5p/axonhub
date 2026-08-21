@@ -87,12 +87,6 @@ func (m *rateLimitTracking) OnOutboundRawError(ctx context.Context, err error) {
 		return
 	}
 
-	// This channel explicitly returns upstream 429 responses immediately, so it
-	// must not create a transient in-memory cooldown as a side effect.
-	if m.outbound.ShouldStopRetry(err) {
-		return
-	}
-
 	// Only cool down a channel when the upstream explicitly provides a cooldown.
 	if !httpclient.HasRetryAfterHeader(err) {
 		return

@@ -772,7 +772,7 @@
   "channels.dialogs.bodyPassThrough.disabled": "Disabled",
   "channels.dialogs.bodyPassThrough.warning": "When enabled, both the request and response will be passed through only when the client request format matches the channel format. Prompt injection and prompt protection will not take effect.",
   "channels.dialogs.treat429AsNonRetryable.label": "Do not retry HTTP 429",
-  "channels.dialogs.treat429AsNonRetryable.description": "Return an upstream HTTP 429 immediately without retrying this channel or switching to another candidate. The channel remains enabled and no cooldown is created.",
+  "channels.dialogs.treat429AsNonRetryable.description": "Do not retry this channel or switch to another candidate when it returns HTTP 429. The system upstream error policy still controls whether the upstream error is exposed to the caller; the channel remains enabled and still cools down when the upstream provides Retry-After.",
   "channels.dialogs.retryableStatusCodes.label": "Retry Status Codes",
   "channels.dialogs.retryableStatusCodes.placeholder": "400, 401, 403",
   "channels.dialogs.retryableStatusCodes.description": "Add HTTP error status codes that should trigger same-channel retry for this channel. Separate multiple codes with commas, spaces, or new lines. These are added to the default 429 and 5xx retry behavior.",
