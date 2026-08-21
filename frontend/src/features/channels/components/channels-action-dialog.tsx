@@ -3355,10 +3355,10 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
             >
               {isSubmitting
                 ? isEdit
-                  ? t('common.buttons.editing')
+                  ? t('common.buttons.confirm')
                   : t('common.buttons.creating')
                 : isEdit
-                  ? t('common.buttons.edit')
+                  ? t('common.buttons.confirm')
                   : t('common.buttons.create')}
             </Button>
           </DialogFooter>
