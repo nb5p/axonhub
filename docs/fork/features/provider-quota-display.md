@@ -9,9 +9,14 @@ source:
   branch: unstable
   baseline_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
   adopted_commits: []
-  last_checked_commit: 9fb6f1af148d4b1514106b57fbe34ec54ad01102
-  last_checked_at: 2026-08-20
+  last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
+  last_checked_at: 2026-08-21
   license: Apache-2.0
+references:
+  - repository: https://github.com/Wei-Shaw/sub2api
+    commit: 2bc139ab527b4a687546d14510
+    license: LGPL-3.0
+    usage: visual-and-data-semantics-only
 local:
   branch: ai-slop
   commit_marker: "🧩"
@@ -21,21 +26,25 @@ local:
     - ab88ca2641193524c3482c50dc7d32aa322e36d5
     - e20024a6da28610a36ace3713d06113709135318
     - 287c77a51d625fcd372be8ed80ae07ff6d9445c2
+    - 698dfa1c36a00eca5d93de68052f361a8a15fcc5
   modules:
     - frontend/src/components/quota-badges.tsx
+    - frontend/src/features/system/data/quotas.ts
     - frontend/src/features/system/components/quota-settings.tsx
     - frontend/src/features/system/data/system.ts
     - frontend/src/lib/quota-display.ts
     - frontend/src/lib/quota-window-time.ts
     - frontend/src/lib/quota-window-time.test.mjs
     - internal/server/biz/system.go
+    - internal/server/gql/dashboard.graphql
+    - internal/server/gql/dashboard.resolvers.go
     - internal/server/gql/system.graphql
 upstream:
   repository: https://github.com/looplj/axonhub
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-20
+  last_compared_at: 2026-08-21
 reconciliations: []
 history_rewrites: []
 database:
@@ -51,7 +60,9 @@ database:
 
 ## 来源与采用范围
 
-本地原创实现，仅改变 Codex 和 OpenCode Go 的配额展示。其他提供商保持原有显示逻辑。
+本地原创实现，覆盖 Codex 和 OpenCode Go 的配额展示，以及提供商配额弹层内每条渠道的当日用量标签。其他提供商的配额逻辑保持原有显示逻辑。
+
+当日用量标签的视觉和数据语义参考 Sub2API 的 `AccountUsageCell.vue`：请求数、Token、账户实际成本（A$）并列显示。参考仓库采用 LGPL-3.0；本实现没有复制其 Vue 代码、样式文本或数据访问代码，仅按 AxonHub 的 React、GraphQL 与 Ent 架构重新实现。
 
 ## 本地实现
 
@@ -62,6 +73,8 @@ database:
 - 已用与剩余文案统一为“已使用 X%”和“剩余 X%”。
 - Codex 窗口在持久化配额数据中优先使用绝对 `reset_at` 计算剩余时间和时间进度，仅当它缺失时才回退到快照 `reset_after_seconds`；primary 和 secondary 窗口共用同一规则。
 - 新字段保存在现有 `quota_enforcement_settings` JSON 中；旧值缺少字段时默认显示已用量并采用三角标记。
+- 提供商配额渠道行在渠道名右侧、可用状态左侧显示当天的请求数、总 Token 和 A$；A$ 来自 `usage_logs.total_cost` 的渠道实际成本，不展示下游客户计费的 U$。
+- GraphQL 通过当天 `usage_logs` 的渠道分组一次性查询该三项数据，沿用弹层的 `read_channels` 授权边界和 60 秒刷新周期；未改动 Ent Schema 或数据库结构。
 
 ## 与来源的差异
 
@@ -69,7 +82,7 @@ database:
 
 ## 上游收敛
 
-2026-08-20 比较 `upstream/unstable@9fb6f1af148d4b1514106b57fbe34ec54ad01102`，未发现同类全局显示设置或绝对 Codex 重置时间修复；上游仍直接使用缓存的 `reset_after_seconds`，关系保持 `none`。
+2026-08-21 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，未发现同类全局显示设置、绝对 Codex 重置时间修复或提供商配额弹层当日用量标签；关系保持 `none`。
 
 ## 数据库兼容
 
@@ -83,6 +96,8 @@ database:
 - `frontend/node_modules/.bin/tsc --noEmit`：通过。
 - `node --test frontend/src/lib/quota-display.test.mjs`：2 项通过。
 - `node --test frontend/src/**/*.test.mjs`：49 项通过，其中 Codex 重置时间 6 项覆盖绝对时间优先、过期时间、相对秒数回退、双窗口、时间进度和本地时区日期。
+- `go test ./internal/server/gql -run '^TestProviderQuotaTodayUsageStats$' -count=1`：通过，覆盖当天聚合、按渠道分组、请求数、Token、A$ 实际成本及跨日排除。
+- `pnpm --dir frontend exec tsc --noEmit --pretty false`：通过；中途产生的非业务锁文件变更已还原，未纳入提交。
 
 ## 更新历史
 
@@ -93,3 +108,4 @@ database:
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `ab88ca2641193524c3482c50dc7d32aa322e36d5` | 将纯显示偏好与配额执行拆为独立卡片和独立保存操作，并明确路由影响文案。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `e20024a6da28610a36ace3713d06113709135318` | 反转时间进度、三角位置和对应文案，使剩余量方向保持一致。 |
 | 2026-08-20 | `upstream/unstable@9fb6f1af` | `287c77a51d625fcd372be8ed80ae07ff6d9445c2` | Codex 倒计时和时间进度以绝对 `reset_at` 为权威来源，避免持久化快照过期后与本地日期矛盾。 |
+| 2026-08-21 | `upstream/unstable@49ade6f2`；Sub2API `2bc139ab`（仅语义参考） | `698dfa1c36a00eca5d93de68052f361a8a15fcc5` | 在提供商配额弹层的渠道名称与状态之间增加今日 req、Token 和 A$ 实际成本；不展示 U$，不复制 LGPL 源码。 |
