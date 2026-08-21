@@ -19,6 +19,7 @@ local:
     - 089da0d1df9757294abeb24f304d5fda9c9adced
     - 466f201927f231eb1b164176bf667fc21c76eb1d
     - 89b60f42031d7870c02d63a594d635af567752c2
+    - f71cae9869c3f1e4aeed25593f555bf20b460a50
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -209,3 +210,4 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 | 2026-08-20 | 本地需求；上游比较至 `9fb6f1af` | `089da0d1df9757294abeb24f304d5fda9c9adced` | original：接入 Goja 脚本、渠道配置、配额轮询、持久化和展示。 |
 | 2026-08-21 | 本地交互扩展；上游比较至 `9fb6f1af` | `466f2019` | original：增加列表结果列、手动刷新和右上角展示开关。 |
 | 2026-08-21 | 本地协议扩展；上游比较至 `49ade6f2` | `89b60f42` | superseded：首次引入多窗口结果，已由当前 v2 三段式协议替代。 |
+| 2026-08-21 | 本地需求；上游比较至 `49ade6f2` | `f71cae98` | original：确立三段式 v2 协议、四个不可改写的系统预设，并令 Codex／Claude／OpenCode Go 统一使用脚本 checker。 |

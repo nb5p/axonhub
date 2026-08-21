@@ -92,6 +92,17 @@
 - 最低升级版本：`621b04052ab69434df631119de7e604635389da0`。
 - 用户批准（仅 breaking）：不适用。
 
+### 2026-08-21 — channel-usage-query-v2
+
+- 兼容等级：`additive`。
+- 本地 commit：`f71cae9869c3f1e4aeed25593f555bf20b460a50`。
+- 影响结构：不新增表、列、索引或 Ent Schema。渠道既有 `settings.usageQuery` JSON 增加预设值，`provider_quota_status.quota_data` 由旧平铺字段逐步写为 `balance`、`text`、`progress.windows`；原有 `usage_query` provider type 不变。
+- 旧数据库验证样本：内存 SQLite 的业务层、预设、轮询和 GraphQL 测试通过；前端对已保存的旧 JSON 保留只读展示兼容，直到下次成功轮询写入 v2。
+- 备份与恢复：部署到绿色 SQLite 前执行 `.backup` 和 `PRAGMA quick_check`，备份路径记录到 Obsidian 备份日志。若需回退，恢复该快照；不需要数据回填。
+- 回滚能力：旧版本不会识别 v2 结果字段，且编辑渠道时可能重写并丢弃未知 JSON；回退前恢复快照即可完整还原。旧版采集开关 `claudecode`、`codex`、`opencode_go` 已不再生效，三种渠道统一由 `usage_query` 开关控制。
+- 最低升级版本：`f71cae9869c3f1e4aeed25593f555bf20b460a50`。
+- 用户批准（仅 breaking）：不适用。
+
 ### 2026-08-21 — channel-model-test-api-formats
 
 - 兼容等级：`none`
