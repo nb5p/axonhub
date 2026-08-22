@@ -18,6 +18,7 @@ local:
   commits:
     - a683e9122d639c5a1273cc28d509d7019f2a6c35
     - 35a08783a1fc5c07d475afdcd506b8aa0e384d4b
+    - 0d6d21274b973e1fd06012b045f3a4b1a2579597
   modules:
     - frontend/src/features/channels
     - frontend/src/locales
@@ -55,6 +56,7 @@ database:
 - GraphQL `TestChannelInput` 保持可选 `apiFormat` 的旧调用兼容，并增加 `GEMINI_CONTENTS` 枚举值。
 - 测试编排器为四种格式构建各自的原生入站请求：Chat Completions、Responses、Anthropic Messages 和 Gemini Contents。Gemini 请求带模型动作路径，分别适配 `generateContent` / `streamGenerateContent`。
 - 渠道选择器只使用与所选格式精确匹配的已解析端点，缺少该端点时立即报错，不回退到其他接口格式。
+- 单渠道测试的格式选择器和结果列只显示该渠道实际支持的四类可测端点；默认选择会按常用顺序从该集合取值。操作列的快捷测试同样将首个可测格式明确传给 GraphQL，避免遗漏格式后回退为 Chat Completions。批量测试保留跨渠道的完整格式列，并将单个渠道不支持的组合标为跳过。
 
 ## 与来源的差异
 
@@ -74,6 +76,8 @@ database:
 - `go test ./internal/server/gql -run '^$' -count=1`：通过。
 - `frontend/pnpm exec tsc --noEmit`：通过。
 - `git diff --check`：通过。
+- `node --test frontend/src/features/channels/data/channel-test-api-formats.test.mjs`：2 项通过，覆盖只提供 Responses 时的下拉项、默认值和展示列集合。
+- `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：通过。
 
 ## 更新历史
 
@@ -81,3 +85,4 @@ database:
 |---|---|---|---|
 | 2026-08-21 | `upstream/unstable@9fb6f1af` | `a683e9122d639c5a1273cc28d509d7019f2a6c35` | original：新增测试接口格式选择、原生请求转换与精确端点强制路由。 |
 | 2026-08-21 | 本地需求 | `35a08783a1fc5c07d475afdcd506b8aa0e384d4b` | original：多选格式结果列、渠道×格式批量健康检查、Gemini Contents 原生请求与安全恢复判断。 |
+| 2026-08-22 | 本地回归修正 | `0d6d21274b973e1fd06012b045f3a4b1a2579597` | original：单渠道只显示支持的格式和列，操作列快捷测试显式路由至实际端点，防止 Responses 渠道误测 Chat Completions。 |

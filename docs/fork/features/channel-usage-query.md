@@ -25,6 +25,7 @@ local:
     - fa2fe5a8febdf45db14b15bae932adfe0c6cbd40
     - 86c06faeceefc128c9c3213c2612faf8cb77bb87
     - bbf3d0fc34f19fd9716e8401c3f4811b1ad357cc
+    - f336b09c4f31621b3b919f3caa2964e279f50d7b
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -121,6 +122,7 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 - `balance` 面向 OpenRouter／New API 等有货币余额的渠道；不适用金额的 Codex、Claude、OpenCode Go 应直接省略。`A$` 在界面固定显示两位小数。
 - `text` 不限制长度和格式，可以写解释文字或纯文本进度摘要。列表和配额卡只显示两行；完整内容通过鼠标悬浮、触摸或键盘焦点的气泡查看。
 - `tags` 是简短标签数组，适合套餐名称、并发等不应占用文本区的信息。余额存在时显示在余额数字后；没有余额时和电池图标左对齐单独显示。
+- 当渠道同时具备 Codex OAuth 当日统计时，`tags` 与请求数、Token、A$ 同行展示，并沿用统计标签的紧凑中性色块外观。
 - `progress.windows` 可包含任意数量的独立窗口，五个或更多同样有效。窗口可只提供 `id`，也可不提供重置时间；缺少可计算的百分比时不会渲染填充条。
 - 系统状态以最紧张的已给出窗口为准：`remainingPercent=0` 为耗尽，剩余不超过 20% 为预警。没有 `balance` 或百分比时，不会凭空推断耗尽。
 
@@ -223,3 +225,4 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 | 2026-08-21 | 本地展示扩展；上游比较至 `49ade6f2` | `fa2fe5a8febdf45db14b15bae932adfe0c6cbd40` | original：v2 结果加入 tags；Codex／Claude 套餐转为 tags，OpenCode Go 文本显示三个窗口折算后的最小可用金额，41 号使用套餐／并发 tags 且不显示 A$。 |
 | 2026-08-21 | 本地编辑体验；上游比较至 `49ade6f2` | `86c06fae` | original：内置预设可显式转为 `CUSTOM` 后编辑，系统预设本身仍不可被覆盖。 |
 | 2026-08-21 | 本地回归覆盖；上游比较至 `49ade6f2` | `bbf3d0fc` | original：验证 41 号渠道任一窗口耗尽会暂停路由、额度恢复后重新可用。 |
+| 2026-08-22 | 本地展示修正 | `f336b09c4f31621b3b919f3caa2964e279f50d7b` | original：脚本 tags 与 Codex OAuth 当日统计使用同一摘要行和标签样式。 |
