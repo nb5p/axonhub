@@ -14,6 +14,9 @@ interface ChannelTestFormatSelectorProps {
 
 export function ChannelTestFormatSelector({ value, onChange, availableEndpointFormats, portalContainer }: ChannelTestFormatSelectorProps) {
   const { t } = useTranslation();
+  const formats = availableEndpointFormats
+    ? channelTestAPIFormats.filter((format) => availableEndpointFormats.has(format.endpointFormat))
+    : channelTestAPIFormats;
 
   const toggleFormat = (format: ChannelTestAPIFormat, checked: boolean) => {
     if (!checked && value.length === 1) {
@@ -33,16 +36,14 @@ export function ChannelTestFormatSelector({ value, onChange, availableEndpointFo
       </PopoverTrigger>
       <PopoverContent container={portalContainer} align='end' className='w-80 space-y-1 p-2'>
         <p className='text-muted-foreground px-2 py-1 text-xs'>{t('channels.dialogs.test.apiFormatSelectionHint')}</p>
-        {channelTestAPIFormats.map((format) => {
+        {formats.map((format) => {
           const selected = value.includes(format.value);
-          const unavailable = availableEndpointFormats && !availableEndpointFormats.has(format.endpointFormat);
           const id = `channel-test-format-${format.value}`;
 
           return (
             <label key={format.value} htmlFor={id} className='hover:bg-accent flex cursor-pointer items-center gap-3 rounded-sm px-2 py-2 text-sm'>
               <Checkbox id={id} checked={selected} onCheckedChange={(checked) => toggleFormat(format.value, !!checked)} disabled={selected && value.length === 1} />
               <span className='min-w-0 flex-1'>{t(format.labelKey)}</span>
-              {unavailable && <span className='text-muted-foreground text-xs'>{t('channels.dialogs.test.formatUnavailable')}</span>}
             </label>
           );
         })}

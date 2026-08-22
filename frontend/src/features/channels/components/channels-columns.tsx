@@ -48,6 +48,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
 import { useChannels } from '../context/channels-context';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
+import { getDefaultAvailableChannelTestAPIFormats } from '../data/channel-test-api-formats';
 import { useRefreshAllUsageQueries, useRefreshChannelUsageQuery } from '../data/usage-query';
 import { CHANNEL_CONFIGS, getProvider } from '../data/config_channels';
 import { Channel } from '../data/schema';
@@ -103,12 +104,21 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
   const isArchived = channel.status === 'archived';
   const hasError = !!channel.errorMessage;
   const hasDisabledAPIKeys = channelPermissions.canWrite && (channel.disabledAPIKeys?.length ?? 0) > 0;
+  const defaultTestFormat = getDefaultAvailableChannelTestAPIFormats(
+    new Set([...(channel.defaultEndpoints ?? []), ...(channel.endpoints ?? [])].map((endpoint) => endpoint.apiFormat))
+  )[0];
 
   const handleDefaultTest = async () => {
+    if (!defaultTestFormat) {
+      toast.error(t('channels.dialogs.test.formatUnavailable'));
+      return;
+    }
+
     try {
       await testChannel.mutateAsync({
         channelID: channel.id,
         modelID: channel.defaultTestModel || undefined,
+        apiFormat: defaultTestFormat,
       });
     } catch (_error) {}
   };
@@ -128,7 +138,7 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
       <Button size='sm' variant='outline' className='h-8 w-8 p-0' onClick={handleEdit}>
         <IconEdit className='h-3 w-3' />
       </Button>
-      <Button size='sm' variant='outline' className='h-8 px-3' onClick={handleDefaultTest} disabled={testChannel.isPending}>
+      <Button size='sm' variant='outline' className='h-8 px-3' onClick={handleDefaultTest} disabled={testChannel.isPending || !defaultTestFormat}>
         <IconPlayerPlay className='mr-1 h-3 w-3' />
       </Button>
       <DropdownMenu>

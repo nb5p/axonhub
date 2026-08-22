@@ -29,6 +29,18 @@ export function getChannelTestAPIFormat(value: ChannelTestAPIFormat) {
   return channelTestAPIFormats.find((format) => format.value === value)!;
 }
 
+export function getAvailableChannelTestAPIFormats(availableEndpointFormats: ReadonlySet<string>): ChannelTestAPIFormat[] {
+  return channelTestAPIFormats
+    .filter((format) => availableEndpointFormats.has(format.endpointFormat))
+    .map((format) => format.value);
+}
+
+export function getDefaultAvailableChannelTestAPIFormats(availableEndpointFormats: ReadonlySet<string>): ChannelTestAPIFormat[] {
+  const availableFormats = getAvailableChannelTestAPIFormats(availableEndpointFormats);
+  const selectedDefaults = defaultChannelTestAPIFormats.filter((format) => availableFormats.includes(format));
+  return selectedDefaults.length > 0 ? selectedDefaults : availableFormats;
+}
+
 export function orderChannelTestAPIFormats(values: ChannelTestAPIFormat[]): ChannelTestAPIFormat[] {
   return channelTestAPIFormats.filter((format) => values.includes(format.value)).map((format) => format.value);
 }

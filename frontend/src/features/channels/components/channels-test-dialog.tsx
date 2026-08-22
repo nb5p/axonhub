@@ -12,7 +12,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
-import { ChannelTestAPIFormat, defaultChannelTestAPIFormats, getChannelTestAPIFormat } from '../data/channel-test-api-formats';
+import {
+  ChannelTestAPIFormat,
+  getChannelTestAPIFormat,
+  getDefaultAvailableChannelTestAPIFormats,
+} from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
 import { ErrorDisplay } from '../utils/error-formatter';
 
@@ -45,7 +49,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<ModelTestResults>({});
   const [localSupportedModels, setLocalSupportedModels] = useState<string[]>(channel.supportedModels);
-  const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>(defaultChannelTestAPIFormats);
+  const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>([]);
   const [isTesting, setIsTesting] = useState(false);
   const [isRemovePopoverOpen, setIsRemovePopoverOpen] = useState(false);
   const testChannel = useTestChannel();
@@ -55,6 +59,10 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
     () => new Set([...(channel.defaultEndpoints ?? []), ...(channel.endpoints ?? [])].map((endpoint) => endpoint.apiFormat)),
     [channel.defaultEndpoints, channel.endpoints]
   );
+  const defaultAvailableAPIFormats = useMemo(
+    () => getDefaultAvailableChannelTestAPIFormats(availableEndpointFormats),
+    [availableEndpointFormats]
+  );
   const filteredModels = localSupportedModels.filter((model) => model.toLowerCase().includes(searchQuery.toLowerCase()));
 
   useEffect(() => {
@@ -62,15 +70,15 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       setTestResults(makeInitialResults(channel.supportedModels));
       setLocalSupportedModels(channel.supportedModels);
       setSelectedModels([]);
-      setSelectedAPIFormats(defaultChannelTestAPIFormats);
+      setSelectedAPIFormats(defaultAvailableAPIFormats);
       setSearchQuery('');
     }
-  }, [open, channel.supportedModels]);
+  }, [open, channel.supportedModels, defaultAvailableAPIFormats]);
 
   const isFormatAvailable = (format: ChannelTestAPIFormat) => availableEndpointFormats.has(getChannelTestAPIFormat(format).endpointFormat);
 
   const handleAPIFormatsChange = (formats: ChannelTestAPIFormat[]) => {
-    setSelectedAPIFormats(formats);
+    setSelectedAPIFormats(formats.filter(isFormatAvailable));
     setTestResults(makeInitialResults(localSupportedModels));
   };
 
