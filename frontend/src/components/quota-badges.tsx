@@ -662,20 +662,6 @@ function QuotaRow({
         </div>
       </div>
 
-      {showCodexUsage && (
-        <div className='ml-6 flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
-          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
-            {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
-          </span>
-          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
-            {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
-          </span>
-          <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
-            {formatActualCost(channelTodayUsage.actualCost)}
-          </span>
-        </div>
-      )}
-
       {quotaData.error && (
         <div className='ml-6 rounded bg-red-500/10 p-2 text-xs break-words text-red-500'>
           <span className='font-medium'>{t('quota.label.error')}:</span> {quotaData.error}
@@ -693,8 +679,21 @@ function QuotaRow({
 
             return (
               <>
-                {(balance || tags.length > 0) && (
-                  <div className='flex flex-wrap items-center gap-1.5 text-xs'>
+                {(showCodexUsage || balance || tags.length > 0) && (
+                  <div className={`flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground${showCodexUsage ? ' ml-6' : ''}`}>
+                    {showCodexUsage && (
+                      <>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
+                          {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
+                        </span>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
+                          {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
+                        </span>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
+                          {formatActualCost(channelTodayUsage.actualCost)}
+                        </span>
+                      </>
+                    )}
                     {balance && (
                       <>
                         <span className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</span>
@@ -702,9 +701,9 @@ function QuotaRow({
                       </>
                     )}
                     {tags.map((tag, index) => (
-                      <Badge key={`${tag}-${index}`} variant='secondary' className='h-5 px-1.5 text-[10px] font-medium'>
+                      <span key={`${tag}-${index}`} className='bg-muted rounded px-1.5 py-0.5' title={tag}>
                         {tag}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 )}
