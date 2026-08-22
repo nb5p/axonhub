@@ -1155,7 +1155,7 @@ export const createColumns = (
             minSize: 128,
             maxSize: 200,
             enableSorting: false,
-            enableHiding: false,
+            enableHiding: true,
           },
         ]
       : []),

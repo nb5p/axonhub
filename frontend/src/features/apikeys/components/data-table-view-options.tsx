@@ -28,11 +28,16 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
     activeProfile: t('apikeys.columns.activeProfile'),
     createdAt: t('common.columns.createdAt'),
     updatedAt: t('common.columns.updatedAt'),
+    actions: t('common.columns.actions'),
   };
   const configurableColumns = table.getAllLeafColumns().filter((column) => {
     const accessorKey = column.columnDef.accessorKey;
     return (
-      (typeof column.accessorFn !== 'undefined' || typeof accessorKey !== 'undefined' || column.id === 'select') && column.getCanHide()
+      (typeof column.accessorFn !== 'undefined' ||
+        typeof accessorKey !== 'undefined' ||
+        column.id === 'select' ||
+        column.id === 'actions') &&
+      column.getCanHide()
     );
   });
 

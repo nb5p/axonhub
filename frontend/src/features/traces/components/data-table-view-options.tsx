@@ -17,7 +17,9 @@ interface DataTableViewOptionsProps<TData> {
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const { t } = useTranslation();
-  const configurableColumns = table.getAllLeafColumns().filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide());
+  const configurableColumns = table
+    .getAllLeafColumns()
+    .filter((column) => (typeof column.accessorFn !== 'undefined' || column.id === 'actions') && column.getCanHide());
 
   return (
     <DropdownMenu modal={false}>
@@ -30,7 +32,11 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
       <DropdownMenuContent align='end' className='w-[220px]'>
         <DropdownMenuLabel>{t('common.configureColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DataTableColumnSettings table={table} columns={configurableColumns} getColumnLabel={(column) => column.id} />
+        <DataTableColumnSettings
+          table={table}
+          columns={configurableColumns}
+          getColumnLabel={(column) => (column.id === 'actions' ? t('common.columns.actions') : column.id)}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

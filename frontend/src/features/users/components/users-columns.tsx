@@ -111,6 +111,7 @@ export const createColumns = (t: ReturnType<typeof useTranslation>['t'], canWrit
       id: 'actions',
       header: t('common.columns.actions'),
       cell: ({ row }) => <DataTableRowActions row={row} />,
+      enableHiding: true,
     }
   );
 

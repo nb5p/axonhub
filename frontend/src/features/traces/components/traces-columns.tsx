@@ -203,7 +203,7 @@ export function useTracesColumns(): ColumnDef<Trace>[] {
     {
       id: 'actions',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.actions')} />,
-      enableHiding: false,
+      enableHiding: true,
       meta: { className: 'w-[100px]' },
       cell: ({ row }) => <TraceActionButtons trace={row.original} />,
     },

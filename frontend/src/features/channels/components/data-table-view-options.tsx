@@ -14,7 +14,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
   const { t } = useTranslation();
   const configurableColumns = table
     .getAllLeafColumns()
-    .filter((column) => typeof column.accessorFn !== 'undefined' || column.id === 'select')
+    .filter((column) => typeof column.accessorFn !== 'undefined' || column.id === 'select' || column.id === 'action')
     .filter((column) => column.getCanHide() || column.id === 'status')
     .filter((column) => column.id !== 'model');
 
@@ -30,6 +30,8 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
               ? 'channels.columns.supportedEndpoints'
               : columnId === 'createdAt'
                 ? 'common.columns.createdAt'
+                : columnId === 'action'
+                  ? 'common.columns.actions'
                 : `channels.columns.${columnId}`;
     return t(labelKey);
   };

@@ -143,6 +143,7 @@ export const createColumns = (
     {
       id: 'actions',
       cell: ({ row }) => <DataTableRowActions row={row} />,
+      enableHiding: true,
     }
   );
 

@@ -7,7 +7,7 @@ import { Ban, FileText } from 'lucide-react';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { extractNumberID, formatUserName } from '@/lib/utils';
+import { extractNumberID } from '@/lib/utils';
 import { formatDuration } from '@/utils/format-duration';
 import { usePaginationSearch } from '@/hooks/use-pagination-search';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -606,29 +606,6 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       sortingFn: (rowA, rowB) => (getTokensPerSecondValue(rowA.original) ?? 0) - (getTokensPerSecondValue(rowB.original) ?? 0),
     },
     {
-      id: 'caller',
-      accessorFn: (row) => row.apiKey?.id ?? '',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.caller')} />,
-      enableSorting: false,
-      enableHiding: true,
-      cell: ({ row }) => {
-        const request = row.original;
-        if (request.source !== 'api') {
-          return <Badge variant='secondary'>{t(`requests.source.${request.source}`)}</Badge>;
-        }
-
-        const callerName = formatUserName(request.apiKey?.user?.firstName, request.apiKey?.user?.lastName);
-
-        return (
-          <div className='flex min-w-[120px] flex-col gap-0.5'>
-            <span className='font-mono text-xs'>{request.apiKey?.name || '-'}</span>
-            {callerName && <span className='text-muted-foreground text-xs'>{callerName}</span>}
-          </div>
-        );
-      },
-      filterFn: (row, _id, value) => value.length === 0 || value.includes(row.original.apiKey?.id ?? ''),
-    },
-    {
       accessorKey: 'createdAt',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('common.columns.createdAt')} />,
       enableSorting: true,
@@ -659,7 +636,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
           <TooltipContent>{t('requests.actions.viewDetails')}</TooltipContent>
         </Tooltip>
       ),
-      enableHiding: false,
+      enableHiding: true,
     },
   ];
 

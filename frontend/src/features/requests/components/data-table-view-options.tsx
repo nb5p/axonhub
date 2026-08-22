@@ -25,7 +25,12 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
   });
 
   const getColumnLabel = (columnId: string) => {
-    const labelKey = columnId === 'cacheHitRate' ? 'requests.columns.cacheHitRateLabel' : `requests.columns.${columnId}`;
+    const labelKey =
+      columnId === 'details'
+        ? 'common.columns.actions'
+        : columnId === 'cacheHitRate'
+          ? 'requests.columns.cacheHitRateLabel'
+          : `requests.columns.${columnId}`;
     return t(labelKey, {
       defaultValue: t(`common.columns.${columnId}`),
     });

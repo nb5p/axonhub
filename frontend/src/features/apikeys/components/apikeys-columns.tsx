@@ -285,5 +285,6 @@ export const createColumns = (
     id: 'actions',
     header: t('common.columns.actions'),
     cell: DataTableRowActions,
+    enableHiding: true,
   },
 ];
