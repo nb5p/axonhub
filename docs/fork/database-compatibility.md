@@ -49,6 +49,7 @@
 | `channel-api-key-copy` | `none` | 是 | 无 | 仅涉及渠道编辑界面的复制交互。 |
 | `request-log-layout` | `none` | 是 | 无 | 仅涉及请求日志查询字段和前端表格布局。 |
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
+| `channel-model-auto-suffix-trim` | `additive` | 是 | 既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes` | 旧渠道缺失时关闭，不需要回填。 |
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
 | `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；`usageQuery.showInProviderQuota` 缺失时默认显示；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
@@ -179,6 +180,17 @@
 - 备份与恢复：本次未创建备份；不需要数据库迁移。
 - 回滚能力：旧代码会忽略新增键，请求记录不被修改或复制。
 - 最低升级版本：`b570bc11a3daf067a0b7f6c09e97fb5b6d3cfd41`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-22 — channel-model-auto-suffix-trim
+
+- 兼容等级：`additive`。
+- 本地 commit：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`。
+- 影响结构：不新增或变更 Ent Schema、表、列或索引；既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes` 字段。GraphQL 的渠道设置输入和输出同步增加同名字段。
+- 旧数据库验证样本：缺失字段按空列表处理，不回填旧渠道。模型条目、路由选择和 GraphQL 编译校验通过；部署前仍需在绿色现有 SQLite 副本上执行 `.backup`、`PRAGMA quick_check` 和完整启动检查。
+- 备份与恢复：本次代码提交未创建备份。部署到绿色前，对 `/Users/tux/Playground/AxonHub/data/axonhub.db` 创建一致性 `.backup`，对源库和副本执行 `PRAGMA quick_check`，并将时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
+- 回滚能力：旧代码不识别该字段。若已经配置后缀，回退前避免用旧版本保存该渠道；需要完整还原配置时恢复部署前数据库备份。
+- 最低升级版本：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板

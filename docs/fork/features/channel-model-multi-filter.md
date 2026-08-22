@@ -9,8 +9,8 @@ source:
   branch: unstable
   baseline_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
   adopted_commits: []
-  last_checked_commit: 9dfd6ac0c21bbc5abe55827fa634e22826287d67
-  last_checked_at: 2026-08-10
+  last_checked_commit: 49ade6f279eae7aed46858dc121258e922ec9870
+  last_checked_at: 2026-08-22
   license: Apache-2.0
 local:
   branch: ai-slop
@@ -19,6 +19,7 @@ local:
     - 42e7db95a0c834e39cc72f869c72421e5cc45a73
     - b3e3aba6b493ffcdb384835c513d41368f8a0d21
     - 8b0178d010980edb6932d254dd32ad2af7bb8a02
+    - 8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca
   modules:
     - internal/server/biz/channel_query.go
     - internal/server/biz/channel_query_test.go
@@ -30,7 +31,7 @@ upstream:
   pull_request: null
   accepted_commit: null
   relation: none
-  last_compared_at: 2026-08-10
+  last_compared_at: 2026-08-22
 reconciliations: []
 history_rewrites: []
 database:
@@ -51,8 +52,8 @@ database:
 ## 本地实现
 
 - 新增 `models` 和 `modelsMatchMode` 查询参数，默认按任一模型命中。
-- 服务端基于渠道最终模型集合判断，包含渠道映射、前缀和自动裁剪模型。
-- 模型下拉框与服务端筛选共用最终模型集合：隐藏原始模型时仅列出转换后的请求 ID；未隐藏时同时列出原始 ID 和自动裁剪后的 ID。
+- 服务端基于渠道最终模型集合判断，包含渠道映射、额外前缀以及自动裁剪的前缀和 `:后缀` 模型别名。
+- 模型下拉框与服务端筛选共用最终模型集合：隐藏原始模型时仅列出转换后的请求 ID；未隐藏时同时列出原始 ID 和自动裁剪后的 ID。后缀裁剪的详细配置和兼容性记录见 [`channel-model-auto-suffix-trim.md`](channel-model-auto-suffix-trim.md)。
 - 前端模型筛选改为多选，已选项稳定置顶，并提供“或/且”切换。
 - “或/且”控制位于“模型”和已选数量之间；只选择一个模型时隐藏，选择至少两个模型后显示并可点击切换。
 
@@ -62,7 +63,7 @@ database:
 
 ## 上游收敛
 
-2026-08-10 比较 `upstream/unstable@9dfd6ac0c21bbc5abe55827fa634e22826287d67`，未发现多模型关系筛选，关系为 `none`。
+2026-08-22 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，未发现多模型 OR/AND 关系筛选，关系为 `none`。
 
 ## 数据库兼容
 
@@ -82,3 +83,4 @@ database:
 | 2026-08-10 | `upstream/unstable@9dfd6ac0` | `42e7db95a0c834e39cc72f869c72421e5cc45a73` | 新增多模型 OR/AND 服务端筛选和前端交互。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `b3e3aba6b493ffcdb384835c513d41368f8a0d21` | 将关系切换移入模型筛选触发器，并仅在多选时显示。 |
 | 2026-08-11 | `upstream/unstable@9dfd6ac0` | `8b0178d010980edb6932d254dd32ad2af7bb8a02` | 让模型候选与最终渠道模型集合保持一致，正确处理自动裁剪与隐藏原始模型。 |
+| 2026-08-22 | `upstream/unstable@49ade6f2` | `8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca` | 将显式后缀裁剪产生的别名纳入既有最终模型集合，保持模型筛选与路由一致。 |
