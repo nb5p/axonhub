@@ -29,6 +29,7 @@ local:
     - 85399a55b1c5e8dfb45a29d52f7375125ea188e0
     - bea6adb1d554d7ed1759b22c3d2284a9d5146f26
     - d06afc53f2c12933aa0fd9e083652722bc501bca
+    - eedd86af2c1c001472fcd05bdadc012e01d47eac
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -40,6 +41,7 @@ local:
     - internal/server/gql/axonhub.graphql
     - frontend/src/features/channels/components/channels-usage-query-dialog.tsx
     - frontend/src/features/channels/data/usage-query-presets.ts
+    - frontend/src/lib/usage-query-balance.ts
     - frontend/src/features/system/data/quotas.ts
     - frontend/src/components/quota-badges.tsx
 upstream:
@@ -128,6 +130,7 @@ Codex、Claude Code、OpenCode Go（含 Anthropic 变体）是脚本查询专用
 
 - `balance` 面向 OpenRouter／New API、OpenCode Go 等有可折算货币余额的渠道；不适用金额的 Codex、Claude 应直接省略。
 - 所有 `balance.remaining` 都以数值保存、以两位小数展示；数值本身不能承载尾随零，因而脚本不得把它转换成字符串。OpenCode Go 将三个窗口折算后的最小余额作为 `balance: { remaining, unit: "USD" }` 返回，同时保留进度条，不再使用 `text` 承载余额。
+- 非 `A$` 的余额统一按“数值 + 空格 + 单位”显示，例如 `剩余：12.00 USD`；不使用本地货币符号格式化为 `US$12.00`。`A$` 保持 `A$12.00`，因为它是 Codex OAuth 专用的实际成本单位。
 - `text` 不限制长度和格式，可以写解释文字或纯文本进度摘要。列表和配额卡只显示两行；完整内容通过鼠标悬浮、触摸或键盘焦点的气泡查看。
 - `tags` 是简短标签数组，适合套餐名称、并发等不应占用文本区的信息。余额存在时显示在余额数字后；没有余额时和电池图标左对齐单独显示。
 - 当渠道同时具备 Codex OAuth 当日统计时，`tags` 与请求数、Token、A$ 同行展示，并沿用统计标签的紧凑中性色块外观。
@@ -223,6 +226,7 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 - `node --test frontend/src/features/channels/data/usage-query-presets.test.mjs`：通过，覆盖 OpenCode Go 前端预览预设返回 USD 余额且不返回文本。
 - `go test ./internal/server/biz/provider_quota ./internal/server/biz -count=1`：通过，覆盖预设默认关闭、旧原生状态不加载到路由缓存、注册 checker 与支持列表一致，以及其他业务包回归。
 - `cd frontend && node --test src/features/channels/data/usage-query-presets.test.mjs src/features/channels/data/channel-test-api-formats.test.mjs && node_modules/.bin/tsc --noEmit -p tsconfig.json`：通过。
+- `cd frontend && node --test src/lib/usage-query-balance.test.mjs && node_modules/.bin/tsc --noEmit -p tsconfig.json`：通过，覆盖 `USD` 尾随单位、两位小数和 `A$` 前缀。
 
 ## 更新历史
 
@@ -241,3 +245,4 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 | 2026-08-22 | 本地行为修正 | `85399a55b1c5e8dfb45a29d52f7375125ea188e0` | original：内置预设改为仅预填且默认关闭；只有保存的 `enabled=true` 可触发脚本查询，遗留未启用结果不参与配额卡或路由缓存。 |
 | 2026-08-22 | 本地协议与展示修正 | `bea6adb1d554d7ed1759b22c3d2284a9d5146f26` | original：OpenCode Go 最小窗口余额改为 USD `balance`，移除余额文本；所有脚本余额统一两位小数显示。 |
 | 2026-08-22 | 本地路径收敛 | `d06afc53f2c12933aa0fd9e083652722bc501bca` | original：移除旧原生 Codex／Claude checker 注册和旧 provider 设置项；关闭脚本时忽略历史原生配额状态，避免陈旧缓存参与路由。 |
+| 2026-08-22 | 本地展示修正 | `eedd86af2c1c001472fcd05bdadc012e01d47eac` | original：脚本余额在配额卡、渠道列表和测试结果中统一按 `12.00 USD` 渲染，避免浏览器货币符号改写单位。 |

@@ -31,12 +31,14 @@ local:
     - 129e16cc1fbd27aee6ed5deb1a20ba7a376dc43b
     - f336b09c4f31621b3b919f3caa2964e279f50d7b
     - bea6adb1d554d7ed1759b22c3d2284a9d5146f26
+    - eedd86af2c1c001472fcd05bdadc012e01d47eac
   modules:
     - frontend/src/components/quota-badges.tsx
     - frontend/src/features/system/data/quotas.ts
     - frontend/src/features/system/components/quota-settings.tsx
     - frontend/src/features/system/data/system.ts
     - frontend/src/lib/quota-display.ts
+    - frontend/src/lib/usage-query-balance.ts
     - frontend/src/lib/quota-window-time.ts
     - frontend/src/lib/quota-window-time.test.mjs
     - internal/server/biz/system.go
@@ -81,6 +83,7 @@ database:
 - 提供商配额渠道行将当天的请求数、总 Token 和 A$ 放在标题下一行、各配额窗口进度条之前，避免挤压渠道名与可用状态；A$ 来自 `usage_logs.total_cost` 的渠道实际成本，不展示下游客户计费的 U$，并固定两位小数。
 - Codex OAuth 的请求数、Token、A$ 与用量查询脚本返回的 `tags` 共用同一摘要行；两类标签均采用相同的紧凑中性色块样式，空间不足时整行自然换行。
 - 脚本查询的余额在提供商配额卡、渠道列表和脚本测试结果中均固定显示两位小数；OpenCode Go 以 USD 余额而非文本加入这一统一展示路径。
+- 脚本余额的通用文案为“剩余：数值 单位”，例如 `剩余：12.00 USD`；不调用浏览器的货币符号本地化。`A$` 继续显示为 `A$12.00`。
 - GraphQL 通过当天 `usage_logs` 的渠道分组一次性查询该三项数据，沿用弹层的 `read_channels` 授权边界和 60 秒刷新周期；未改动 Ent Schema 或数据库结构。
 
 ## 与来源的差异
@@ -108,6 +111,7 @@ database:
 - `frontend/node_modules/.bin/tsc --noEmit --pretty false -p frontend/tsconfig.json`：通过，覆盖当日用量标签换行与 A$ 两位小数调整。
 - `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：通过，覆盖统计标签与脚本标签共用摘要行的类型检查。
 - `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：通过，覆盖余额格式化路径的类型检查。
+- `node --test frontend/src/lib/usage-query-balance.test.mjs`：通过，覆盖 USD 尾随单位、两位小数和 A$ 专用前缀。
 
 ## 更新历史
 
@@ -123,3 +127,4 @@ database:
 | 2026-08-22 | 上游 `49ade6f2` 时间条重构 | `129e16cc1fbd27aee6ed5deb1a20ba7a376dc43b` | 保留时间标记与时间条，同时明确 Codex 的颜色严重度不受窗口经过时间影响。 |
 | 2026-08-22 | 本地展示修正 | `f336b09c4f31621b3b919f3caa2964e279f50d7b` | Codex OAuth 当日统计与用量查询 tags 合并为同一行，并统一紧凑标签样式。 |
 | 2026-08-22 | 本地余额展示修正 | `bea6adb1d554d7ed1759b22c3d2284a9d5146f26` | 所有脚本余额固定两位小数，OpenCode Go 改走 USD 余额对象。 |
+| 2026-08-22 | 本地余额文案修正 | `eedd86af2c1c001472fcd05bdadc012e01d47eac` | 脚本余额统一显示为“剩余：12.00 USD”，使 47 号渠道等 USD 余额不再显示为 `US$`。 |
