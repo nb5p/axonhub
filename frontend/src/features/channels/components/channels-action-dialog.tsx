@@ -797,7 +797,6 @@ export function ChannelsActionDialog({ currentRow, duplicateFromRow, open, onOpe
   const isClineType = activeChannelType === 'cline';
   const isClaudeCodeType = activeChannelType === 'claudecode';
   const isCopilotType = activeChannelType === 'github_copilot';
-  const isOpenCodeGoType = isOpenCodeGoChannelType(activeChannelType);
   const isXAISubscriptionType = activeChannelType === 'xai_subscription';
 
   // OAuth providers cannot have their provider/API format changed during edit.
