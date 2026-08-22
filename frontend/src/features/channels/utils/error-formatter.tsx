@@ -33,6 +33,21 @@ export function formatErrorMessage(error: string): {
 }
 
 /**
+ * Returns the most useful compact identifier for dense result tables.
+ * Upstream error codes are commonly enclosed in brackets; HTTP status codes
+ * are the next-best signal when a provider does not return its own code.
+ */
+export function getErrorCode(error: string): string {
+  const bracketedCode = error.match(/\[([A-Za-z0-9_-]+)\]/)?.[1];
+  if (bracketedCode) return bracketedCode;
+
+  const httpStatus = error.match(/\bHTTP(?:\s+(?:status|code))?\s*[:=]?\s*([1-5]\d{2})\b/i)?.[1];
+  if (httpStatus) return `HTTP ${httpStatus}`;
+
+  return 'ERR';
+}
+
+/**
  * A component to display formatted error messages and request IDs.
  */
 interface ErrorDisplayProps {

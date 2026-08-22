@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TruncatedText } from '@/components/truncated-text';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useChannels } from '../context/channels-context';
 import { useBulkRecoverChannels, useTestChannel } from '../data/channels';
 import { ChannelTestAPIFormat, defaultChannelTestAPIFormats, getChannelTestAPIFormat } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
-import { ErrorDisplay } from '../utils/error-formatter';
+import { getErrorCode } from '../utils/error-formatter';
 
 type BulkTestStatus = 'idle' | 'testing' | 'success' | 'failed' | 'skipped';
 
@@ -319,7 +320,16 @@ export function ChannelsBulkTestDialog() {
                               {getStatusBadge(status)}
                               {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
                               {result?.status === 'testing' && <IconLoader2 className='text-muted-foreground h-4 w-4 animate-spin' />}
-                              {result?.error && <ErrorDisplay error={result.error} messageClassName='block max-w-48 break-all text-xs font-medium text-red-600 whitespace-pre-wrap' />}
+                              {result?.error && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className='inline-flex cursor-help text-xs font-medium text-red-600' tabIndex={0}>
+                                      {getErrorCode(result.error)}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className='max-w-md whitespace-pre-wrap break-words'>{result.error}</TooltipContent>
+                                </Tooltip>
+                              )}
                               <Button
                                 size='sm'
                                 variant='outline'
