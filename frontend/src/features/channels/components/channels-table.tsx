@@ -79,11 +79,14 @@ interface DataTableProps {
 }
 
 const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
-  tags: false,
+  tags: true,
   model: false,
   proxy: false,
 };
 
+const COLUMN_VISIBILITY_STORAGE_KEY = 'channels-table-column-visibility';
+const COLUMN_VISIBILITY_STORAGE_VERSION_KEY = 'channels-table-column-visibility-version';
+const COLUMN_VISIBILITY_STORAGE_VERSION = '2';
 const COLUMN_SIZING_STORAGE_KEY = 'channels-table-column-sizing';
 const COLUMN_ORDER_STORAGE_KEY = 'channels-table-column-order';
 
@@ -131,10 +134,18 @@ export function ChannelsTable({
 
   // Load column visibility from localStorage with useMemo to avoid re-parsing
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
-    const stored = localStorage.getItem('channels-table-column-visibility');
+    const stored = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
     if (stored) {
       try {
-        return { ...DEFAULT_COLUMN_VISIBILITY, ...JSON.parse(stored) };
+        const persistedVisibility = JSON.parse(stored) as VisibilityState;
+        if (localStorage.getItem(COLUMN_VISIBILITY_STORAGE_VERSION_KEY) === COLUMN_VISIBILITY_STORAGE_VERSION) {
+          return { ...DEFAULT_COLUMN_VISIBILITY, ...persistedVisibility };
+        }
+
+        // `tags` used to be hidden by default and was not configurable, so a
+        // persisted false cannot represent an explicit user preference.
+        const { tags: _legacyTags, ...legacyVisibility } = persistedVisibility;
+        return { ...DEFAULT_COLUMN_VISIBILITY, ...legacyVisibility };
       } catch {
         return DEFAULT_COLUMN_VISIBILITY;
       }
@@ -170,7 +181,8 @@ export function ChannelsTable({
 
   // Save column visibility to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('channels-table-column-visibility', JSON.stringify(columnVisibility));
+    localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility));
+    localStorage.setItem(COLUMN_VISIBILITY_STORAGE_VERSION_KEY, COLUMN_VISIBILITY_STORAGE_VERSION);
 
     // Notify parent about health column visibility changes
     if (onHealthColumnVisibilityChange) {

@@ -16,7 +16,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
     .getAllLeafColumns()
     .filter((column) => typeof column.accessorFn !== 'undefined' || column.id === 'select')
     .filter((column) => column.getCanHide() || column.id === 'status')
-    .filter((column) => column.id !== 'tags' && column.id !== 'model');
+    .filter((column) => column.id !== 'model');
 
   const getColumnLabel = (columnId: string) => {
     const labelKey =
