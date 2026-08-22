@@ -7,7 +7,7 @@ import { useQueryModels } from '@/gql/models';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useSelectedProjectId } from '@/stores/projectStore';
-import { extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
+import { cn, extractNumberID, extractNumberIDAsNumber } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import {
   AlertDialog,
