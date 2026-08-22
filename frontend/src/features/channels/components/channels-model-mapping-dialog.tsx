@@ -92,17 +92,6 @@ const extractAllPrefixes = (models: string[]): string[] => {
   return Array.from(prefixes).sort();
 };
 
-const extractAllSuffixes = (models: string[]): string[] => {
-  const suffixes = new Set<string>();
-  models.forEach((model) => {
-    const separatorIndex = Math.max(model.lastIndexOf(':'), model.lastIndexOf('-'));
-    if (separatorIndex > 0 && separatorIndex < model.length - 1) {
-      suffixes.add(model.slice(separatorIndex + 1));
-    }
-  });
-  return Array.from(suffixes).sort();
-};
-
 export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: Props) {
   const { t } = useTranslation();
   const updateChannel = useUpdateChannel();
@@ -114,7 +103,6 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
   const [editingError, setEditingError] = useState<string | null>(null);
 
   const prefixSuggestions = useMemo(() => extractAllPrefixes(currentRow.supportedModels), [currentRow.supportedModels]);
-  const suffixSuggestions = useMemo(() => extractAllSuffixes(currentRow.supportedModels), [currentRow.supportedModels]);
 
   const modelMappingFormSchema = createModelMappingFormSchema(currentRow.supportedModels);
 
@@ -183,35 +171,6 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
         defaultValue: `${currentPrefixes.length} prefix(es) cleared successfully`,
       })
     );
-  }, [form, t]);
-
-  const handleAutoExtractAllSuffixes = useCallback(() => {
-    if (suffixSuggestions.length === 0) {
-      toast.warning(t('channels.dialogs.settings.autoTrimedModelSuffixes.noSuffixesFound'));
-      return;
-    }
-
-    const currentSuffixes = form.getValues('autoTrimedModelSuffixes') || [];
-    const currentSuffixesSet = new Set(currentSuffixes);
-    const newSuffixes = suffixSuggestions.filter((suffix) => !currentSuffixesSet.has(suffix));
-    if (newSuffixes.length === 0) {
-      toast.warning(t('channels.dialogs.settings.autoTrimedModelSuffixes.allSuffixesAlreadyAdded'));
-      return;
-    }
-
-    form.setValue('autoTrimedModelSuffixes', [...currentSuffixes, ...newSuffixes]);
-    toast.success(t('channels.dialogs.settings.autoTrimedModelSuffixes.suffixesAdded', { count: newSuffixes.length }));
-  }, [form, suffixSuggestions, t]);
-
-  const handleClearAllSuffixes = useCallback(() => {
-    const currentSuffixes = form.getValues('autoTrimedModelSuffixes') || [];
-    if (currentSuffixes.length === 0) {
-      toast.warning(t('channels.dialogs.settings.autoTrimedModelSuffixes.noSuffixesToClear'));
-      return;
-    }
-
-    form.setValue('autoTrimedModelSuffixes', []);
-    toast.success(t('channels.dialogs.settings.autoTrimedModelSuffixes.suffixesCleared', { count: currentSuffixes.length }));
   }, [form, t]);
 
   const exitInlineEditing = () => {
@@ -508,7 +467,6 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                               value={field.value || []}
                               onChange={field.onChange}
                               placeholder={t('channels.dialogs.settings.autoTrimedModelSuffixes.placeholder')}
-                              suggestions={suffixSuggestions}
                               className='h-auto min-h-9 py-1'
                             />
                           </FormControl>
@@ -544,20 +502,6 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                         </label>
                       </div>
                     </div>
-
-                    {suffixSuggestions.length > 0 && (
-                      <div className='flex items-center gap-2 pt-2'>
-                        <Button type='button' variant='outline' size='sm' onClick={handleAutoExtractAllSuffixes} className='text-xs'>
-                          {t('channels.dialogs.settings.autoTrimedModelSuffixes.autoExtractAll')}
-                        </Button>
-                        <Button type='button' variant='outline' size='sm' onClick={handleClearAllSuffixes} className='text-xs'>
-                          {t('channels.dialogs.settings.autoTrimedModelSuffixes.clearAll')}
-                        </Button>
-                        <span className='text-muted-foreground text-xs'>
-                          {t('channels.dialogs.settings.autoTrimedModelSuffixes.suffixesDetected', { count: suffixSuggestions.length })}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
