@@ -54,6 +54,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `channel-model-test-api-formats` | 本地原创 | `active` | `a683e912`, `35a08783` | `none` | [`features/channel-model-test-api-formats.md`](features/channel-model-test-api-formats.md) |
 | `sub2api-oauth-account-import` | 外部数据格式适配 | `active` | Sub2API `67380eaf` / `23117cab` | `additive` | [`features/sub2api-oauth-account-import.md`](features/sub2api-oauth-account-import.md) |
 | `test-request-list-visibility` | 本地原创 | `active` | `b570bc11` | `none` | [`features/test-request-list-visibility.md`](features/test-request-list-visibility.md) |
+| `webhook-notifications` | 上游功能扩展 | `active` | 上游 `f6184d80` / 本地 `c34299ae`, `8fee49df` | `additive` | [`features/webhook-notifications.md`](features/webhook-notifications.md) |
 
 本索引以“当前仍需维护的有效差异”为核心。已经被上游等价吸收的功能保留归档记录，但不得继续重复应用旧补丁。
 

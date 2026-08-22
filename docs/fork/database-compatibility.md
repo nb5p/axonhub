@@ -69,6 +69,7 @@
 | `channel-model-test-api-formats` | `none` | 是 | 无 | 仅扩展 GraphQL 测试输入和运行时请求构造，不修改渠道配置或 Ent Schema。 |
 | `sub2api-oauth-account-import` | `additive` | 是 | 既有 `channels.credentials` JSON 增加可选 OAuth 字段形态 | 不新增 Ent Schema；导入结果保存在既有单渠道 OAuth 凭据 JSON 中。 |
 | `test-request-list-visibility` | `none` | 是 | 无 | 使用现有系统键值表保存独立 JSON 配置；旧版本忽略该键，缺失时默认关闭。 |
+| `webhook-notifications` | `additive` | 是 | 新增 `webhook_deliveries` 审计表；既有 Webhook 配置 JSON 增加可选 Bark 字段，旧 target 缺失 `type` 时按 `webhook` 处理。 |
 
 截至上游比较基线 `9fb6f1af148d3d3cf7c4053159e5a55a44dbb4ca`，`channel-usage-query` 是当前有效私有差异中登记的增量 Ent Schema 变化；不需要数据回填。
 
@@ -191,6 +192,17 @@
 - 备份与恢复：本次代码提交未创建备份。部署到绿色前，对 `/Users/tux/Playground/AxonHub/data/axonhub.db` 创建一致性 `.backup`，对源库和副本执行 `PRAGMA quick_check`，并将时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
 - 回滚能力：旧代码不识别该字段。若已经配置后缀，回退前避免用旧版本保存该渠道；需要完整还原配置时恢复部署前数据库备份。
 - 最低升级版本：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-22 — webhook-notifications
+
+- 兼容等级：`additive`。
+- 本地 commit：`c34299aebf320f35094760533353b2b73209801e`、`8fee49dfa6c1e9eed8ffe1c1c9eb186ed2422ce8`。
+- 影响结构：Ent 新增独立 `webhook_deliveries` 表，记录已脱敏的出站通知请求与结果；既有系统键 `webhook_notifier_config` 中 target JSON 增加可选 `type`、`barkDeviceKey`、`barkTitle`、`barkLevel`、`barkGroup`。
+- 旧数据库验证样本：Ent 内存 SQLite 自动迁移与 Webhook/Bark/配额转换测试通过。旧配置不需要回填，缺失 target type 自动按 `webhook` 读取；新表为空时历史查询返回空列表。
+- 备份与恢复：部署到绿色前，对 `/Users/tux/Playground/AxonHub/data/axonhub.db` 创建 SQLite `.backup`，对源库和副本执行 `PRAGMA quick_check`，并登记 Obsidian 备份日志。回退时恢复该副本。
+- 回滚能力：旧版本忽略新增审计表；原有 Webhook 配置继续可读。若回退前已保存含 Bark 字段的设置，旧版编辑器可能重写配置并丢弃未知字段，需避免保存或恢复部署前快照。
+- 最低升级版本：`c34299aebf320f35094760533353b2b73209801e`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
