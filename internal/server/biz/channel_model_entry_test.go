@@ -347,6 +347,52 @@ func TestChannel_GetUnifiedModels(t *testing.T) {
 	}
 }
 
+func TestChannel_ChooseModel_AutoTrimmedPrefixAndSuffix(t *testing.T) {
+	ch := &Channel{
+		Channel: &ent.Channel{
+			SupportedModels: []string{"z-ai/glm-5.2:free"},
+			Settings: &objects.ChannelSettings{
+				AutoTrimedModelPrefixes: []string{"z-ai"},
+				// Accept a manually entered colon too, even though the UI stores
+				// suffix values without it.
+				AutoTrimedModelSuffixes: []string{":free"},
+			},
+		},
+	}
+
+	expectedEntries := map[string]ChannelModelEntry{
+		"z-ai/glm-5.2:free": {
+			RequestModel: "z-ai/glm-5.2:free",
+			ActualModel:  "z-ai/glm-5.2:free",
+			Source:       "direct",
+		},
+		"glm-5.2:free": {
+			RequestModel: "glm-5.2:free",
+			ActualModel:  "z-ai/glm-5.2:free",
+			Source:       "auto_trim",
+		},
+		"z-ai/glm-5.2": {
+			RequestModel: "z-ai/glm-5.2",
+			ActualModel:  "z-ai/glm-5.2:free",
+			Source:       "auto_trim",
+		},
+		"glm-5.2": {
+			RequestModel: "glm-5.2",
+			ActualModel:  "z-ai/glm-5.2:free",
+			Source:       "auto_trim",
+		},
+	}
+
+	entries := ch.GetModelEntries()
+	require.Equal(t, expectedEntries, entries)
+
+	for requestModel := range expectedEntries {
+		actualModel, err := ch.ChooseModel(requestModel)
+		require.NoError(t, err)
+		require.Equal(t, "z-ai/glm-5.2:free", actualModel)
+	}
+}
+
 func TestChannel_GetUnifiedModels_CachesResult(t *testing.T) {
 	ch := &Channel{
 		Channel: &ent.Channel{

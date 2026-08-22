@@ -94,6 +94,7 @@ const CREATE_CHANNEL_MUTATION = `
           to
         }
         autoTrimedModelPrefixes
+        autoTrimedModelSuffixes
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -164,6 +165,7 @@ const DUPLICATE_CHANNEL_MUTATION = `
           to
         }
         autoTrimedModelPrefixes
+        autoTrimedModelSuffixes
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -234,6 +236,7 @@ const BULK_CREATE_CHANNELS_MUTATION = `
           to
         }
         autoTrimedModelPrefixes
+        autoTrimedModelSuffixes
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -304,6 +307,7 @@ const UPDATE_CHANNEL_MUTATION = `
           to
         }
         autoTrimedModelPrefixes
+        autoTrimedModelSuffixes
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -496,6 +500,7 @@ const BULK_IMPORT_CHANNELS_MUTATION = `
             to
           }
           autoTrimedModelPrefixes
+          autoTrimedModelSuffixes
           hideOriginalModels
           hideMappedModels
           lowercaseModelId
@@ -722,6 +727,7 @@ const BULK_UPDATE_CHANNEL_ORDERING_MUTATION = `
             to
           }
           autoTrimedModelPrefixes
+          autoTrimedModelSuffixes
           hideOriginalModels
           hideMappedModels
           lowercaseModelId
@@ -834,6 +840,7 @@ const QUERY_CHANNELS_QUERY = `
               to
             }
             autoTrimedModelPrefixes
+            autoTrimedModelSuffixes
             hideOriginalModels
             hideMappedModels
             lowercaseModelId

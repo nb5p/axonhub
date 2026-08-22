@@ -1263,7 +1263,7 @@ func (svc *ChannelService) refreshOAuthToken(ctx context.Context, ch *ent.Channe
 // This unifies:
 // - SupportedModels (direct models)
 // - ExtraModelPrefix (prefixed models)
-// - AutoTrimedModelPrefixes (auto-trimmed models)
+// - AutoTrimedModelPrefixes / AutoTrimedModelSuffixes (auto-trimmed models)
 // - ModelMappings (mapped models)
 // The result is cached for performance.
 //
@@ -1309,23 +1309,47 @@ func (ch *Channel) GetModelEntries() map[string]ChannelModelEntry {
 		}
 	}
 
-	// 3. Auto-trimmed models (AutoTrimedModelPrefixes)
-	for _, prefix := range ch.Settings.AutoTrimedModelPrefixes {
-		if prefix == "" {
-			continue
+	// 3. Auto-trimmed models. Apply prefixes first, then suffixes to every
+	// resulting variant so a model such as `z-ai/glm-5.2:free` can expose the
+	// combined alias `glm-5.2` without changing the actual upstream model.
+	addAutoTrimmedEntry := func(requestModel, actualModel string) {
+		if requestModel == "" {
+			return
+		}
+		if _, exists := entries[requestModel]; !exists {
+			entries[requestModel] = ChannelModelEntry{
+				RequestModel: requestModel,
+				ActualModel:  actualModel,
+				Source:       "auto_trim",
+			}
+		}
+	}
+
+	suffixes := make([]string, 0, len(ch.Settings.AutoTrimedModelSuffixes))
+	for _, suffix := range ch.Settings.AutoTrimedModelSuffixes {
+		normalizedSuffix := strings.TrimPrefix(strings.TrimSpace(suffix), ":")
+		if normalizedSuffix != "" {
+			suffixes = append(suffixes, normalizedSuffix)
+		}
+	}
+
+	for _, model := range ch.SupportedModels {
+		prefixVariants := []string{model}
+		for _, prefix := range ch.Settings.AutoTrimedModelPrefixes {
+			if prefix == "" {
+				continue
+			}
+
+			if after, ok := strings.CutPrefix(model, prefix+"/"); ok {
+				addAutoTrimmedEntry(after, model)
+				prefixVariants = append(prefixVariants, after)
+			}
 		}
 
-		prefix += "/"
-		for _, model := range ch.SupportedModels {
-			// Only process models that have the prefix
-			if after, ok := strings.CutPrefix(model, prefix); ok {
-				trimmedModel := after
-				if _, exists := entries[trimmedModel]; !exists {
-					entries[trimmedModel] = ChannelModelEntry{
-						RequestModel: trimmedModel,
-						ActualModel:  model,
-						Source:       "auto_trim",
-					}
+		for _, variant := range prefixVariants {
+			for _, suffix := range suffixes {
+				if before, ok := strings.CutSuffix(variant, ":"+suffix); ok {
+					addAutoTrimmedEntry(before, model)
 				}
 			}
 		}

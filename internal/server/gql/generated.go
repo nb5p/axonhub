@@ -589,6 +589,7 @@ type ComplexityRoot struct {
 
 	ChannelSettings struct {
 		AutoTrimedModelPrefixes  func(childComplexity int) int
+		AutoTrimedModelSuffixes  func(childComplexity int) int
 		BodyOverrideOperations   func(childComplexity int) int
 		ExtraModelPrefix         func(childComplexity int) int
 		HeaderOverrideOperations func(childComplexity int) int
@@ -4511,6 +4512,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelSettings.AutoTrimedModelPrefixes(childComplexity), true
+	case "ChannelSettings.autoTrimedModelSuffixes":
+		if e.complexity.ChannelSettings.AutoTrimedModelSuffixes == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.AutoTrimedModelSuffixes(childComplexity), true
 	case "ChannelSettings.bodyOverrideOperations":
 		if e.complexity.ChannelSettings.BodyOverrideOperations == nil {
 			break
@@ -21603,6 +21610,8 @@ func (ec *executionContext) fieldContext_Channel_settings(_ context.Context, fie
 				return ec.fieldContext_ChannelSettings_modelMappings(ctx, field)
 			case "autoTrimedModelPrefixes":
 				return ec.fieldContext_ChannelSettings_autoTrimedModelPrefixes(ctx, field)
+			case "autoTrimedModelSuffixes":
+				return ec.fieldContext_ChannelSettings_autoTrimedModelSuffixes(ctx, field)
 			case "hideOriginalModels":
 				return ec.fieldContext_ChannelSettings_hideOriginalModels(ctx, field)
 			case "hideMappedModels":
@@ -25878,6 +25887,35 @@ func (ec *executionContext) _ChannelSettings_autoTrimedModelPrefixes(ctx context
 }
 
 func (ec *executionContext) fieldContext_ChannelSettings_autoTrimedModelPrefixes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelSettings_autoTrimedModelSuffixes(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_autoTrimedModelSuffixes,
+		func(ctx context.Context) (any, error) {
+			return obj.AutoTrimedModelSuffixes, nil
+		},
+		nil,
+		ec.marshalOString2ᚕstringᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_autoTrimedModelSuffixes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ChannelSettings",
 		Field:      field,
@@ -71017,7 +71055,7 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
+	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "autoTrimedModelSuffixes", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -71045,6 +71083,13 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 				return it, err
 			}
 			it.AutoTrimedModelPrefixes = data
+		case "autoTrimedModelSuffixes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoTrimedModelSuffixes"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoTrimedModelSuffixes = data
 		case "hideOriginalModels":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hideOriginalModels"))
 			data, err := ec.unmarshalOBoolean2bool(ctx, v)
@@ -97552,6 +97597,8 @@ func (ec *executionContext) _ChannelSettings(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._ChannelSettings_modelMappings(ctx, field, obj)
 		case "autoTrimedModelPrefixes":
 			out.Values[i] = ec._ChannelSettings_autoTrimedModelPrefixes(ctx, field, obj)
+		case "autoTrimedModelSuffixes":
+			out.Values[i] = ec._ChannelSettings_autoTrimedModelSuffixes(ctx, field, obj)
 		case "hideOriginalModels":
 			out.Values[i] = ec._ChannelSettings_hideOriginalModels(ctx, field, obj)
 		case "hideMappedModels":
