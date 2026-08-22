@@ -131,6 +131,7 @@ const WEBHOOK_NOTIFIER_CONFIG_QUERY = `
       targets {
         name
         enabled
+        type
         url
         proxy {
           type
@@ -144,11 +145,37 @@ const WEBHOOK_NOTIFIER_CONFIG_QUERY = `
           value
         }
         body
+        barkDeviceKey
+        barkTitle
+        barkLevel
+        barkGroup
       }
       subscriptions {
         event
         targetNames
       }
+    }
+  }
+`;
+
+const WEBHOOK_DELIVERY_HISTORY_QUERY = `
+  query WebhookDeliveryHistory($limit: Int) {
+    webhookDeliveryHistory(limit: $limit) {
+      id
+      event
+      targetName
+      targetType
+      url
+      method
+      requestHeaders {
+        key
+        value
+      }
+      requestBody
+      status
+      responseStatus
+      errorMessage
+      occurredAt
     }
   }
 `;
@@ -364,11 +391,16 @@ export interface WebhookHeader {
 export interface WebhookTarget {
   name: string;
   enabled: boolean;
+  type: string;
   url: string;
   proxy?: ProxyConfig | null;
   timeoutMs: number;
   headers: WebhookHeader[];
   body: string;
+  barkDeviceKey: string;
+  barkTitle: string;
+  barkLevel: string;
+  barkGroup: string;
 }
 
 export interface WebhookSubscription {
@@ -379,6 +411,21 @@ export interface WebhookSubscription {
 export interface WebhookNotifierConfig {
   targets: WebhookTarget[];
   subscriptions: WebhookSubscription[];
+}
+
+export interface WebhookDeliveryHistoryItem {
+  id: string;
+  event: string;
+  targetName: string;
+  targetType: string;
+  url: string;
+  method: string;
+  requestHeaders: WebhookHeader[];
+  requestBody: string;
+  status: string;
+  responseStatus: number;
+  errorMessage: string;
+  occurredAt: string;
 }
 
 export interface AutoDisableChannel {
@@ -672,6 +719,23 @@ export function useUpdateWebhookNotifierConfig() {
     },
     onError: () => {
       toast.error(i18n.t('common.errors.systemUpdateFailed'));
+    },
+  });
+}
+
+export function useWebhookDeliveryHistory(limit = 100) {
+  const { handleError } = useErrorHandler();
+
+  return useQuery({
+    queryKey: ['webhookDeliveryHistory', limit],
+    queryFn: async () => {
+      try {
+        const data = await graphqlRequest<{ webhookDeliveryHistory: WebhookDeliveryHistoryItem[] }>(WEBHOOK_DELIVERY_HISTORY_QUERY, { limit });
+        return data.webhookDeliveryHistory;
+      } catch (error) {
+        handleError(error, i18n.t('common.errors.internalServerError'));
+        throw error;
+      }
     },
   });
 }

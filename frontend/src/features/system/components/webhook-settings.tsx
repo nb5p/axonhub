@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Plus, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { proxyTypeSchema, type ProxyConfig, type ProxyType } from '@/features/channels/data/schema';
-import { useProxyPresets, useUpdateWebhookNotifierConfig, useWebhookNotifierConfig, type WebhookNotifierConfig, type WebhookTarget } from '../data/system';
+import { useProxyPresets, useUpdateWebhookNotifierConfig, useWebhookDeliveryHistory, useWebhookNotifierConfig, type WebhookNotifierConfig, type WebhookTarget } from '../data/system';
 
-const AUTO_DISABLED_EVENT = 'channel.auto_disabled';
+const WEBHOOK_EVENTS = [
+  'channel.error',
+  'channel.auto_disabled',
+  'quota.window_exhausted',
+  'quota.balance_exhausted',
+] as const;
+
+const WEBHOOK_TARGET_TYPE = 'webhook';
+const BARK_TARGET_TYPE = 'bark';
 
 const DEFAULT_WEBHOOK_BODY_TEMPLATE = `{
   "event": "{{.Event}}",
@@ -38,11 +46,28 @@ function createDefaultTarget(index: number): WebhookTarget {
   return {
     name: index === 0 ? 'default' : `target-${index + 1}`,
     enabled: false,
+    type: WEBHOOK_TARGET_TYPE,
     url: '',
     proxy: undefined,
     timeoutMs: 3000,
     headers: [{ key: 'Content-Type', value: 'application/json' }],
     body: DEFAULT_WEBHOOK_BODY_TEMPLATE,
+    barkDeviceKey: '',
+    barkTitle: 'AxonHub',
+    barkLevel: '',
+    barkGroup: '',
+  };
+}
+
+function normalizeTarget(target: WebhookTarget): WebhookTarget {
+  return {
+    ...target,
+    type: target.type === BARK_TARGET_TYPE ? BARK_TARGET_TYPE : WEBHOOK_TARGET_TYPE,
+    headers: target.headers || [],
+    barkDeviceKey: target.barkDeviceKey || '',
+    barkTitle: target.barkTitle || '',
+    barkLevel: target.barkLevel || '',
+    barkGroup: target.barkGroup || '',
   };
 }
 
@@ -54,6 +79,7 @@ const DEFAULT_WEBHOOK_CONFIG: WebhookNotifierConfig = {
 export function WebhookSettings() {
   const { t } = useTranslation();
   const { data: webhookConfig, isLoading } = useWebhookNotifierConfig();
+  const { data: webhookHistory = [], isFetching: isWebhookHistoryFetching, refetch: refetchWebhookHistory } = useWebhookDeliveryHistory();
   const { data: proxyPresets = [] } = useProxyPresets();
   const updateWebhookNotifierConfig = useUpdateWebhookNotifierConfig();
   const [formData, setFormData] = useState<WebhookNotifierConfig>(DEFAULT_WEBHOOK_CONFIG);
@@ -61,19 +87,19 @@ export function WebhookSettings() {
   useEffect(() => {
     if (webhookConfig) {
       setFormData({
-        targets: webhookConfig.targets || [],
+        targets: (webhookConfig.targets || []).map(normalizeTarget),
         subscriptions: webhookConfig.subscriptions || [],
       });
     }
   }, [webhookConfig]);
 
   const getSubscribedTargetNames = useCallback(
-    () => new Set(formData.subscriptions.find((subscription) => subscription.event === AUTO_DISABLED_EVENT)?.targetNames || []),
+    (event: string) => new Set(formData.subscriptions.find((subscription) => subscription.event === event)?.targetNames || []),
     [formData.subscriptions]
   );
 
   const isTargetSubscribed = useCallback(
-    (targetName: string) => getSubscribedTargetNames().has(targetName),
+    (event: string, targetName: string) => getSubscribedTargetNames(event).has(targetName),
     [getSubscribedTargetNames]
   );
 
@@ -103,7 +129,7 @@ export function WebhookSettings() {
     });
   }, []);
 
-  const handleTargetChange = useCallback((index: number, field: 'name' | 'url' | 'timeoutMs' | 'body' | 'enabled', value: string | number | boolean) => {
+  const handleTargetChange = useCallback((index: number, field: 'name' | 'url' | 'timeoutMs' | 'body' | 'enabled' | 'type' | 'barkDeviceKey' | 'barkTitle' | 'barkLevel' | 'barkGroup', value: string | number | boolean) => {
     setFormData((prev) => ({
       ...prev,
       targets: prev.targets.map((target, i) => (i === index ? { ...target, [field]: value } : target)),
@@ -226,17 +252,17 @@ export function WebhookSettings() {
     }));
   }, []);
 
-  const handleSubscriptionChange = useCallback((targetName: string, checked: boolean) => {
+  const handleSubscriptionChange = useCallback((event: string, targetName: string, checked: boolean) => {
     setFormData((prev) => {
-      const current = prev.subscriptions.find((subscription) => subscription.event === AUTO_DISABLED_EVENT);
+      const current = prev.subscriptions.find((subscription) => subscription.event === event);
       const nextTargetNames = checked
         ? Array.from(new Set([...(current?.targetNames || []), targetName]))
         : (current?.targetNames || []).filter((name) => name !== targetName);
 
-      const nextSubscriptions = prev.subscriptions.filter((subscription) => subscription.event !== AUTO_DISABLED_EVENT);
+      const nextSubscriptions = prev.subscriptions.filter((subscription) => subscription.event !== event);
       if (nextTargetNames.length > 0) {
         nextSubscriptions.push({
-          event: AUTO_DISABLED_EVENT,
+          event,
           targetNames: nextTargetNames,
         });
       }
@@ -268,6 +294,10 @@ export function WebhookSettings() {
         toast.error(t('system.webhook.validation.urlRequired'));
         return false;
       }
+      if (target.enabled && target.type === BARK_TARGET_TYPE && !target.barkDeviceKey.trim()) {
+        toast.error(t('system.webhook.validation.barkDeviceKeyRequired'));
+        return false;
+      }
     }
 
     return true;
@@ -284,7 +314,12 @@ export function WebhookSettings() {
       const normalizedTargets = formData.targets.map((target) => ({
         ...target,
         name: target.name.trim(),
+        type: target.type === BARK_TARGET_TYPE ? BARK_TARGET_TYPE : WEBHOOK_TARGET_TYPE,
         url: target.url.trim(),
+        barkDeviceKey: target.barkDeviceKey.trim(),
+        barkTitle: target.barkTitle.trim(),
+        barkLevel: target.barkLevel.trim(),
+        barkGroup: target.barkGroup.trim(),
         proxy: target.proxy?.type === proxyTypeSchema.enum.url
           ? (() => {
               const proxyURL = target.proxy.url?.trim() || '';
@@ -326,7 +361,6 @@ export function WebhookSettings() {
     );
   }
 
-  const subscribedTargetCount = getSubscribedTargetNames().size;
   const normalizedNameCounts = formData.targets.reduce<Record<string, number>>((acc, target) => {
     const normalizedName = target.name.trim();
     if (!normalizedName) {
@@ -348,14 +382,18 @@ export function WebhookSettings() {
           <div className='bg-muted/50 space-y-2 rounded-md border p-4'>
             <div className='text-sm font-medium'>{t('system.webhook.availableEvents.title')}</div>
             <div className='text-muted-foreground text-sm'>{t('system.webhook.availableEvents.description')}</div>
-            <div className='bg-background flex items-center justify-between rounded-md border p-3'>
-              <div className='space-y-1'>
-                <div className='font-mono text-xs'>{AUTO_DISABLED_EVENT}</div>
-                <div className='text-muted-foreground text-sm'>{t('system.webhook.events.channelAutoDisabled')}</div>
-              </div>
-              <div className='text-muted-foreground text-sm'>
-                {t('system.webhook.subscriptionCount', { count: subscribedTargetCount })}
-              </div>
+            <div className='space-y-2'>
+              {WEBHOOK_EVENTS.map((event) => (
+                <div key={event} className='bg-background flex items-center justify-between gap-3 rounded-md border p-3'>
+                  <div className='space-y-1 min-w-0'>
+                    <div className='font-mono text-xs break-all'>{event}</div>
+                    <div className='text-muted-foreground text-sm'>{t(`system.webhook.events.${event}`)}</div>
+                  </div>
+                  <div className='text-muted-foreground shrink-0 text-sm'>
+                    {t('system.webhook.subscriptionCount', { count: getSubscribedTargetNames(event).size })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -376,7 +414,6 @@ export function WebhookSettings() {
             <div className='space-y-4'>
               {formData.targets.map((target, targetIndex) => {
                 const targetName = target.name.trim();
-                const targetSubscribed = targetName ? isTargetSubscribed(targetName) : false;
                 const hasDuplicateName = !!targetName && normalizedNameCounts[targetName] > 1;
                 const proxyType = target.proxy?.type || proxyTypeSchema.enum.disabled;
 
@@ -407,7 +444,7 @@ export function WebhookSettings() {
                       />
                     </div>
 
-                    <div className='grid gap-4 sm:grid-cols-2'>
+                    <div className='grid gap-4 sm:grid-cols-3'>
                       <div className='space-y-2'>
                         <Label htmlFor={`webhook-name-${targetIndex}`}>{t('system.webhook.name')}</Label>
                         <Input
@@ -431,10 +468,22 @@ export function WebhookSettings() {
                           onChange={(e) => handleTargetChange(targetIndex, 'timeoutMs', parseInt(e.target.value) || 3000)}
                         />
                       </div>
+                      <div className='space-y-2'>
+                        <Label htmlFor={`webhook-type-${targetIndex}`}>{t('system.webhook.targetType')}</Label>
+                        <Select value={target.type} onValueChange={(value) => handleTargetChange(targetIndex, 'type', value)}>
+                          <SelectTrigger id={`webhook-type-${targetIndex}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={WEBHOOK_TARGET_TYPE}>{t('system.webhook.targetTypes.webhook')}</SelectItem>
+                            <SelectItem value={BARK_TARGET_TYPE}>{t('system.webhook.targetTypes.bark')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className='space-y-2'>
-                      <Label htmlFor={`webhook-url-${targetIndex}`}>{t('system.webhook.url')}</Label>
+                      <Label htmlFor={`webhook-url-${targetIndex}`}>{t(target.type === BARK_TARGET_TYPE ? 'system.webhook.bark.serverURL' : 'system.webhook.url')}</Label>
                       <Input
                         id={`webhook-url-${targetIndex}`}
                         value={target.url}
@@ -443,6 +492,48 @@ export function WebhookSettings() {
                       />
                       {target.enabled && !target.url.trim() && <div className='text-destructive text-xs'>{t('system.webhook.validation.urlRequired')}</div>}
                     </div>
+
+                    {target.type === BARK_TARGET_TYPE && (
+                      <div className='grid gap-4 sm:grid-cols-2'>
+                        <div className='space-y-2'>
+                          <Label htmlFor={`webhook-bark-device-key-${targetIndex}`}>{t('system.webhook.bark.deviceKey')}</Label>
+                          <Input
+                            id={`webhook-bark-device-key-${targetIndex}`}
+                            type='password'
+                            value={target.barkDeviceKey}
+                            onChange={(e) => handleTargetChange(targetIndex, 'barkDeviceKey', e.target.value)}
+                            aria-invalid={target.enabled && !target.barkDeviceKey.trim()}
+                          />
+                          {target.enabled && !target.barkDeviceKey.trim() && <div className='text-destructive text-xs'>{t('system.webhook.validation.barkDeviceKeyRequired')}</div>}
+                        </div>
+                        <div className='space-y-2'>
+                          <Label htmlFor={`webhook-bark-title-${targetIndex}`}>{t('system.webhook.bark.title')}</Label>
+                          <Input
+                            id={`webhook-bark-title-${targetIndex}`}
+                            value={target.barkTitle}
+                            onChange={(e) => handleTargetChange(targetIndex, 'barkTitle', e.target.value)}
+                            placeholder='AxonHub'
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <Label htmlFor={`webhook-bark-level-${targetIndex}`}>{t('system.webhook.bark.level')}</Label>
+                          <Input
+                            id={`webhook-bark-level-${targetIndex}`}
+                            value={target.barkLevel}
+                            onChange={(e) => handleTargetChange(targetIndex, 'barkLevel', e.target.value)}
+                            placeholder='active'
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <Label htmlFor={`webhook-bark-group-${targetIndex}`}>{t('system.webhook.bark.group')}</Label>
+                          <Input
+                            id={`webhook-bark-group-${targetIndex}`}
+                            value={target.barkGroup}
+                            onChange={(e) => handleTargetChange(targetIndex, 'barkGroup', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className='space-y-4 rounded-md border p-3 sm:p-4'>
                       <div className='space-y-1'>
@@ -536,21 +627,25 @@ export function WebhookSettings() {
                         <div className='text-sm font-medium'>{t('system.webhook.subscription')}</div>
                         <div className='text-muted-foreground text-sm'>{t('system.webhook.subscriptionHelp')}</div>
                       </div>
-                      <label className='flex items-start gap-3'>
-                        <Checkbox
-                          checked={targetSubscribed}
-                          onCheckedChange={(checked) => handleSubscriptionChange(target.name.trim(), checked === true)}
-                          disabled={!target.name.trim()}
-                          className='shrink-0 mt-0.5'
-                        />
-                        <div className='space-y-1 min-w-0 flex-1'>
-                          <div className='font-mono text-xs break-all'>{AUTO_DISABLED_EVENT}</div>
-                          <div className='text-muted-foreground text-sm'>{t('system.webhook.events.channelAutoDisabled')}</div>
-                        </div>
-                      </label>
+                      <div className='space-y-3'>
+                        {WEBHOOK_EVENTS.map((event) => (
+                          <label key={event} className='flex items-start gap-3'>
+                            <Checkbox
+                              checked={targetName ? isTargetSubscribed(event, targetName) : false}
+                              onCheckedChange={(checked) => handleSubscriptionChange(event, target.name.trim(), checked === true)}
+                              disabled={!target.name.trim()}
+                              className='shrink-0 mt-0.5'
+                            />
+                            <div className='space-y-1 min-w-0 flex-1'>
+                              <div className='font-mono text-xs break-all'>{event}</div>
+                              <div className='text-muted-foreground text-sm'>{t(`system.webhook.events.${event}`)}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className='space-y-3'>
+                    {target.type === WEBHOOK_TARGET_TYPE && <div className='space-y-3'>
                       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
                         <Label className='text-sm font-medium'>{t('system.webhook.headers')}</Label>
                         <Button type='button' variant='outline' size='sm' onClick={() => addHeader(targetIndex)} className='w-full sm:w-auto'>
@@ -567,17 +662,17 @@ export function WebhookSettings() {
                           </Button>
                         </div>
                       ))}
-                    </div>
+                    </div>}
 
                     <div className='space-y-2'>
-                      <Label htmlFor={`webhook-body-${targetIndex}`}>{t('system.webhook.body')}</Label>
+                      <Label htmlFor={`webhook-body-${targetIndex}`}>{t(target.type === BARK_TARGET_TYPE ? 'system.webhook.bark.body' : 'system.webhook.body')}</Label>
                       <textarea
                         id={`webhook-body-${targetIndex}`}
                         value={target.body}
                         onChange={(e) => handleTargetChange(targetIndex, 'body', e.target.value)}
                         className='border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-foreground min-h-56 w-full rounded-md border px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-1'
                       />
-                      <div className='text-muted-foreground text-xs'>{t('system.webhook.templateHelp')}</div>
+                      <div className='text-muted-foreground text-xs'>{t(target.type === BARK_TARGET_TYPE ? 'system.webhook.bark.templateHelp' : 'system.webhook.templateHelp')}</div>
                     </div>
                   </div>
                 );
@@ -591,6 +686,64 @@ export function WebhookSettings() {
             </Button>
           </div>
         </form>
+
+        <div className='mt-8 space-y-3 rounded-md border p-3 sm:p-4'>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='space-y-1'>
+              <div className='text-sm font-medium'>{t('system.webhook.history.title')}</div>
+              <div className='text-muted-foreground text-sm'>{t('system.webhook.history.description')}</div>
+            </div>
+            <Button type='button' variant='outline' size='sm' onClick={() => refetchWebhookHistory()} disabled={isWebhookHistoryFetching} className='w-full sm:w-auto'>
+              <RefreshCw className={`mr-1 h-4 w-4 ${isWebhookHistoryFetching ? 'animate-spin' : ''}`} />
+              {t('system.webhook.history.refresh')}
+            </Button>
+          </div>
+
+          {webhookHistory.length === 0 ? (
+            <div className='text-muted-foreground rounded-md border border-dashed p-4 text-sm'>{t('system.webhook.history.empty')}</div>
+          ) : (
+            <div className='space-y-2'>
+              {webhookHistory.map((delivery) => {
+                const success = delivery.status === 'success';
+                const summaryStatus = delivery.responseStatus > 0
+                  ? `${delivery.responseStatus}`
+                  : t('system.webhook.history.noResponse');
+                return (
+                  <details key={delivery.id} className='rounded-md border p-3'>
+                    <summary className='flex cursor-pointer list-none items-start gap-2 text-sm'>
+                      {success ? <CheckCircle2 className='mt-0.5 h-4 w-4 shrink-0 text-green-600' /> : <XCircle className='mt-0.5 h-4 w-4 shrink-0 text-destructive' />}
+                      <div className='min-w-0 flex-1 space-y-1'>
+                        <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+                          <span className='font-mono text-xs'>{delivery.event}</span>
+                          <span className='text-muted-foreground'>{delivery.targetName}</span>
+                          <span className='text-muted-foreground'>{summaryStatus}</span>
+                        </div>
+                        <div className='text-muted-foreground text-xs'>{new Date(delivery.occurredAt).toLocaleString()}</div>
+                      </div>
+                    </summary>
+                    <div className='mt-3 space-y-3 border-t pt-3 text-sm'>
+                      <div><span className='text-muted-foreground'>{t('system.webhook.history.url')}: </span><code className='break-all'>{delivery.method} {delivery.url}</code></div>
+                      <div>
+                        <div className='text-muted-foreground mb-1'>{t('system.webhook.history.headers')}</div>
+                        <pre className='bg-muted overflow-x-auto rounded-md p-2 text-xs'>{JSON.stringify(delivery.requestHeaders, null, 2)}</pre>
+                      </div>
+                      <div>
+                        <div className='text-muted-foreground mb-1'>{t('system.webhook.history.body')}</div>
+                        <pre className='bg-muted overflow-x-auto whitespace-pre-wrap break-words rounded-md p-2 text-xs'>{delivery.requestBody || t('system.webhook.history.emptyBody')}</pre>
+                      </div>
+                      {!success && delivery.errorMessage && (
+                        <div>
+                          <div className='text-muted-foreground mb-1'>{t('system.webhook.history.error')}</div>
+                          <pre className='bg-destructive/10 text-destructive overflow-x-auto whitespace-pre-wrap break-words rounded-md p-2 text-xs'>{delivery.errorMessage}</pre>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
