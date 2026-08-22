@@ -515,7 +515,7 @@
   "system.quota.collection.providers.usage_query": "用量查询",
   "quota.provider.usage_query": "用量查询",
   "quota.usageQuery.plan": "套餐",
-  "quota.usageQuery.remaining": "剩余额度",
+  "quota.usageQuery.remaining": "剩余：",
   "quota.usageQuery.used": "已用额度",
   "quota.usageQuery.total": "总额度",
   "quota.usageQuery.invalid": "查询到的套餐无效",

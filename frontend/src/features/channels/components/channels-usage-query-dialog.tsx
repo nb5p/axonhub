@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { formatUsageQueryBalance } from '@/lib/usage-query-balance';
 import type { Channel } from '../data/schema';
 import {
   type ChannelUsageQueryConfigInput,
@@ -35,7 +36,7 @@ interface Props {
 }
 
 export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useChannelUsageQuery(currentRow.id, open);
   const saveUsageQuery = useSaveChannelUsageQuery();
   const testUsageQuery = useTestChannelUsageQuery();
@@ -97,24 +98,6 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
   });
 
   const canSubmit = !isError && script.trim() !== '' && (!getUsageQueryPreset(preset).requiresUserId || userId.trim() !== '');
-
-  const formatValue = (value: number | null | undefined, unit?: string | null): string => {
-    if (value == null) return '-';
-    if (unit && /^[A-Z]{3}$/.test(unit)) {
-      return t('currencies.format', {
-        val: value,
-        currency: unit,
-        locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-    return unit === 'A$' ? `A$${formatted}` : unit ? `${formatted} ${unit}` : formatted;
-  };
 
   const getProgressPercent = (window: ChannelUsageQueryProgressWindow): number | null => {
     return window.remainingPercent == null ? null : 100 - window.remainingPercent;
@@ -316,7 +299,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
                       {testResult.balance && (
                         <div>
                           <span className='text-muted-foreground'>{t('channels.dialogs.usageQuery.result.remaining')}</span>{' '}
-                          {formatValue(testResult.balance.remaining, testResult.balance.unit)}
+                          {formatUsageQueryBalance(testResult.balance.remaining, testResult.balance.unit)}
                         </div>
                       )}
                       {(testResult.tags ?? []).length > 0 && (

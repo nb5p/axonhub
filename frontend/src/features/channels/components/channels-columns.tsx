@@ -31,6 +31,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn, extractNumberID } from '@/lib/utils';
+import { formatUsageQueryBalance } from '@/lib/usage-query-balance';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -761,31 +762,12 @@ function normalizeUsageQueryText(value: string): string {
 }
 
 const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: boolean }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const refreshUsageQuery = useRefreshChannelUsageQuery();
   const channel = row.original;
   const configured = channel.settings?.usageQuery?.enabled === true;
   const quotaStatus = channel.providerQuotaStatus?.providerType === 'usage_query' ? channel.providerQuotaStatus : null;
   const quotaData = quotaStatus?.quotaData as ProviderUsageQueryQuotaData | null | undefined;
-
-  const formatValue = (value: number | undefined, unit?: string): string => {
-    if (value == null) return '-';
-    if (unit === 'A$') return `A$${value.toFixed(2)}`;
-    if (unit && /^[A-Z]{3}$/.test(unit)) {
-      return t('currencies.format', {
-        val: value,
-        currency: unit,
-        locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-    return unit ? `${formatted} ${unit}` : formatted;
-  };
 
   let fullText = '-';
   if (quotaData?.error) {
@@ -802,9 +784,9 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
     }
     const balance = quotaData.balance ?? (quotaData.remaining != null ? { remaining: quotaData.remaining, unit: quotaData.unit } : undefined);
     if (balance) {
-      details.push(`${t('channels.usageQuery.remaining')}${formatValue(balance.remaining, balance.unit)}`);
+      details.push(`${t('channels.usageQuery.remaining')}${formatUsageQueryBalance(balance.remaining, balance.unit)}`);
     } else if (quotaData.used != null && quotaData.total != null) {
-      details.push(`${formatValue(quotaData.used, quotaData.unit)} / ${formatValue(quotaData.total, quotaData.unit)}`);
+      details.push(`${formatUsageQueryBalance(quotaData.used, quotaData.unit)} / ${formatUsageQueryBalance(quotaData.total, quotaData.unit)}`);
     }
     if (details.length > 0) fullText = details.join('\n');
   }

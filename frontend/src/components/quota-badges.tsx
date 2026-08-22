@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { clampQuotaPercentage, getQuotaDisplayPercentage } from '@/lib/quota-display';
+import { formatUsageQueryBalance } from '@/lib/usage-query-balance';
 import { getQuotaWindowDurationPercent, getQuotaWindowResetAfterSeconds } from '@/lib/quota-window-time';
 import {
   useProviderQuotaStatuses,
@@ -559,24 +560,6 @@ function QuotaRow({
     });
   };
 
-  const formatUsageQueryValue = (value: number, unit?: string) => {
-    if (unit === 'A$') return `A$${value.toFixed(2)}`;
-    if (unit && /^[A-Z]{3}$/.test(unit)) {
-      return t('currencies.format', {
-        val: value,
-        currency: unit,
-        locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    }
-    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-    return unit ? `${formatted} ${unit}` : formatted;
-  };
-
   const formatTimeToReset = (resetAtOrSeconds?: string | number | null, usedPercent?: number, regenerates?: boolean | number) => {
     if (resetAtOrSeconds == null || resetAtOrSeconds === '') return '';
 
@@ -698,7 +681,7 @@ function QuotaRow({
                     {balance && (
                       <>
                         <span className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</span>
-                        <span className='text-foreground font-medium'>{formatUsageQueryValue(balance.remaining, balance.unit)}</span>
+                        <span className='text-foreground font-medium'>{formatUsageQueryBalance(balance.remaining, balance.unit)}</span>
                       </>
                     )}
                     {tags.map((tag, index) => (

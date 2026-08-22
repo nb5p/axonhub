@@ -898,7 +898,7 @@
   "channels.dialogs.usageQuery.test.failed": "用量查询失败",
   "channels.dialogs.usageQuery.test.invalid": "查询到的套餐无效",
   "channels.dialogs.usageQuery.result.plan": "套餐：",
-  "channels.dialogs.usageQuery.result.remaining": "剩余额度：",
+  "channels.dialogs.usageQuery.result.remaining": "剩余：",
   "channels.dialogs.usageQuery.result.used": "已用额度：",
   "channels.dialogs.usageQuery.result.total": "总额度：",
   "channels.dialogs.usageQuery.actions.test": "测试",

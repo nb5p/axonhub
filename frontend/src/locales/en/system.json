@@ -510,7 +510,7 @@
   "system.quota.collection.providers.usage_query": "Usage Query",
   "quota.provider.usage_query": "Usage Query",
   "quota.usageQuery.plan": "Plan",
-  "quota.usageQuery.remaining": "Remaining",
+  "quota.usageQuery.remaining": "Remaining:",
   "quota.usageQuery.used": "Used",
   "quota.usageQuery.total": "Total",
   "quota.usageQuery.invalid": "The queried plan is invalid",
