@@ -21,6 +21,7 @@ local:
     - 1afef2bec18329f7ccf987cd21cf1664896f1423
     - 8d9a437cc9aa46ecd419b725762cd4bc76bc3428
     - 3a139b8958b6d8cc4a1fdeac0749ae6a889fcf2c
+    - 247d33c813d08d3430f7e01d2bf8b2becc5b8fe9
   modules:
     - frontend/src/features/requests/components/requests-columns.tsx
     - frontend/src/features/requests/components/requests-table.tsx
@@ -63,6 +64,7 @@ database:
 - 请求详情的请求头 JSON 默认折叠并显示项目数量；JSON 框仍随根节点状态在最小内容高度和完整高度间切换。
 - 移除 JSON 框中央的折叠悬浮按钮，统一复用页面右下角上箭头：有展开的 JSON 时优先“收起所有展开的内容”，全部收起后恢复“回到页首”。
 - 请求页不再显示独立的“重排列”弹窗按钮；列设置菜单中的拖拽排序和重置顺序功能继续保留，避免出现两套入口。
+- 删除列表末尾重复注册的 `caller` 列，仅保留位于客户端 IP 与渠道之间的“密钥”列；详情操作列现可在列设置中隐藏和调整位置。
 
 ## 与来源的差异
 
@@ -95,3 +97,4 @@ database:
 | 2026-08-11 | 用户反馈 | `8d9a437cc9aa46ecd419b725762cd4bc76bc3428` | 让请求详情 JSON 框跟随根节点折叠，并增加滚动时的居中折叠入口。 |
 | 2026-08-12 | 用户反馈 | `3a139b8958b6d8cc4a1fdeac0749ae6a889fcf2c` | 请求头改为默认折叠，删除居中折叠入口，并让右下角上箭头优先收起当前展开的 JSON。 |
 | 2026-08-22 | 用户反馈 | `f976c1d9bed1` | 移除请求页重复的“重排列”入口，保留列设置中的拖拽排序。 |
+| 2026-08-22 | 用户反馈 | `247d33c813d08d3430f7e01d2bf8b2becc5b8fe9` | 移除重复的密钥列，并让请求操作列可隐藏、排序。 |

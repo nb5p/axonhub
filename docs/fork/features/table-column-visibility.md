@@ -22,10 +22,14 @@ local:
     - a08c30e7d3c74c9586ba9d407f65a9e9bc56dc6c
     - 0aa6afd273af80cd217f98081492357d5553008b
     - 26d7f68b88b9f443aebc50bdb521190ad5afb387
+    - 247d33c813d08d3430f7e01d2bf8b2becc5b8fe9
   modules:
     - frontend/src/features/apikeys/components
     - frontend/src/features/channels/components
     - frontend/src/features/requests/components/data-table-view-options.tsx
+    - frontend/src/features/proejct-users/components
+    - frontend/src/features/traces/components
+    - frontend/src/features/users/components
 upstream:
   repository: https://github.com/looplj/axonhub
   pull_request: null
@@ -59,6 +63,7 @@ database:
 - 请求日志列设置使用专用的“缓存命中率”标签，不再错误渲染需要 `rate` 参数的单元格文案。
 - 渠道端点列在列设置中显式映射为“支持端点”，创建时间使用公共翻译键。
 - 渠道标签列默认显示并可在列设置中显隐。旧版自动保存的“隐藏标签”偏好会迁移为可见，因为旧界面并未提供手动恢复入口；迁移后用户的选择正常持久化。
+- 所有现有“列设置”入口都纳入操作列：渠道、请求、API 密钥、追踪、用户及项目用户页面的操作列可隐藏并可拖拽调整位置；菜单中统一显示“操作”。
 
 ## 与来源的差异
 
@@ -76,6 +81,8 @@ database:
 
 - `git diff --check`：通过。
 - `pnpm build`（2026-08-12）：通过。
+- `pnpm --dir frontend exec tsc --noEmit`（2026-08-22）：通过。
+- 静态回归检查（2026-08-22）：请求列定义中仅保留一个 `caller` 列。
 
 ## 更新历史
 
@@ -88,3 +95,4 @@ database:
 | 2026-08-12 | 用户需求 | `0aa6afd273af80cd217f98081492357d5553008b` | 新增可配置显隐的渠道 ID 列。 |
 | 2026-08-12 | 用户需求 | `26d7f68b88b9f443aebc50bdb521190ad5afb387` | API 密钥批量选择框允许隐藏。 |
 | 2026-08-22 | 用户反馈 | `6de0fbbe6edf` | 恢复默认显示的渠道标签列，并迁移旧的不可配置隐藏偏好。 |
+| 2026-08-22 | 用户需求 | `247d33c813d08d3430f7e01d2bf8b2becc5b8fe9` | 将全部现有列设置页的操作列纳入显隐和排序，修复请求页重复密钥列。 |
