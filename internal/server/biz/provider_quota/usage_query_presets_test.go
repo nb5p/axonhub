@@ -83,11 +83,13 @@ func TestUsageQueryPresetScripts_ParseAndExtract(t *testing.T) {
 			}
 			if tt.preset == objects.ChannelUsageQueryPresetCodex || tt.preset == objects.ChannelUsageQueryPresetClaude {
 				require.NotEmpty(t, result.Tags)
+			} else if tt.preset == objects.ChannelUsageQueryPresetOpenCode {
+				require.NotNil(t, result.Balance)
+				require.Equal(t, 9.6, result.Balance.Remaining)
+				require.Equal(t, "USD", result.Balance.Unit)
+				require.Empty(t, result.Text)
 			} else {
 				require.NotEmpty(t, result.Text)
-			}
-			if tt.preset == objects.ChannelUsageQueryPresetOpenCode {
-				require.Equal(t, "最小可用 USD 9.60", result.Text)
 			}
 		})
 	}

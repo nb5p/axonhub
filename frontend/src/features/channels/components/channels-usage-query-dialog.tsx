@@ -105,13 +105,13 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
         val: value,
         currency: unit,
         locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: unit === 'A$' ? 2 : 0,
-        maximumFractionDigits: unit === 'A$' ? 2 : 6,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       });
     }
     const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      minimumFractionDigits: unit === 'A$' ? 2 : 0,
-      maximumFractionDigits: unit === 'A$' ? 2 : 6,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
     return unit === 'A$' ? `A$${formatted}` : unit ? `${formatted} ${unit}` : formatted;
   };

@@ -223,7 +223,10 @@ ${timeHelpers}
     })));
 
     return {
-      text: "最小可用 USD " + remaining.toFixed(2),
+      balance: {
+        remaining: Number(remaining.toFixed(2)),
+        unit: "USD"
+      },
       progress: {
         windows: windows.map(function (window) {
           return {

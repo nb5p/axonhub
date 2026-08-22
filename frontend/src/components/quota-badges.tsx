@@ -566,12 +566,13 @@ function QuotaRow({
         val: value,
         currency: unit,
         locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 6,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       });
     }
     const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      maximumFractionDigits: 6,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
     return unit ? `${formatted} ${unit}` : formatted;
   };

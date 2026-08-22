@@ -204,10 +204,10 @@ const openCodeGoUsageQueryScript = `({
     }
     const windows = [windowResult("rolling", usage.rolling, 12, 18000), windowResult("weekly", usage.weekly, 30, 604800), windowResult("monthly", usage.monthly, 60, 2592000)];
     if (windows.some(function (window) { return window === null; })) throw new Error("无法读取 OpenCode Go 用量信息");
-    const remaining = Math.max(0, Math.min.apply(null, windows.map(function (window) { return window.limit * (100 - window.usedPercent) / 100; })));
-    return {
-      text: "最小可用 USD " + remaining.toFixed(2),
-      progress: { windows: windows.map(function (window) { return { id: window.id, durationSeconds: window.durationSeconds, remainingPercent: window.remainingPercent, resetAt: window.resetAt }; }) }
-    };
+	    const remaining = Math.max(0, Math.min.apply(null, windows.map(function (window) { return window.limit * (100 - window.usedPercent) / 100; })));
+	    return {
+	      balance: { remaining: Number(remaining.toFixed(2)), unit: "USD" },
+	      progress: { windows: windows.map(function (window) { return { id: window.id, durationSeconds: window.durationSeconds, remainingPercent: window.remainingPercent, resetAt: window.resetAt }; }) }
+	    };
   }
 })`

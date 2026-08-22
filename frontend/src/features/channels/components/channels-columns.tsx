@@ -776,11 +776,14 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
         val: value,
         currency: unit,
         locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 6,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       });
     }
-    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 6 }).format(value);
+    const formatted = new Intl.NumberFormat(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
     return unit ? `${formatted} ${unit}` : formatted;
   };
 
