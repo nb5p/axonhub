@@ -661,16 +661,22 @@ function QuotaRow({
                       const windowPercent = getUsageQueryProgressPercent(window);
                       const durationPercent = getUsageQueryProgressDurationPercent(window);
                       const label = window.label || window.id || t('quota.usageQuery.window', { index: index + 1 });
-                      const value = window.remainingPercent == null ? '-' : `${Math.round(window.remainingPercent)}%`;
+                      const remainingLabel =
+                        window.remainingPercent == null
+                          ? '-'
+                          : t('quota.label.percent_remaining', { percent: Math.round(window.remainingPercent) });
                       const resetText = window.resetAt ? formatTimeToReset(window.resetAt, windowPercent ?? 0) : '';
                       return (
                         <div
                           key={window.id || `${label}-${index}`}
                           className={index > 0 ? 'border-border/60 space-y-1 border-t border-dashed pt-3' : 'space-y-1'}
                         >
-                          <div className='flex items-center justify-between gap-3 text-xs'>
-                            <span className='text-muted-foreground font-medium'>{label}</span>
-                            <span className='text-foreground text-right font-medium'>{value}</span>
+                          <div className='flex items-center gap-3 text-xs'>
+                            <span className='text-muted-foreground min-w-0 truncate font-medium'>
+                              {label}
+                              {resetText && `（${resetText}）`}
+                            </span>
+                            <span className='text-foreground ml-auto shrink-0 text-right font-medium'>{remainingLabel}</span>
                           </div>
                           {windowPercent != null && (
                             <UsageTimeBar
@@ -693,11 +699,6 @@ function QuotaRow({
                                 </div>
                               }
                             />
-                          )}
-                          {resetText && (
-                            <div className='text-muted-foreground text-right text-[11px]'>
-                              {resetText}
-                            </div>
                           )}
                         </div>
                       );
