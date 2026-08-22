@@ -778,15 +778,10 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
     const details: string[] = [];
     if (quotaData.text) {
       details.push(quotaData.text);
-    } else {
-      if (quotaData.extra) details.push(quotaData.extra);
-      if (quotaData.planName) details.push(quotaData.planName);
     }
     const balance = quotaData.balance ?? (quotaData.remaining != null ? { remaining: quotaData.remaining, unit: quotaData.unit } : undefined);
     if (balance) {
       details.push(`${t('channels.usageQuery.remaining')}${formatUsageQueryBalance(balance.remaining, balance.unit)}`);
-    } else if (quotaData.used != null && quotaData.total != null) {
-      details.push(`${formatUsageQueryBalance(quotaData.used, quotaData.unit)} / ${formatUsageQueryBalance(quotaData.total, quotaData.unit)}`);
     }
     if (details.length > 0) fullText = details.join('\n');
   }

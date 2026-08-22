@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { clampQuotaPercentage, getQuotaDisplayPercentage } from '@/lib/quota-display';
-import { formatUsageQueryBalance } from '@/lib/usage-query-balance';
 import { getQuotaWindowDurationPercent, getQuotaWindowResetAfterSeconds } from '@/lib/quota-window-time';
 import {
   useProviderQuotaStatuses,
@@ -21,7 +20,6 @@ import {
   ProviderSyntheticQuotaData,
   ProviderNeuralWattQuotaData,
   ProviderApertisQuotaData,
-  ProviderQuotaTodayUsageStats,
   ProviderUsageQueryQuotaData,
   ProviderUsageQueryProgressWindow,
   ProviderCharmHyperQuotaData,
@@ -426,14 +424,12 @@ function PeriodQuotaEstimate({ limits }: { limits: ProviderQuotaLimit[] }) {
 
 function QuotaRow({
   channel,
-  todayUsage,
   enforcementMode,
   reverseUsageDisplay = false,
   timeWindowDisplayStyle = 'TRIANGLE',
   allowedChannelIDs,
 }: {
   channel: ProviderQuotaChannel;
-  todayUsage?: ProviderQuotaTodayUsageStats;
   enforcementMode?: QuotaEnforcementMode | null;
   reverseUsageDisplay?: boolean;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
@@ -467,14 +463,6 @@ function QuotaRow({
       percent: Math.round(displayPercentage),
     });
   };
-  const formatActualCost = (actualCost: number) =>
-    `A${t('currencies.format', {
-      val: actualCost,
-      currency: settings?.currencyCode ?? 'USD',
-      locale: i18n.language === 'zh' ? 'zh-CN' : 'en-US',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
   const timeProgressLabel = t(reverseUsageDisplay ? 'quota.label.time_remaining' : 'quota.label.time_elapsed');
   const getTimeDisplayPercentage = (elapsedPercentage: number) =>
     getQuotaDisplayPercentage(elapsedPercentage, reverseUsageDisplay);
@@ -613,8 +601,6 @@ function QuotaRow({
     return format(date, 'yyyy-MM-dd HH:mm');
   };
   const quotaData = quota.quotaData;
-  const channelTodayUsage = todayUsage ?? { requestCount: 0, totalTokens: 0, actualCost: 0 };
-  const showCodexUsage = channel.type === 'usage_query' && (quotaData as ProviderUsageQueryQuotaData).showCodexUsage === true;
   return (
     <div className='space-y-3 border-b py-3 first:pt-1 last:border-0 last:pb-1'>
       <div className='flex items-center justify-between'>
@@ -657,47 +643,18 @@ function QuotaRow({
           {(() => {
             const qd = channel.quotaStatus.quotaData as ProviderUsageQueryQuotaData;
             const progressWindows = qd.progress?.windows ?? [];
-            const balance = qd.balance ?? (qd.remaining != null ? { remaining: qd.remaining, unit: qd.unit } : undefined);
-            const text = qd.text ?? [qd.planName, qd.extra].filter(Boolean).join('\n');
             const tags = qd.tags ?? [];
 
             return (
               <>
-                {(showCodexUsage || balance || tags.length > 0) && (
-                  <div className={`flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground${showCodexUsage ? ' ml-6' : ''}`}>
-                    {showCodexUsage && (
-                      <>
-                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
-                          {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
-                        </span>
-                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
-                          {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
-                        </span>
-                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
-                          {formatActualCost(channelTodayUsage.actualCost)}
-                        </span>
-                      </>
-                    )}
-                    {balance && (
-                      <>
-                        <span className='text-muted-foreground'>{t('quota.usageQuery.remaining')}</span>
-                        <span className='text-foreground font-medium'>{formatUsageQueryBalance(balance.remaining, balance.unit)}</span>
-                      </>
-                    )}
+                {tags.length > 0 && (
+                  <div className='flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
                     {tags.map((tag, index) => (
                       <span key={`${tag}-${index}`} className='bg-muted rounded px-1.5 py-0.5' title={tag}>
                         {tag}
                       </span>
                     ))}
                   </div>
-                )}
-                {text && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className='text-muted-foreground line-clamp-2 cursor-default whitespace-pre-line text-xs'>{text}</div>
-                    </TooltipTrigger>
-                    <TooltipContent className='max-w-sm whitespace-pre-line break-words'>{text}</TooltipContent>
-                  </Tooltip>
                 )}
                 {progressWindows.length > 0
                   ? progressWindows.map((window, index) => {
@@ -1955,7 +1912,7 @@ function QuotaBadgeTrigger({ channels, isLoading, isError }: { channels: Provide
 
 export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean; onRefresh: () => void }) {
   const { t } = useTranslation();
-  const { channels, todayUsageByChannelId, isLoading, isError, error } = useProviderQuotaStatuses();
+  const { channels, isLoading, isError, error } = useProviderQuotaStatuses();
   const { data: enforcementSettings } = useQuotaEnforcementSettings();
   const { data: displaySettings } = useQuotaDisplaySettings();
   const enforcementMode = enforcementSettings?.enabled ? enforcementSettings.mode : null;
@@ -2006,7 +1963,6 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
           <QuotaRow
             key={channel.id}
             channel={channel}
-            todayUsage={todayUsageByChannelId.get(channel.id)}
             enforcementMode={enforcementMode}
             reverseUsageDisplay={displaySettings?.reverseUsageDisplay}
             timeWindowDisplayStyle={displaySettings?.timeWindowDisplayStyle}
