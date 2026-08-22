@@ -57,6 +57,7 @@ database:
 - 测试编排器为四种格式构建各自的原生入站请求：Chat Completions、Responses、Anthropic Messages 和 Gemini Contents。Gemini 请求带模型动作路径，分别适配 `generateContent` / `streamGenerateContent`。
 - 渠道选择器只使用与所选格式精确匹配的已解析端点，缺少该端点时立即报错，不回退到其他接口格式。
 - 单渠道测试的格式选择器和结果列只显示该渠道实际支持的四类可测端点；默认选择会按常用顺序从该集合取值。操作列的快捷测试同样将首个可测格式明确传给 GraphQL，避免遗漏格式后回退为 Chat Completions。批量测试保留跨渠道的完整格式列，并将单个渠道不支持的组合标为跳过。
+- 批量测试表格不会直接展开上游错误：优先显示方括号中的上游错误码，其次显示 HTTP 状态码，没有结构化码时显示 `ERR`；完整错误仅在悬浮、触摸或键盘焦点的 Tooltip 中展示。
 
 ## 与来源的差异
 
@@ -86,3 +87,4 @@ database:
 | 2026-08-21 | `upstream/unstable@9fb6f1af` | `a683e9122d639c5a1273cc28d509d7019f2a6c35` | original：新增测试接口格式选择、原生请求转换与精确端点强制路由。 |
 | 2026-08-21 | 本地需求 | `35a08783a1fc5c07d475afdcd506b8aa0e384d4b` | original：多选格式结果列、渠道×格式批量健康检查、Gemini Contents 原生请求与安全恢复判断。 |
 | 2026-08-22 | 本地回归修正 | `0d6d21274b973e1fd06012b045f3a4b1a2579597` | original：单渠道只显示支持的格式和列，操作列快捷测试显式路由至实际端点，防止 Responses 渠道误测 Chat Completions。 |
+| 2026-08-22 | 本地展示修正 | `4d1cfc1282c5` | original：批量测试用紧凑错误码替换长错误原文，并通过 Tooltip 保留完整诊断。 |
