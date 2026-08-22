@@ -186,9 +186,9 @@
 ### 2026-08-22 — channel-model-auto-suffix-trim
 
 - 兼容等级：`additive`。
-- 本地 commit：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`。
-- 影响结构：不新增或变更 Ent Schema、表、列或索引；既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes` 字段。GraphQL 的渠道设置输入和输出同步增加同名字段。
-- 旧数据库验证样本：缺失字段按空列表处理，不回填旧渠道。模型条目、路由选择和 GraphQL 编译校验通过；部署前仍需在绿色现有 SQLite 副本上执行 `.backup`、`PRAGMA quick_check` 和完整启动检查。
+- 本地 commit：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`、`b1bb57c18a68e27f922b4f8206d00039469a890f`。
+- 影响结构：不新增或变更 Ent Schema、表、列或索引；既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes`、`autoTrimedModelSuffixColon`、`autoTrimedModelSuffixHyphen` 字段。GraphQL 的渠道设置输入和输出同步增加同名字段。
+- 旧数据库验证样本：缺失后缀列表按空列表处理，不回填旧渠道。已有后缀列表但缺失新开关时，冒号按旧行为继续裁剪、短线继续不裁剪；模型条目、路由选择和 GraphQL 编译校验通过。部署前仍需在绿色现有 SQLite 副本上执行 `.backup`、`PRAGMA quick_check` 和完整启动检查。
 - 备份与恢复：本次代码提交未创建备份。部署到绿色前，对 `/Users/tux/Playground/AxonHub/data/axonhub.db` 创建一致性 `.backup`，对源库和副本执行 `PRAGMA quick_check`，并将时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
 - 回滚能力：旧代码不识别该字段。若已经配置后缀，回退前避免用旧版本保存该渠道；需要完整还原配置时恢复部署前数据库备份。
 - 最低升级版本：`8dfb66035b26ee585c67dcdf58f5899b6e5ac8ca`。
