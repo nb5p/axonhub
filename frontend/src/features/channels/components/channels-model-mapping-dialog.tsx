@@ -425,27 +425,40 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                       )}
                     />
 
-                    {/* 自动提取所有前缀 */}
-                    {prefixSuggestions.length > 0 && (
-                      <div className='flex items-center gap-2 pt-2'>
-                        <Button type='button' variant='outline' size='sm' onClick={handleAutoExtractAllPrefixes} className='text-xs'>
-                          {t('channels.dialogs.settings.autoTrimedModelPrefixes.autoExtractAll', {
-                            defaultValue: 'Auto-extract all prefixes',
-                          })}
-                        </Button>
-                        <Button type='button' variant='outline' size='sm' onClick={handleClearAllPrefixes} className='text-xs'>
-                          {t('channels.dialogs.settings.autoTrimedModelPrefixes.clearAll', {
-                            defaultValue: 'Clear all',
-                          })}
-                        </Button>
+                    <div className='flex flex-wrap items-center gap-2 pt-2'>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={handleAutoExtractAllPrefixes}
+                        disabled={prefixSuggestions.length === 0}
+                        className='text-xs'
+                      >
+                        {t('channels.dialogs.settings.autoTrimedModelPrefixes.autoExtractAll', {
+                          defaultValue: 'Auto-extract all prefixes',
+                        })}
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={handleClearAllPrefixes}
+                        disabled={(form.watch('autoTrimedModelPrefixes') || []).length === 0}
+                        className='text-xs'
+                      >
+                        {t('channels.dialogs.settings.autoTrimedModelPrefixes.clearAll', {
+                          defaultValue: 'Clear all',
+                        })}
+                      </Button>
+                      {prefixSuggestions.length > 0 && (
                         <span className='text-muted-foreground text-xs'>
                           {t('channels.dialogs.settings.autoTrimedModelPrefixes.prefixesDetected', {
                             count: prefixSuggestions.length,
                             defaultValue: `Detected ${prefixSuggestions.length} prefix(es)`,
                           })}
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
