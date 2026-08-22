@@ -78,7 +78,7 @@ func (svc *ChannelService) markChannelUnavailable(ctx context.Context, channelID
 		)
 	} else {
 		notifyCtx := context.WithoutCancel(ctx)
-		go svc.WebhookNotifier.NotifyChannelAutoDisabled(notifyCtx, ChannelAutoDisabledEvent{
+		svc.WebhookNotifier.NotifyChannelAutoDisabledAsync(notifyCtx, ChannelAutoDisabledEvent{
 			ChannelID:       updatedChannel.ID,
 			ChannelName:     updatedChannel.Name,
 			ChannelProvider: updatedChannel.Type.String(),

@@ -31,6 +31,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/ent/userproject"
 	"github.com/looplj/axonhub/internal/ent/userrole"
+	"github.com/looplj/axonhub/internal/ent/webhookdelivery"
 	"github.com/looplj/axonhub/internal/objects"
 
 	"entgo.io/ent"
@@ -1018,6 +1019,38 @@ func init() {
 	userrole.DefaultUpdatedAt = userroleDescUpdatedAt.Default.(func() time.Time)
 	// userrole.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	userrole.UpdateDefaultUpdatedAt = userroleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	webhookdeliveryMixin := schema.WebhookDelivery{}.Mixin()
+	webhookdelivery.Policy = privacy.NewPolicies(schema.WebhookDelivery{})
+	webhookdelivery.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := webhookdelivery.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
+	webhookdeliveryMixinFields0 := webhookdeliveryMixin[0].Fields()
+	_ = webhookdeliveryMixinFields0
+	webhookdeliveryFields := schema.WebhookDelivery{}.Fields()
+	_ = webhookdeliveryFields
+	// webhookdeliveryDescCreatedAt is the schema descriptor for created_at field.
+	webhookdeliveryDescCreatedAt := webhookdeliveryMixinFields0[0].Descriptor()
+	// webhookdelivery.DefaultCreatedAt holds the default value on creation for the created_at field.
+	webhookdelivery.DefaultCreatedAt = webhookdeliveryDescCreatedAt.Default.(func() time.Time)
+	// webhookdeliveryDescUpdatedAt is the schema descriptor for updated_at field.
+	webhookdeliveryDescUpdatedAt := webhookdeliveryMixinFields0[1].Descriptor()
+	// webhookdelivery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	webhookdelivery.DefaultUpdatedAt = webhookdeliveryDescUpdatedAt.Default.(func() time.Time)
+	// webhookdelivery.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	webhookdelivery.UpdateDefaultUpdatedAt = webhookdeliveryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// webhookdeliveryDescRequestHeaders is the schema descriptor for request_headers field.
+	webhookdeliveryDescRequestHeaders := webhookdeliveryFields[5].Descriptor()
+	// webhookdelivery.DefaultRequestHeaders holds the default value on creation for the request_headers field.
+	webhookdelivery.DefaultRequestHeaders = webhookdeliveryDescRequestHeaders.Default.([]objects.HeaderEntry)
+	// webhookdeliveryDescResponseStatus is the schema descriptor for response_status field.
+	webhookdeliveryDescResponseStatus := webhookdeliveryFields[8].Descriptor()
+	// webhookdelivery.DefaultResponseStatus holds the default value on creation for the response_status field.
+	webhookdelivery.DefaultResponseStatus = webhookdeliveryDescResponseStatus.Default.(int)
 }
 
 const (

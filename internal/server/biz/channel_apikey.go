@@ -106,6 +106,17 @@ func (svc *ChannelService) DisableAPIKey(
 	)
 
 	if channelDisabled {
+		svc.WebhookNotifier.NotifyChannelAutoDisabledAsync(context.WithoutCancel(ctx), ChannelAutoDisabledEvent{
+			ChannelID:       ch.ID,
+			ChannelName:     ch.Name,
+			ChannelProvider: ch.Type.String(),
+			ChannelBaseURL:  ch.BaseURL,
+			ChannelStatus:   channel.StatusDisabled.String(),
+			StatusCode:      errorCode,
+			Reason:          reason,
+			OccurredAt:      time.Now(),
+		})
+
 		// Synchronously reload the local cache to immediately stop selecting this channel.
 		// This matches the behavior of markChannelUnavailable.
 		reloadCtx, cancel := xcontext.DetachWithTimeout(ctx, 10*time.Second)

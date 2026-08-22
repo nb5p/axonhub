@@ -37,6 +37,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/ent/userproject"
 	"github.com/looplj/axonhub/internal/ent/userrole"
+	"github.com/looplj/axonhub/internal/ent/webhookdelivery"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -122,6 +123,7 @@ func checkColumn(t, c string) error {
 			user.Table:                     user.ValidColumn,
 			userproject.Table:              userproject.ValidColumn,
 			userrole.Table:                 userrole.ValidColumn,
+			webhookdelivery.Table:          webhookdelivery.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

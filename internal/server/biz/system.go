@@ -564,13 +564,18 @@ type WebhookNotifierConfig struct {
 }
 
 type WebhookTarget struct {
-	Name      string                  `json:"name"`
-	Enabled   bool                    `json:"enabled"`
-	URL       string                  `json:"url"`
-	Proxy     *httpclient.ProxyConfig `json:"proxy,omitempty"`
-	TimeoutMs int                     `json:"timeout_ms"`
-	Headers   []objects.HeaderEntry   `json:"headers"`
-	Body      string                  `json:"body"`
+	Name          string                  `json:"name"`
+	Enabled       bool                    `json:"enabled"`
+	Type          string                  `json:"type"`
+	URL           string                  `json:"url"`
+	Proxy         *httpclient.ProxyConfig `json:"proxy,omitempty"`
+	TimeoutMs     int                     `json:"timeout_ms"`
+	Headers       []objects.HeaderEntry   `json:"headers"`
+	Body          string                  `json:"body"`
+	BarkDeviceKey string                  `json:"bark_device_key"`
+	BarkTitle     string                  `json:"bark_title"`
+	BarkLevel     string                  `json:"bark_level"`
+	BarkGroup     string                  `json:"bark_group"`
 }
 
 type WebhookSubscription struct {
@@ -1304,6 +1309,26 @@ func normalizeWebhookNotifierConfig(cfg *WebhookNotifierConfig) {
 
 	if cfg.Subscriptions == nil {
 		cfg.Subscriptions = []WebhookSubscription{}
+	}
+
+	for i := range cfg.Targets {
+		cfg.Targets[i].Type = normalizeWebhookTargetType(cfg.Targets[i].Type)
+	}
+}
+
+const (
+	WebhookTargetTypeWebhook = "webhook"
+	WebhookTargetTypeBark    = "bark"
+)
+
+func normalizeWebhookTargetType(targetType string) string {
+	switch strings.ToLower(strings.TrimSpace(targetType)) {
+	case WebhookTargetTypeBark:
+		return WebhookTargetTypeBark
+	default:
+		// Existing target configurations predate target types. Treat missing or
+		// invalid values as a normal generic webhook to remain backward compatible.
+		return WebhookTargetTypeWebhook
 	}
 }
 

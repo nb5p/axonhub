@@ -29,6 +29,7 @@ type Resolver struct {
 	apiKeyService                  *biz.APIKeyService
 	userService                    *biz.UserService
 	systemService                  *biz.SystemService
+	webhookNotifier                *biz.WebhookNotifier
 	channelService                 *biz.ChannelService
 	requestService                 *biz.RequestService
 	quotaService                   *biz.QuotaService
@@ -62,6 +63,7 @@ func NewSchema(
 	apiKeyService *biz.APIKeyService,
 	userService *biz.UserService,
 	systemService *biz.SystemService,
+	webhookNotifier *biz.WebhookNotifier,
 	channelService *biz.ChannelService,
 	requestService *biz.RequestService,
 	quotaService *biz.QuotaService,
@@ -96,6 +98,7 @@ func NewSchema(
 			apiKeyService:                  apiKeyService,
 			userService:                    userService,
 			systemService:                  systemService,
+			webhookNotifier:                webhookNotifier,
 			channelService:                 channelService,
 			requestService:                 requestService,
 			quotaService:                   quotaService,

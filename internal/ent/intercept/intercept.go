@@ -34,6 +34,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/ent/userproject"
 	"github.com/looplj/axonhub/internal/ent/userrole"
+	"github.com/looplj/axonhub/internal/ent/webhookdelivery"
 )
 
 // The Query interface represents an operation that queries a graph.
@@ -767,6 +768,33 @@ func (f TraverseUserRole) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.UserRoleQuery", q)
 }
 
+// The WebhookDeliveryFunc type is an adapter to allow the use of ordinary function as a Querier.
+type WebhookDeliveryFunc func(context.Context, *ent.WebhookDeliveryQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f WebhookDeliveryFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.WebhookDeliveryQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.WebhookDeliveryQuery", q)
+}
+
+// The TraverseWebhookDelivery type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseWebhookDelivery func(context.Context, *ent.WebhookDeliveryQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseWebhookDelivery) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseWebhookDelivery) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.WebhookDeliveryQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.WebhookDeliveryQuery", q)
+}
+
 // NewQuery returns the generic Query interface for the given typed query.
 func NewQuery(q ent.Query) (Query, error) {
 	switch q := q.(type) {
@@ -820,6 +848,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.UserProjectQuery, predicate.UserProject, userproject.OrderOption]{typ: ent.TypeUserProject, tq: q}, nil
 	case *ent.UserRoleQuery:
 		return &query[*ent.UserRoleQuery, predicate.UserRole, userrole.OrderOption]{typ: ent.TypeUserRole, tq: q}, nil
+	case *ent.WebhookDeliveryQuery:
+		return &query[*ent.WebhookDeliveryQuery, predicate.WebhookDelivery, webhookdelivery.OrderOption]{typ: ent.TypeWebhookDelivery, tq: q}, nil
 	default:
 		return nil, fmt.Errorf("unknown query type %T", q)
 	}

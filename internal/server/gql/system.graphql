@@ -81,21 +81,31 @@ type AutoDisableAPIKey {
 type WebhookTarget {
   name: String!
   enabled: Boolean!
+  type: String!
   url: String!
   proxy: ProxyConfig
   timeoutMs: Int!
   headers: [HeaderEntry!]!
   body: String!
+  barkDeviceKey: String!
+  barkTitle: String!
+  barkLevel: String!
+  barkGroup: String!
 }
 
 input WebhookTargetInput {
   name: String!
   enabled: Boolean!
+  type: String
   url: String!
   proxy: ProxyConfigInput
   timeoutMs: Int!
   headers: [HeaderEntryInput!]
   body: String!
+  barkDeviceKey: String
+  barkTitle: String
+  barkLevel: String
+  barkGroup: String
 }
 
 type WebhookSubscription {
@@ -116,6 +126,21 @@ type WebhookNotifierConfig {
 input WebhookNotifierConfigInput {
   targets: [WebhookTargetInput!]
   subscriptions: [WebhookSubscriptionInput!]
+}
+
+type WebhookDeliveryHistoryItem {
+  id: ID!
+  event: String!
+  targetName: String!
+  targetType: String!
+  url: String!
+  method: String!
+  requestHeaders: [HeaderEntry!]!
+  requestBody: String!
+  status: String!
+  responseStatus: Int!
+  errorMessage: String!
+  occurredAt: Time!
 }
 
 type RetryPolicy {
@@ -524,6 +549,7 @@ extend type Query {
   storagePolicy: StoragePolicy!
   retryPolicy: RetryPolicy!
   webhookNotifierConfig: WebhookNotifierConfig!
+  webhookDeliveryHistory(limit: Int = 100): [WebhookDeliveryHistoryItem!]!
   systemModelSettings: SystemModelSettings!
   defaultDataStorageID: ID
   onboardingInfo: OnboardingInfo

@@ -13,6 +13,7 @@ import (
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/build"
 	"github.com/looplj/axonhub/internal/contexts"
+	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/scopes"
 	"github.com/looplj/axonhub/internal/server/biz"
@@ -511,6 +512,15 @@ func (r *queryResolver) WebhookNotifierConfig(ctx context.Context) (*biz.Webhook
 	return r.systemService.WebhookNotifierConfig(ctx)
 }
 
+// WebhookDeliveryHistory is the resolver for the webhookDeliveryHistory field.
+func (r *queryResolver) WebhookDeliveryHistory(ctx context.Context, limit *int) ([]*biz.WebhookDeliveryHistoryItem, error) {
+	requestedLimit := 100
+	if limit != nil {
+		requestedLimit = *limit
+	}
+	return r.webhookNotifier.DeliveryHistory(ctx, requestedLimit)
+}
+
 // SystemModelSettings is the resolver for the systemModelSettings field.
 func (r *queryResolver) SystemModelSettings(ctx context.Context) (*biz.SystemModelSettings, error) {
 	settings, err := r.systemService.ModelSettings(ctx)
@@ -743,6 +753,11 @@ func (r *quotaEnforcementSettingsResolver) AllowedChannelIDs(ctx context.Context
 	}), nil
 }
 
+// ID is the resolver for the id field.
+func (r *webhookDeliveryHistoryItemResolver) ID(ctx context.Context, obj *biz.WebhookDeliveryHistoryItem) (*objects.GUID, error) {
+	return &objects.GUID{Type: ent.TypeWebhookDelivery, ID: obj.ID}, nil
+}
+
 // ProviderQuotaCollectionSettings returns ProviderQuotaCollectionSettingsResolver implementation.
 func (r *Resolver) ProviderQuotaCollectionSettings() ProviderQuotaCollectionSettingsResolver {
 	return &providerQuotaCollectionSettingsResolver{r}
@@ -753,5 +768,11 @@ func (r *Resolver) QuotaEnforcementSettings() QuotaEnforcementSettingsResolver {
 	return &quotaEnforcementSettingsResolver{r}
 }
 
+// WebhookDeliveryHistoryItem returns WebhookDeliveryHistoryItemResolver implementation.
+func (r *Resolver) WebhookDeliveryHistoryItem() WebhookDeliveryHistoryItemResolver {
+	return &webhookDeliveryHistoryItemResolver{r}
+}
+
 type providerQuotaCollectionSettingsResolver struct{ *Resolver }
 type quotaEnforcementSettingsResolver struct{ *Resolver }
+type webhookDeliveryHistoryItemResolver struct{ *Resolver }

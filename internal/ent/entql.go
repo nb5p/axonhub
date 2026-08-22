@@ -29,6 +29,7 @@ import (
 	"github.com/looplj/axonhub/internal/ent/user"
 	"github.com/looplj/axonhub/internal/ent/userproject"
 	"github.com/looplj/axonhub/internal/ent/userrole"
+	"github.com/looplj/axonhub/internal/ent/webhookdelivery"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -38,7 +39,7 @@ import (
 
 // schemaGraph holds a representation of ent/schema at runtime.
 var schemaGraph = func() *sqlgraph.Schema {
-	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 25)}
+	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 26)}
 	graph.Nodes[0] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   apikey.Table,
@@ -630,6 +631,31 @@ var schemaGraph = func() *sqlgraph.Schema {
 			userrole.FieldRoleID:    {Type: field.TypeInt, Column: userrole.FieldRoleID},
 			userrole.FieldCreatedAt: {Type: field.TypeTime, Column: userrole.FieldCreatedAt},
 			userrole.FieldUpdatedAt: {Type: field.TypeTime, Column: userrole.FieldUpdatedAt},
+		},
+	}
+	graph.Nodes[25] = &sqlgraph.Node{
+		NodeSpec: sqlgraph.NodeSpec{
+			Table:   webhookdelivery.Table,
+			Columns: webhookdelivery.Columns,
+			ID: &sqlgraph.FieldSpec{
+				Type:   field.TypeInt,
+				Column: webhookdelivery.FieldID,
+			},
+		},
+		Type: "WebhookDelivery",
+		Fields: map[string]*sqlgraph.FieldSpec{
+			webhookdelivery.FieldCreatedAt:      {Type: field.TypeTime, Column: webhookdelivery.FieldCreatedAt},
+			webhookdelivery.FieldUpdatedAt:      {Type: field.TypeTime, Column: webhookdelivery.FieldUpdatedAt},
+			webhookdelivery.FieldEvent:          {Type: field.TypeString, Column: webhookdelivery.FieldEvent},
+			webhookdelivery.FieldTargetName:     {Type: field.TypeString, Column: webhookdelivery.FieldTargetName},
+			webhookdelivery.FieldTargetType:     {Type: field.TypeString, Column: webhookdelivery.FieldTargetType},
+			webhookdelivery.FieldURL:            {Type: field.TypeString, Column: webhookdelivery.FieldURL},
+			webhookdelivery.FieldMethod:         {Type: field.TypeString, Column: webhookdelivery.FieldMethod},
+			webhookdelivery.FieldRequestHeaders: {Type: field.TypeJSON, Column: webhookdelivery.FieldRequestHeaders},
+			webhookdelivery.FieldRequestBody:    {Type: field.TypeString, Column: webhookdelivery.FieldRequestBody},
+			webhookdelivery.FieldStatus:         {Type: field.TypeEnum, Column: webhookdelivery.FieldStatus},
+			webhookdelivery.FieldResponseStatus: {Type: field.TypeInt, Column: webhookdelivery.FieldResponseStatus},
+			webhookdelivery.FieldErrorMessage:   {Type: field.TypeString, Column: webhookdelivery.FieldErrorMessage},
 		},
 	}
 	graph.MustAddE(
@@ -4643,4 +4669,104 @@ func (f *UserRoleFilter) WhereHasRoleWith(preds ...predicate.Role) {
 			p(s)
 		}
 	})))
+}
+
+// addPredicate implements the predicateAdder interface.
+func (_q *WebhookDeliveryQuery) addPredicate(pred func(s *sql.Selector)) {
+	_q.predicates = append(_q.predicates, pred)
+}
+
+// Filter returns a Filter implementation to apply filters on the WebhookDeliveryQuery builder.
+func (_q *WebhookDeliveryQuery) Filter() *WebhookDeliveryFilter {
+	return &WebhookDeliveryFilter{config: _q.config, predicateAdder: _q}
+}
+
+// addPredicate implements the predicateAdder interface.
+func (m *WebhookDeliveryMutation) addPredicate(pred func(s *sql.Selector)) {
+	m.predicates = append(m.predicates, pred)
+}
+
+// Filter returns an entql.Where implementation to apply filters on the WebhookDeliveryMutation builder.
+func (m *WebhookDeliveryMutation) Filter() *WebhookDeliveryFilter {
+	return &WebhookDeliveryFilter{config: m.config, predicateAdder: m}
+}
+
+// WebhookDeliveryFilter provides a generic filtering capability at runtime for WebhookDeliveryQuery.
+type WebhookDeliveryFilter struct {
+	predicateAdder
+	config
+}
+
+// Where applies the entql predicate on the query filter.
+func (f *WebhookDeliveryFilter) Where(p entql.P) {
+	f.addPredicate(func(s *sql.Selector) {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[25].Type, p, s); err != nil {
+			s.AddError(err)
+		}
+	})
+}
+
+// WhereID applies the entql int predicate on the id field.
+func (f *WebhookDeliveryFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(webhookdelivery.FieldID))
+}
+
+// WhereCreatedAt applies the entql time.Time predicate on the created_at field.
+func (f *WebhookDeliveryFilter) WhereCreatedAt(p entql.TimeP) {
+	f.Where(p.Field(webhookdelivery.FieldCreatedAt))
+}
+
+// WhereUpdatedAt applies the entql time.Time predicate on the updated_at field.
+func (f *WebhookDeliveryFilter) WhereUpdatedAt(p entql.TimeP) {
+	f.Where(p.Field(webhookdelivery.FieldUpdatedAt))
+}
+
+// WhereEvent applies the entql string predicate on the event field.
+func (f *WebhookDeliveryFilter) WhereEvent(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldEvent))
+}
+
+// WhereTargetName applies the entql string predicate on the target_name field.
+func (f *WebhookDeliveryFilter) WhereTargetName(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldTargetName))
+}
+
+// WhereTargetType applies the entql string predicate on the target_type field.
+func (f *WebhookDeliveryFilter) WhereTargetType(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldTargetType))
+}
+
+// WhereURL applies the entql string predicate on the url field.
+func (f *WebhookDeliveryFilter) WhereURL(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldURL))
+}
+
+// WhereMethod applies the entql string predicate on the method field.
+func (f *WebhookDeliveryFilter) WhereMethod(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldMethod))
+}
+
+// WhereRequestHeaders applies the entql json.RawMessage predicate on the request_headers field.
+func (f *WebhookDeliveryFilter) WhereRequestHeaders(p entql.BytesP) {
+	f.Where(p.Field(webhookdelivery.FieldRequestHeaders))
+}
+
+// WhereRequestBody applies the entql string predicate on the request_body field.
+func (f *WebhookDeliveryFilter) WhereRequestBody(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldRequestBody))
+}
+
+// WhereStatus applies the entql string predicate on the status field.
+func (f *WebhookDeliveryFilter) WhereStatus(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldStatus))
+}
+
+// WhereResponseStatus applies the entql int predicate on the response_status field.
+func (f *WebhookDeliveryFilter) WhereResponseStatus(p entql.IntP) {
+	f.Where(p.Field(webhookdelivery.FieldResponseStatus))
+}
+
+// WhereErrorMessage applies the entql string predicate on the error_message field.
+func (f *WebhookDeliveryFilter) WhereErrorMessage(p entql.StringP) {
+	f.Where(p.Field(webhookdelivery.FieldErrorMessage))
 }

@@ -56,6 +56,7 @@ type Dependencies struct {
 	APIKeyService                  *biz.APIKeyService
 	UserService                    *biz.UserService
 	SystemService                  *biz.SystemService
+	WebhookNotifier                *biz.WebhookNotifier
 	ChannelService                 *biz.ChannelService
 	RequestService                 *biz.RequestService
 	QuotaService                   *biz.QuotaService
@@ -95,6 +96,7 @@ func NewGraphqlHandlers(deps Dependencies) *GraphqlHandler {
 			deps.APIKeyService,
 			deps.UserService,
 			deps.SystemService,
+			deps.WebhookNotifier,
 			deps.ChannelService,
 			deps.RequestService,
 			deps.QuotaService,

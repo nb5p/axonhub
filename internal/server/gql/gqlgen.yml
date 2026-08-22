@@ -256,6 +256,9 @@ models:
   WebhookSubscriptionInput:
     model:
       - github.com/looplj/axonhub/internal/server/biz.WebhookSubscription
+  WebhookDeliveryHistoryItem:
+    model:
+      - github.com/looplj/axonhub/internal/server/biz.WebhookDeliveryHistoryItem
   AutoDisableChannel:
     model:
       - github.com/looplj/axonhub/internal/server/biz.AutoDisableChannel

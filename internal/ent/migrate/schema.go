@@ -1033,6 +1033,28 @@ var (
 			},
 		},
 	}
+	// WebhookDeliveriesColumns holds the columns for the "webhook_deliveries" table.
+	WebhookDeliveriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("CURRENT_TIMESTAMP")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("CURRENT_TIMESTAMP")},
+		{Name: "event", Type: field.TypeString},
+		{Name: "target_name", Type: field.TypeString},
+		{Name: "target_type", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "method", Type: field.TypeString},
+		{Name: "request_headers", Type: field.TypeJSON},
+		{Name: "request_body", Type: field.TypeString, SchemaType: map[string]string{"mysql": "mediumtext"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"success", "failed"}},
+		{Name: "response_status", Type: field.TypeInt, Default: 0},
+		{Name: "error_message", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"mysql": "mediumtext"}},
+	}
+	// WebhookDeliveriesTable holds the schema information for the "webhook_deliveries" table.
+	WebhookDeliveriesTable = &schema.Table{
+		Name:       "webhook_deliveries",
+		Columns:    WebhookDeliveriesColumns,
+		PrimaryKey: []*schema.Column{WebhookDeliveriesColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
@@ -1060,6 +1082,7 @@ var (
 		UsersTable,
 		UserProjectsTable,
 		UserRolesTable,
+		WebhookDeliveriesTable,
 	}
 )
 

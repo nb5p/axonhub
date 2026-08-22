@@ -341,6 +341,7 @@ type ProviderQuotaServiceParams struct {
 
 	Ent                       *ent.Client
 	SystemService             *SystemService
+	WebhookNotifier           *WebhookNotifier
 	HttpClient                *httpclient.HttpClient
 	CheckInterval             time.Duration `name:"provider_quota_check_interval" optional:"true"`
 	WarningCheckIntervalRatio int           `name:"provider_quota_warning_check_interval_ratio" optional:"true"`
@@ -350,6 +351,7 @@ type ProviderQuotaService struct {
 	*AbstractService
 
 	SystemService             *SystemService
+	WebhookNotifier           *WebhookNotifier
 	checkInterval             time.Duration
 	warningCheckIntervalRatio int
 	httpClient                *httpclient.HttpClient
@@ -365,6 +367,7 @@ func NewProviderQuotaService(params ProviderQuotaServiceParams) *ProviderQuotaSe
 	svc := &ProviderQuotaService{
 		AbstractService:           &AbstractService{db: params.Ent},
 		SystemService:             params.SystemService,
+		WebhookNotifier:           params.WebhookNotifier,
 		checkers:                  make(map[string]provider_quota.QuotaChecker),
 		checkInterval:             params.CheckInterval,
 		warningCheckIntervalRatio: params.WarningCheckIntervalRatio,
@@ -842,6 +845,17 @@ func (svc *ProviderQuotaService) saveQuotaStatus(
 	quotaData provider_quota.QuotaData,
 	now time.Time,
 ) {
+	var previous *ent.ProviderQuotaStatus
+	previous, err := svc.db.ProviderQuotaStatus.Query().
+		Where(providerquotastatus.ChannelIDEQ(channelID)).
+		Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		log.Warn(ctx, "failed to load previous quota status for webhook transition",
+			log.Int("channel_id", channelID),
+			log.Cause(err))
+		previous = nil
+	}
+
 	nextCheck := now.Add(svc.nextCheckIntervalForStatus(providerquotastatus.Status(quotaData.Status)))
 	pt := providerquotastatus.ProviderType(providerType)
 
@@ -869,7 +883,7 @@ func (svc *ProviderQuotaService) saveQuotaStatus(
 		upsert.ClearNextResetAt()
 	}
 
-	err := upsert.Exec(ctx)
+	err = upsert.Exec(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to save quota status",
 			log.Int("channel_id", channelID),
@@ -878,6 +892,249 @@ func (svc *ProviderQuotaService) saveQuotaStatus(
 	}
 
 	svc.updateQuotaCache(channelID, providerType, providerquotastatus.Status(quotaData.Status), quotaData.Ready, quotaData.Limits)
+	svc.notifyQuotaExhaustionTransitions(ctx, channelID, providerType, previous, quotaData, now)
+}
+
+func (svc *ProviderQuotaService) notifyQuotaExhaustionTransitions(
+	ctx context.Context,
+	channelID int,
+	providerType string,
+	previous *ent.ProviderQuotaStatus,
+	quotaData provider_quota.QuotaData,
+	now time.Time,
+) {
+	if svc.WebhookNotifier == nil {
+		return
+	}
+
+	channelEntity, err := svc.db.Channel.Get(ctx, channelID)
+	if err != nil {
+		log.Warn(ctx, "failed to load channel for quota webhook notification", log.Int("channel_id", channelID), log.Cause(err))
+		return
+	}
+
+	channelFields := func() (int, string, string, string, string) {
+		return channelEntity.ID, channelEntity.Name, channelEntity.Type.String(), channelEntity.BaseURL, channelEntity.Status.String()
+	}
+
+	previousData := map[string]any(nil)
+	previousSameProvider := previous != nil && previous.ProviderType.String() == providerType
+	if previousSameProvider {
+		previousData = previous.QuotaData
+	}
+
+	for _, transition := range quotaWindowExhaustionTransitions(providerType, previousData, quotaData) {
+		channelID, channelName, channelProvider, channelBaseURL, channelStatus := channelFields()
+		svc.WebhookNotifier.NotifyQuotaWindowExhaustedAsync(ctx, QuotaWindowExhaustedEvent{
+			ChannelID:        channelID,
+			ChannelName:      channelName,
+			ChannelProvider:  channelProvider,
+			ChannelBaseURL:   channelBaseURL,
+			ChannelStatus:    channelStatus,
+			ProviderType:     providerType,
+			LimitType:        transition.limitType,
+			Window:           transition.window,
+			RemainingPercent: transition.remainingPercent,
+			ResetAt:          transition.resetAt,
+			OccurredAt:       now,
+		})
+	}
+
+	currentBalance, currentUnit, currentBalanceKnown := quotaBalance(quotaData.RawData)
+	previousBalance, _, previousBalanceKnown := quotaBalance(previousData)
+	if currentBalanceKnown && currentBalance <= 0 && (!previousBalanceKnown || previousBalance > 0) {
+		channelID, channelName, channelProvider, channelBaseURL, channelStatus := channelFields()
+		svc.WebhookNotifier.NotifyQuotaBalanceExhaustedAsync(ctx, QuotaBalanceExhaustedEvent{
+			ChannelID:       channelID,
+			ChannelName:     channelName,
+			ChannelProvider: channelProvider,
+			ChannelBaseURL:  channelBaseURL,
+			ChannelStatus:   channelStatus,
+			ProviderType:    providerType,
+			Remaining:       currentBalance,
+			Unit:            currentUnit,
+			OccurredAt:      now,
+		})
+	}
+}
+
+type quotaWindowExhaustionTransition struct {
+	limitType        string
+	window           string
+	remainingPercent *float64
+	resetAt          *time.Time
+}
+
+func quotaWindowExhaustionTransitions(
+	providerType string,
+	previousData map[string]any,
+	quotaData provider_quota.QuotaData,
+) []quotaWindowExhaustionTransition {
+	transitions := make([]quotaWindowExhaustionTransition, 0)
+	previousLimits := make(map[string]provider_quota.QuotaLimitStatus)
+	for _, limit := range extractLimitsFromQuotaData(previousData) {
+		previousLimits[quotaLimitTransitionKey(limit)] = limit
+	}
+	for _, limit := range quotaData.Limits {
+		if limit.Status != string(providerquotastatus.StatusExhausted) {
+			continue
+		}
+		previous, existed := previousLimits[quotaLimitTransitionKey(limit)]
+		if existed && previous.Status == string(providerquotastatus.StatusExhausted) {
+			continue
+		}
+		remainingPercent := max(0, 100*(1-limit.UsageRatio))
+		transitions = append(transitions, quotaWindowExhaustionTransition{
+			limitType:        string(limit.Type),
+			window:           quotaLimitWindowName(limit),
+			remainingPercent: &remainingPercent,
+			resetAt:          limit.NextResetAt,
+		})
+	}
+
+	if providerType != "usage_query" {
+		return transitions
+	}
+
+	previousWindows := make(map[string]usageQueryQuotaWindow)
+	for _, window := range usageQueryQuotaWindows(previousData) {
+		previousWindows[window.id] = window
+	}
+	for _, window := range usageQueryQuotaWindows(quotaData.RawData) {
+		if window.remainingPercent == nil || *window.remainingPercent > 0 {
+			continue
+		}
+		previous, existed := previousWindows[window.id]
+		if existed && previous.remainingPercent != nil && *previous.remainingPercent <= 0 {
+			continue
+		}
+		transitions = append(transitions, quotaWindowExhaustionTransition{
+			limitType:        "progress",
+			window:           window.id,
+			remainingPercent: window.remainingPercent,
+			resetAt:          window.resetAt,
+		})
+	}
+
+	return transitions
+}
+
+func quotaLimitTransitionKey(limit provider_quota.QuotaLimitStatus) string {
+	return string(limit.Type) + ":" + limit.Window
+}
+
+func quotaLimitWindowName(limit provider_quota.QuotaLimitStatus) string {
+	if limit.Window != "" {
+		return limit.Window
+	}
+	return string(limit.Type)
+}
+
+type usageQueryQuotaWindow struct {
+	id               string
+	remainingPercent *float64
+	resetAt          *time.Time
+}
+
+func usageQueryQuotaWindows(data map[string]any) []usageQueryQuotaWindow {
+	if data == nil {
+		return nil
+	}
+
+	progress, ok := data["progress"]
+	if !ok {
+		return nil
+	}
+
+	toWindow := func(id string, remaining any, resetAt any) (usageQueryQuotaWindow, bool) {
+		if id == "" {
+			return usageQueryQuotaWindow{}, false
+		}
+		window := usageQueryQuotaWindow{id: id}
+		if value, ok := quotaFloat64(remaining); ok {
+			window.remainingPercent = &value
+		}
+		if value, ok := resetAt.(string); ok {
+			if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+				window.resetAt = &parsed
+			}
+		}
+		return window, true
+	}
+
+	switch typed := progress.(type) {
+	case *provider_quota.UsageQueryProgress:
+		return lo.FilterMap(typed.Windows, func(window provider_quota.UsageQueryProgressWindow, _ int) (usageQueryQuotaWindow, bool) {
+			return toWindow(window.ID, window.RemainingPercent, window.ResetAt)
+		})
+	case provider_quota.UsageQueryProgress:
+		return lo.FilterMap(typed.Windows, func(window provider_quota.UsageQueryProgressWindow, _ int) (usageQueryQuotaWindow, bool) {
+			return toWindow(window.ID, window.RemainingPercent, window.ResetAt)
+		})
+	case map[string]any:
+		rawWindows, _ := typed["windows"].([]any)
+		return lo.FilterMap(rawWindows, func(raw any, _ int) (usageQueryQuotaWindow, bool) {
+			window, ok := raw.(map[string]any)
+			if !ok {
+				return usageQueryQuotaWindow{}, false
+			}
+			id, _ := window["id"].(string)
+			return toWindow(id, window["remainingPercent"], window["resetAt"])
+		})
+	default:
+		return nil
+	}
+}
+
+func quotaBalance(data map[string]any) (float64, string, bool) {
+	if data == nil {
+		return 0, "", false
+	}
+	balance, ok := data["balance"]
+	if !ok {
+		return 0, "", false
+	}
+	switch typed := balance.(type) {
+	case *provider_quota.UsageQueryBalance:
+		if typed == nil {
+			return 0, "", false
+		}
+		return typed.Remaining, typed.Unit, true
+	case provider_quota.UsageQueryBalance:
+		return typed.Remaining, typed.Unit, true
+	case map[string]any:
+		remaining, ok := quotaFloat64(typed["remaining"])
+		if !ok {
+			return 0, "", false
+		}
+		unit, _ := typed["unit"].(string)
+		return remaining, unit, true
+	default:
+		remaining, ok := quotaFloat64(typed)
+		return remaining, "", ok
+	}
+}
+
+func quotaFloat64(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case *float64:
+		if typed == nil {
+			return 0, false
+		}
+		return *typed, true
+	case float64:
+		return typed, true
+	case float32:
+		return float64(typed), true
+	case int:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case int32:
+		return float64(typed), true
+	default:
+		return 0, false
+	}
 }
 
 func (svc *ProviderQuotaService) saveQuotaError(

@@ -374,6 +374,23 @@ func (svc *ChannelService) RecordPerformance(ctx context.Context, perf *Performa
 			svc.apiKeyErrorCountsLock.Unlock()
 		}
 	} else if !perf.Canceled {
+		channelEvent := ChannelErrorEvent{
+			ChannelID:    perf.ChannelID,
+			StatusCode:   perf.ResponseStatusCode,
+			ErrorMessage: perf.ErrorMessage,
+			OccurredAt:   perf.EndTime,
+		}
+		if len(perf.APIKey) >= 4 {
+			channelEvent.APIKeySuffix = perf.APIKey[len(perf.APIKey)-4:]
+		}
+		if ch := svc.GetEnabledChannel(perf.ChannelID); ch != nil {
+			channelEvent.ChannelName = ch.Name
+			channelEvent.ChannelProvider = ch.Type.String()
+			channelEvent.ChannelBaseURL = ch.BaseURL
+			channelEvent.ChannelStatus = ch.Status.String()
+		}
+		svc.WebhookNotifier.NotifyChannelErrorAsync(ctx, channelEvent)
+
 		matched := false
 		if perf.APIKey != "" {
 			matched, _ = svc.checkAndHandleChannelAPIKeyRules(ctx, perf)

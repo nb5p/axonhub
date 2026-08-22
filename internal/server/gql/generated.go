@@ -99,6 +99,7 @@ type ResolverRoot interface {
 	UserInfo() UserInfoResolver
 	UserProject() UserProjectResolver
 	UserRole() UserRoleResolver
+	WebhookDeliveryHistoryItem() WebhookDeliveryHistoryItemResolver
 }
 
 type DirectiveRoot struct {
@@ -1530,6 +1531,7 @@ type ComplexityRoot struct {
 		UserAgentPassThroughSettings    func(childComplexity int) int
 		Users                           func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.UserOrder, where *ent.UserWhereInput) int
 		VideoStorageSettings            func(childComplexity int) int
+		WebhookDeliveryHistory          func(childComplexity int, limit *int) int
 		WebhookNotifierConfig           func(childComplexity int) int
 	}
 
@@ -2217,6 +2219,21 @@ type ComplexityRoot struct {
 		Username        func(childComplexity int) int
 	}
 
+	WebhookDeliveryHistoryItem struct {
+		ErrorMessage   func(childComplexity int) int
+		Event          func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Method         func(childComplexity int) int
+		OccurredAt     func(childComplexity int) int
+		RequestBody    func(childComplexity int) int
+		RequestHeaders func(childComplexity int) int
+		ResponseStatus func(childComplexity int) int
+		Status         func(childComplexity int) int
+		TargetName     func(childComplexity int) int
+		TargetType     func(childComplexity int) int
+		URL            func(childComplexity int) int
+	}
+
 	WebhookNotifierConfig struct {
 		Subscriptions func(childComplexity int) int
 		Targets       func(childComplexity int) int
@@ -2228,13 +2245,18 @@ type ComplexityRoot struct {
 	}
 
 	WebhookTarget struct {
-		Body      func(childComplexity int) int
-		Enabled   func(childComplexity int) int
-		Headers   func(childComplexity int) int
-		Name      func(childComplexity int) int
-		Proxy     func(childComplexity int) int
-		TimeoutMs func(childComplexity int) int
-		URL       func(childComplexity int) int
+		BarkDeviceKey func(childComplexity int) int
+		BarkGroup     func(childComplexity int) int
+		BarkLevel     func(childComplexity int) int
+		BarkTitle     func(childComplexity int) int
+		Body          func(childComplexity int) int
+		Enabled       func(childComplexity int) int
+		Headers       func(childComplexity int) int
+		Name          func(childComplexity int) int
+		Proxy         func(childComplexity int) int
+		TimeoutMs     func(childComplexity int) int
+		Type          func(childComplexity int) int
+		URL           func(childComplexity int) int
 	}
 }
 
@@ -2519,6 +2541,7 @@ type QueryResolver interface {
 	StoragePolicy(ctx context.Context) (*biz.StoragePolicy, error)
 	RetryPolicy(ctx context.Context) (*biz.RetryPolicy, error)
 	WebhookNotifierConfig(ctx context.Context) (*biz.WebhookNotifierConfig, error)
+	WebhookDeliveryHistory(ctx context.Context, limit *int) ([]*biz.WebhookDeliveryHistoryItem, error)
 	SystemModelSettings(ctx context.Context) (*biz.SystemModelSettings, error)
 	DefaultDataStorageID(ctx context.Context) (*objects.GUID, error)
 	OnboardingInfo(ctx context.Context) (*OnboardingInfo, error)
@@ -2644,6 +2667,9 @@ type UserRoleResolver interface {
 	ID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error)
 	UserID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error)
 	RoleID(ctx context.Context, obj *ent.UserRole) (*objects.GUID, error)
+}
+type WebhookDeliveryHistoryItemResolver interface {
+	ID(ctx context.Context, obj *biz.WebhookDeliveryHistoryItem) (*objects.GUID, error)
 }
 
 type executableSchema struct {
@@ -9330,6 +9356,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.VideoStorageSettings(childComplexity), true
+	case "Query.webhookDeliveryHistory":
+		if e.complexity.Query.WebhookDeliveryHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_webhookDeliveryHistory_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.WebhookDeliveryHistory(childComplexity, args["limit"].(*int)), true
 	case "Query.webhookNotifierConfig":
 		if e.complexity.Query.WebhookNotifierConfig == nil {
 			break
@@ -12046,6 +12083,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.WebDAV.Username(childComplexity), true
 
+	case "WebhookDeliveryHistoryItem.errorMessage":
+		if e.complexity.WebhookDeliveryHistoryItem.ErrorMessage == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.ErrorMessage(childComplexity), true
+	case "WebhookDeliveryHistoryItem.event":
+		if e.complexity.WebhookDeliveryHistoryItem.Event == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.Event(childComplexity), true
+	case "WebhookDeliveryHistoryItem.id":
+		if e.complexity.WebhookDeliveryHistoryItem.ID == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.ID(childComplexity), true
+	case "WebhookDeliveryHistoryItem.method":
+		if e.complexity.WebhookDeliveryHistoryItem.Method == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.Method(childComplexity), true
+	case "WebhookDeliveryHistoryItem.occurredAt":
+		if e.complexity.WebhookDeliveryHistoryItem.OccurredAt == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.OccurredAt(childComplexity), true
+	case "WebhookDeliveryHistoryItem.requestBody":
+		if e.complexity.WebhookDeliveryHistoryItem.RequestBody == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.RequestBody(childComplexity), true
+	case "WebhookDeliveryHistoryItem.requestHeaders":
+		if e.complexity.WebhookDeliveryHistoryItem.RequestHeaders == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.RequestHeaders(childComplexity), true
+	case "WebhookDeliveryHistoryItem.responseStatus":
+		if e.complexity.WebhookDeliveryHistoryItem.ResponseStatus == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.ResponseStatus(childComplexity), true
+	case "WebhookDeliveryHistoryItem.status":
+		if e.complexity.WebhookDeliveryHistoryItem.Status == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.Status(childComplexity), true
+	case "WebhookDeliveryHistoryItem.targetName":
+		if e.complexity.WebhookDeliveryHistoryItem.TargetName == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.TargetName(childComplexity), true
+	case "WebhookDeliveryHistoryItem.targetType":
+		if e.complexity.WebhookDeliveryHistoryItem.TargetType == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.TargetType(childComplexity), true
+	case "WebhookDeliveryHistoryItem.url":
+		if e.complexity.WebhookDeliveryHistoryItem.URL == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryHistoryItem.URL(childComplexity), true
+
 	case "WebhookNotifierConfig.subscriptions":
 		if e.complexity.WebhookNotifierConfig.Subscriptions == nil {
 			break
@@ -12072,6 +12182,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.WebhookSubscription.TargetNames(childComplexity), true
 
+	case "WebhookTarget.barkDeviceKey":
+		if e.complexity.WebhookTarget.BarkDeviceKey == nil {
+			break
+		}
+
+		return e.complexity.WebhookTarget.BarkDeviceKey(childComplexity), true
+	case "WebhookTarget.barkGroup":
+		if e.complexity.WebhookTarget.BarkGroup == nil {
+			break
+		}
+
+		return e.complexity.WebhookTarget.BarkGroup(childComplexity), true
+	case "WebhookTarget.barkLevel":
+		if e.complexity.WebhookTarget.BarkLevel == nil {
+			break
+		}
+
+		return e.complexity.WebhookTarget.BarkLevel(childComplexity), true
+	case "WebhookTarget.barkTitle":
+		if e.complexity.WebhookTarget.BarkTitle == nil {
+			break
+		}
+
+		return e.complexity.WebhookTarget.BarkTitle(childComplexity), true
 	case "WebhookTarget.body":
 		if e.complexity.WebhookTarget.Body == nil {
 			break
@@ -12108,6 +12242,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.WebhookTarget.TimeoutMs(childComplexity), true
+	case "WebhookTarget.type":
+		if e.complexity.WebhookTarget.Type == nil {
+			break
+		}
+
+		return e.complexity.WebhookTarget.Type(childComplexity), true
 	case "WebhookTarget.url":
 		if e.complexity.WebhookTarget.URL == nil {
 			break
@@ -15580,6 +15720,17 @@ func (ec *executionContext) field_Query_users_args(ctx context.Context, rawArgs 
 		return nil, err
 	}
 	args["where"] = arg5
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_webhookDeliveryHistory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
 	return args, nil
 }
 
@@ -48785,6 +48936,73 @@ func (ec *executionContext) fieldContext_Query_webhookNotifierConfig(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_webhookDeliveryHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_webhookDeliveryHistory,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().WebhookDeliveryHistory(ctx, fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNWebhookDeliveryHistoryItem2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐWebhookDeliveryHistoryItemᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_webhookDeliveryHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_id(ctx, field)
+			case "event":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_event(ctx, field)
+			case "targetName":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_targetName(ctx, field)
+			case "targetType":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_targetType(ctx, field)
+			case "url":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_url(ctx, field)
+			case "method":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_method(ctx, field)
+			case "requestHeaders":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_requestHeaders(ctx, field)
+			case "requestBody":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_requestBody(ctx, field)
+			case "status":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_status(ctx, field)
+			case "responseStatus":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_responseStatus(ctx, field)
+			case "errorMessage":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_errorMessage(ctx, field)
+			case "occurredAt":
+				return ec.fieldContext_WebhookDeliveryHistoryItem_occurredAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WebhookDeliveryHistoryItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_webhookDeliveryHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_systemModelSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -64372,6 +64590,360 @@ func (ec *executionContext) fieldContext_WebDAV_path(_ context.Context, field gr
 	return fc, nil
 }
 
+func (ec *executionContext) _WebhookDeliveryHistoryItem_id(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_id,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.WebhookDeliveryHistoryItem().ID(ctx, obj)
+		},
+		nil,
+		ec.marshalNID2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_event(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_event,
+		func(ctx context.Context) (any, error) {
+			return obj.Event, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_event(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_targetName(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_targetName,
+		func(ctx context.Context) (any, error) {
+			return obj.TargetName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_targetName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_targetType(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_targetType,
+		func(ctx context.Context) (any, error) {
+			return obj.TargetType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_targetType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_url(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_url,
+		func(ctx context.Context) (any, error) {
+			return obj.URL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_method(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_method,
+		func(ctx context.Context) (any, error) {
+			return obj.Method, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_method(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_requestHeaders(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_requestHeaders,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestHeaders, nil
+		},
+		nil,
+		ec.marshalNHeaderEntry2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐHeaderEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_requestHeaders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "key":
+				return ec.fieldContext_HeaderEntry_key(ctx, field)
+			case "value":
+				return ec.fieldContext_HeaderEntry_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HeaderEntry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_requestBody(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_requestBody,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestBody, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_requestBody(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_status(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_responseStatus(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_responseStatus,
+		func(ctx context.Context) (any, error) {
+			return obj.ResponseStatus, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_responseStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_errorMessage(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_errorMessage,
+		func(ctx context.Context) (any, error) {
+			return obj.ErrorMessage, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_errorMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem_occurredAt(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookDeliveryHistoryItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookDeliveryHistoryItem_occurredAt,
+		func(ctx context.Context) (any, error) {
+			return obj.OccurredAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookDeliveryHistoryItem_occurredAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookDeliveryHistoryItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _WebhookNotifierConfig_targets(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookNotifierConfig) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -64400,6 +64972,8 @@ func (ec *executionContext) fieldContext_WebhookNotifierConfig_targets(_ context
 				return ec.fieldContext_WebhookTarget_name(ctx, field)
 			case "enabled":
 				return ec.fieldContext_WebhookTarget_enabled(ctx, field)
+			case "type":
+				return ec.fieldContext_WebhookTarget_type(ctx, field)
 			case "url":
 				return ec.fieldContext_WebhookTarget_url(ctx, field)
 			case "proxy":
@@ -64410,6 +64984,14 @@ func (ec *executionContext) fieldContext_WebhookNotifierConfig_targets(_ context
 				return ec.fieldContext_WebhookTarget_headers(ctx, field)
 			case "body":
 				return ec.fieldContext_WebhookTarget_body(ctx, field)
+			case "barkDeviceKey":
+				return ec.fieldContext_WebhookTarget_barkDeviceKey(ctx, field)
+			case "barkTitle":
+				return ec.fieldContext_WebhookTarget_barkTitle(ctx, field)
+			case "barkLevel":
+				return ec.fieldContext_WebhookTarget_barkLevel(ctx, field)
+			case "barkGroup":
+				return ec.fieldContext_WebhookTarget_barkGroup(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type WebhookTarget", field.Name)
 		},
@@ -64568,6 +65150,35 @@ func (ec *executionContext) fieldContext_WebhookTarget_enabled(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _WebhookTarget_type(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookTarget_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookTarget_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookTarget",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _WebhookTarget_url(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -64719,6 +65330,122 @@ func (ec *executionContext) _WebhookTarget_body(ctx context.Context, field graph
 }
 
 func (ec *executionContext) fieldContext_WebhookTarget_body(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookTarget",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookTarget_barkDeviceKey(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookTarget_barkDeviceKey,
+		func(ctx context.Context) (any, error) {
+			return obj.BarkDeviceKey, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookTarget_barkDeviceKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookTarget",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookTarget_barkTitle(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookTarget_barkTitle,
+		func(ctx context.Context) (any, error) {
+			return obj.BarkTitle, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookTarget_barkTitle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookTarget",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookTarget_barkLevel(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookTarget_barkLevel,
+		func(ctx context.Context) (any, error) {
+			return obj.BarkLevel, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookTarget_barkLevel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WebhookTarget",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WebhookTarget_barkGroup(ctx context.Context, field graphql.CollectedField, obj *biz.WebhookTarget) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_WebhookTarget_barkGroup,
+		func(ctx context.Context) (any, error) {
+			return obj.BarkGroup, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_WebhookTarget_barkGroup(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "WebhookTarget",
 		Field:      field,
@@ -92850,7 +93577,7 @@ func (ec *executionContext) unmarshalInputWebhookTargetInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "enabled", "url", "proxy", "timeoutMs", "headers", "body"}
+	fieldsInOrder := [...]string{"name", "enabled", "type", "url", "proxy", "timeoutMs", "headers", "body", "barkDeviceKey", "barkTitle", "barkLevel", "barkGroup"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -92871,6 +93598,13 @@ func (ec *executionContext) unmarshalInputWebhookTargetInput(ctx context.Context
 				return it, err
 			}
 			it.Enabled = data
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
 		case "url":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -92906,6 +93640,34 @@ func (ec *executionContext) unmarshalInputWebhookTargetInput(ctx context.Context
 				return it, err
 			}
 			it.Body = data
+		case "barkDeviceKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("barkDeviceKey"))
+			data, err := ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BarkDeviceKey = data
+		case "barkTitle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("barkTitle"))
+			data, err := ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BarkTitle = data
+		case "barkLevel":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("barkLevel"))
+			data, err := ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BarkLevel = data
+		case "barkGroup":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("barkGroup"))
+			data, err := ec.unmarshalOString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BarkGroup = data
 		}
 	}
 
@@ -105908,6 +106670,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "webhookDeliveryHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_webhookDeliveryHistory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "systemModelSettings":
 			field := field
 
@@ -113643,6 +114427,131 @@ func (ec *executionContext) _WebDAV(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
+var webhookDeliveryHistoryItemImplementors = []string{"WebhookDeliveryHistoryItem"}
+
+func (ec *executionContext) _WebhookDeliveryHistoryItem(ctx context.Context, sel ast.SelectionSet, obj *biz.WebhookDeliveryHistoryItem) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webhookDeliveryHistoryItemImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebhookDeliveryHistoryItem")
+		case "id":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._WebhookDeliveryHistoryItem_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "event":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_event(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "targetName":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_targetName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "targetType":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_targetType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "url":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "method":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_method(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "requestHeaders":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_requestHeaders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "requestBody":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_requestBody(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "responseStatus":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_responseStatus(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "errorMessage":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_errorMessage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "occurredAt":
+			out.Values[i] = ec._WebhookDeliveryHistoryItem_occurredAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var webhookNotifierConfigImplementors = []string{"WebhookNotifierConfig"}
 
 func (ec *executionContext) _WebhookNotifierConfig(ctx context.Context, sel ast.SelectionSet, obj *biz.WebhookNotifierConfig) graphql.Marshaler {
@@ -113752,6 +114661,11 @@ func (ec *executionContext) _WebhookTarget(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "type":
+			out.Values[i] = ec._WebhookTarget_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "url":
 			out.Values[i] = ec._WebhookTarget_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -113771,6 +114685,26 @@ func (ec *executionContext) _WebhookTarget(ctx context.Context, sel ast.Selectio
 			}
 		case "body":
 			out.Values[i] = ec._WebhookTarget_body(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "barkDeviceKey":
+			out.Values[i] = ec._WebhookTarget_barkDeviceKey(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "barkTitle":
+			out.Values[i] = ec._WebhookTarget_barkTitle(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "barkLevel":
+			out.Values[i] = ec._WebhookTarget_barkLevel(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "barkGroup":
+			out.Values[i] = ec._WebhookTarget_barkGroup(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -120733,6 +121667,60 @@ func (ec *executionContext) marshalNVideoStorageSettings2ᚖgithubᚗcomᚋloopl
 		return graphql.Null
 	}
 	return ec._VideoStorageSettings(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWebhookDeliveryHistoryItem2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐWebhookDeliveryHistoryItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*biz.WebhookDeliveryHistoryItem) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWebhookDeliveryHistoryItem2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐWebhookDeliveryHistoryItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWebhookDeliveryHistoryItem2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐWebhookDeliveryHistoryItem(ctx context.Context, sel ast.SelectionSet, v *biz.WebhookDeliveryHistoryItem) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookDeliveryHistoryItem(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNWebhookNotifierConfig2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋserverᚋbizᚐWebhookNotifierConfig(ctx context.Context, sel ast.SelectionSet, v biz.WebhookNotifierConfig) graphql.Marshaler {

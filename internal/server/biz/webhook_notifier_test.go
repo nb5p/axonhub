@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -162,4 +163,98 @@ func TestRenderWebhookTemplate_NoTemplate(t *testing.T) {
 	result, err := renderWebhookTemplate("plain text", WebhookRenderContext{})
 	require.NoError(t, err)
 	require.Equal(t, "plain text", result)
+}
+
+func TestWebhookNotifier_RecordsMaskedFailedDelivery(t *testing.T) {
+	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
+	defer client.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	cfg := WebhookNotifierConfig{
+		Targets: []WebhookTarget{{
+			Name:    "masked",
+			Enabled: true,
+			URL:     server.URL,
+			Headers: []objects.HeaderEntry{{Key: "Authorization", Value: "Bearer webhook-test-token"}},
+			Body:    `{"token":"payload-secret"}`,
+		}},
+		Subscriptions: []WebhookSubscription{{Event: EventChannelAutoDisabled, TargetNames: []string{"masked"}}},
+	}
+
+	systemService := newTestSystemServiceWithWebhookConfig(t, client, cfg)
+	notifier := NewWebhookNotifier(systemService, httpclient.NewHttpClient())
+	notifier.NotifyChannelAutoDisabled(context.Background(), ChannelAutoDisabledEvent{OccurredAt: time.Now()})
+
+	history, err := notifier.DeliveryHistory(authz.WithTestBypass(ent.NewContext(context.Background(), client)), 10)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Equal(t, "failed", history[0].Status)
+	require.Equal(t, http.StatusBadRequest, history[0].ResponseStatus)
+	require.NotContains(t, history[0].RequestHeaders[0].Value, "webhook-test-token")
+	require.NotContains(t, history[0].RequestBody, "payload-secret")
+	require.Contains(t, history[0].RequestBody, "****cret")
+}
+
+func TestWebhookNotifier_BarkTargetUsesPushAPIAndMasksDeviceKey(t *testing.T) {
+	client := enttest.NewEntClient(t, "sqlite3", "file:ent?mode=memory&_fk=0")
+	defer client.Close()
+
+	received := make(chan map[string]string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/push", r.URL.Path)
+		payload := map[string]string{}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+		received <- payload
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := WebhookNotifierConfig{
+		Targets: []WebhookTarget{{
+			Name:          "bark",
+			Enabled:       true,
+			Type:          WebhookTargetTypeBark,
+			URL:           server.URL,
+			BarkDeviceKey: "bark-device-key",
+			BarkTitle:     "{{.Event}}",
+			Body:          "remaining {{.Quota.Remaining}} {{.Quota.Unit}}",
+			BarkLevel:     "active",
+			BarkGroup:     "axonhub",
+		}},
+		Subscriptions: []WebhookSubscription{{Event: EventQuotaBalanceExhausted, TargetNames: []string{"bark"}}},
+	}
+
+	systemService := newTestSystemServiceWithWebhookConfig(t, client, cfg)
+	notifier := NewWebhookNotifier(systemService, httpclient.NewHttpClient())
+	notifier.NotifyQuotaBalanceExhaustedAsync(context.Background(), QuotaBalanceExhaustedEvent{
+		Remaining:  0,
+		Unit:       "USD",
+		OccurredAt: time.Now(),
+	})
+
+	select {
+	case payload := <-received:
+		require.Equal(t, "bark-device-key", payload["device_key"])
+		require.Equal(t, EventQuotaBalanceExhausted, payload["title"])
+		require.Equal(t, "remaining 0 USD", payload["body"])
+		require.Equal(t, "active", payload["level"])
+		require.Equal(t, "axonhub", payload["group"])
+	case <-time.After(time.Second):
+		t.Fatal("Bark target did not receive a request")
+	}
+
+	require.Eventually(t, func() bool {
+		history, err := notifier.DeliveryHistory(authz.WithTestBypass(ent.NewContext(context.Background(), client)), 10)
+		return err == nil && len(history) == 1
+	}, time.Second, 10*time.Millisecond)
+
+	history, err := notifier.DeliveryHistory(authz.WithTestBypass(ent.NewContext(context.Background(), client)), 10)
+	require.NoError(t, err)
+	require.Equal(t, "success", history[0].Status)
+	require.NotContains(t, history[0].RequestBody, "bark-device-key")
+	require.Contains(t, history[0].RequestBody, "****-key")
 }
