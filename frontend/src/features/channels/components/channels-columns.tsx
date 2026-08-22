@@ -768,6 +768,8 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
   const configured = channel.settings?.usageQuery?.enabled === true;
   const quotaStatus = channel.providerQuotaStatus?.providerType === 'usage_query' ? channel.providerQuotaStatus : null;
   const quotaData = quotaStatus?.quotaData as ProviderUsageQueryQuotaData | null | undefined;
+  const balance = quotaData?.balance ?? (quotaData?.remaining != null ? { remaining: quotaData.remaining, unit: quotaData.unit } : undefined);
+  const hasListResult = (quotaData?.text?.trim().length ?? 0) > 0 || balance !== undefined;
 
   let fullText = '-';
   if (quotaData?.error) {
@@ -779,7 +781,6 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
     if (quotaData.text) {
       details.push(quotaData.text);
     }
-    const balance = quotaData.balance ?? (quotaData.remaining != null ? { remaining: quotaData.remaining, unit: quotaData.unit } : undefined);
     if (balance) {
       details.push(`${t('channels.usageQuery.remaining')}${formatUsageQueryBalance(balance.remaining, balance.unit)}`);
     }
@@ -807,7 +808,7 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
         </TooltipTrigger>
         <TooltipContent className='max-w-96 whitespace-pre-line break-words'>{fullText}</TooltipContent>
       </Tooltip>
-      {canWrite && configured && (
+      {canWrite && configured && hasListResult && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
