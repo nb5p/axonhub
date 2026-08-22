@@ -10,8 +10,8 @@
 `last_merged_upstream_commit` 只表示最近一次已经成功进入 `ai-slop` 历史的上游 commit，不代表远程上游此刻的最新 head。`local_merge_commit` 在直接以上游为重建基线时为 `null`。
 
 ```yaml
-last_merged_upstream_commit: 49ade6f279eae7aed46858dc121258e922ec9870
-local_merge_commit: 187501350b7faca9188ce5ce1774592e1fc3e8a0
+last_merged_upstream_commit: 37e54737c0e147831c6a0b529b79dda1961c3801
+local_merge_commit: 760cba57f34f976f44e38e530af470350f7bc79f
 integrated_at: 2026-08-22
 integration_mode: merge
 recovery_ref: null
@@ -85,6 +85,7 @@ reconciliations:
 | 2026-08-10 | `9dfd6ac0c21bbc5abe55827fa634e22826287d67` | `cdc76ab173e0dcbe8caaa19d104823b1ec5a6b40` | 纳入 Fenno 渠道及 Claude Code 缓存兼容/effort 映射更新；冲突处保留本地 Codex Alpha Search 能力。 |
 | 2026-08-11 | `d6ed9c6288ae1642a5a1e8f76db7a8abc0b223af` | `null` | 修正两个本地规则提交的分支归属：从本地 `unstable` 移到 `ai-slop` 尾部，`unstable` 恢复为与 `forgejo/unstable` 一致。 |
 | 2026-08-22 | `49ade6f279eae7aed46858dc121258e922ec9870` | `187501350b7faca9188ce5ce1774592e1fc3e8a0` | 真实合入上游的 xAI Subscription、路由/配额、模型与请求页面等更新；保留渠道用量脚本、四格式模型测试和私有展示能力。随后以独立收敛提交移除了被上游 xAI Subscription 运行时覆盖的 Grok OAuth 实现，并删除冲突解决时误保留、且上游已移除的 OpenCode Go 谓词调用。 |
+| 2026-08-22 | `37e54737c0e147831c6a0b529b79dda1961c3801` | `760cba57f34f976f44e38e530af470350f7bc79f` | 真实合入上游 README 赞助信息更新；不涉及渠道、模型、数据库或私有功能，无冲突、无收敛动作。 |
 
 ### 2026-08-06 经批准的历史重建
 
