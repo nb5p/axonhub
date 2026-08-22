@@ -34,7 +34,7 @@ func TestSystemService_ProviderQuotaCollectionSettings_DefaultsToEnabled(t *test
 	require.NoError(t, err)
 	require.True(t, settings.Enabled)
 	require.True(t, settings.Providers["usage_query"])
-	require.True(t, settings.Providers["codex"])
+	require.NotContains(t, settings.Providers, "codex")
 	require.True(t, settings.Providers["xai_subscription"])
 	require.True(t, settings.Providers["minimax"])
 	require.True(t, settings.Providers["zhipu"])

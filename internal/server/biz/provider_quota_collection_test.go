@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -131,6 +132,26 @@ func TestProviderQuotaService_RunQuotaCheck_SkipsUnconfiguredBuiltInUsageQueries
 	require.Zero(t, minimaxChecker.calls.Load())
 	require.Zero(t, zhipuChecker.calls.Load())
 	require.Zero(t, usageQueryChecker.calls.Load())
+}
+
+func TestProviderQuotaService_LoadQuotaCache_SkipsDisabledLegacyScriptOnlyChannel(t *testing.T) {
+	service, _, ctx, client := setupProviderQuotaCollectionService(t)
+	defer client.Close()
+
+	codexChannel := createProviderQuotaCollectionChannel(t, ctx, client, "Codex", channel.TypeCodex)
+	_, err := client.ProviderQuotaStatus.Create().
+		SetChannelID(codexChannel.ID).
+		SetProviderType(providerquotastatus.ProviderTypeCodex).
+		SetStatus(providerquotastatus.StatusExhausted).
+		SetReady(false).
+		SetQuotaData(map[string]any{}).
+		SetNextCheckAt(time.Now().Add(time.Hour)).
+		Save(ctx)
+	require.NoError(t, err)
+
+	service.loadQuotaCache(ctx)
+	_, ok := service.quotaCache.Load(codexChannel.ID)
+	require.False(t, ok)
 }
 
 func TestProviderQuotaService_GetQuotaStatus_CollectionDisabledForProvider(t *testing.T) {

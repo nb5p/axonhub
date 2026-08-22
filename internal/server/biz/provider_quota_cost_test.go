@@ -23,8 +23,8 @@ func newPeriodQuotaTestChannel(t *testing.T, ctx context.Context, client *ent.Cl
 	t.Helper()
 
 	ch, err := client.Channel.Create().
-		SetName("Claude Code").
-		SetType(channel.TypeClaudecode).
+		SetName("Cline").
+		SetType(channel.TypeCline).
 		SetStatus(channel.StatusEnabled).
 		SetCredentials(objects.ChannelCredentials{APIKey: "test-key"}).
 		SetSupportedModels([]string{"test-model"}).
@@ -252,8 +252,8 @@ func TestProviderQuotaService_PeriodQuotaSurvivesPersistence(t *testing.T) {
 		AbstractService: &AbstractService{db: client},
 		checkInterval:   5 * time.Minute,
 	}
-	svc.saveQuotaStatus(ctx, ch.ID, "claudecode", provider_quota.QuotaData{
-		ProviderType: "claudecode",
+	svc.saveQuotaStatus(ctx, ch.ID, "cline", provider_quota.QuotaData{
+		ProviderType: "cline",
 		Status:       string(providerquotastatus.StatusAvailable),
 		Ready:        true,
 		RawData:      map[string]any{"plan_type": "max"},

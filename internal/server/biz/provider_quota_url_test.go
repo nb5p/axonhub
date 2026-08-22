@@ -49,7 +49,7 @@ func TestGetProviderType_ExistingTypesPreserved(t *testing.T) {
 	}{
 		{"claudecode without oauth", channel.TypeClaudecode, ""},
 		{"codex without oauth", channel.TypeCodex, ""},
-		{"opencode_go", channel.TypeOpencodeGo, "usage_query"},
+		{"opencode_go without enabled script", channel.TypeOpencodeGo, ""},
 		{"xai_subscription", channel.TypeXaiSubscription, "xai_subscription"},
 		{"github_copilot", channel.TypeGithubCopilot, "github_copilot"},
 		{"nanogpt", channel.TypeNanogpt, "nanogpt"},

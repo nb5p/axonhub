@@ -27,8 +27,8 @@ func TestNewProviderQuotaService_WaitsForInitialCacheLoad(t *testing.T) {
 
 	ctx := authz.WithTestBypass(ent.NewContext(t.Context(), client))
 	channelEntity, err := client.Channel.Create().
-		SetName("Codex").
-		SetType(channel.TypeCodex).
+		SetName("MiniMax").
+		SetType(channel.TypeMinimax).
 		SetStatus(channel.StatusEnabled).
 		SetCredentials(objects.ChannelCredentials{APIKey: "test-key"}).
 		SetSupportedModels([]string{"test-model"}).
@@ -38,7 +38,7 @@ func TestNewProviderQuotaService_WaitsForInitialCacheLoad(t *testing.T) {
 
 	_, err = client.ProviderQuotaStatus.Create().
 		SetChannelID(channelEntity.ID).
-		SetProviderType(providerquotastatus.ProviderTypeCodex).
+		SetProviderType(providerquotastatus.ProviderTypeMinimax).
 		SetStatus(providerquotastatus.StatusAvailable).
 		SetReady(true).
 		SetQuotaData(map[string]any{}).
@@ -101,7 +101,7 @@ func TestNewProviderQuotaService_WaitsForInitialCacheLoad(t *testing.T) {
 	require.True(t, ok)
 	status, ok := value.(*QuotaChannelStatus)
 	require.True(t, ok)
-	require.Equal(t, "codex", status.ProviderType)
+	require.Equal(t, "minimax", status.ProviderType)
 	require.Equal(t, providerquotastatus.StatusAvailable, status.Status)
 }
 

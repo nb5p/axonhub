@@ -12,6 +12,7 @@ import (
 	"go.uber.org/fx"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/ent/channel"
 	"github.com/looplj/axonhub/internal/ent/providerquotastatus"
@@ -372,14 +373,12 @@ func NewProviderQuotaService(params ProviderQuotaServiceParams) *ProviderQuotaSe
 
 	svc.registerProviderQuotaSupport()
 
-	svc.loadQuotaCache(context.Background())
+	svc.loadQuotaCache(authz.WithSystemBypass(context.Background(), "provider_quota_cache_load"))
 
 	return svc
 }
 
 func (svc *ProviderQuotaService) registerProviderQuotaSupport() {
-	svc.registerClaudeCodeSupport()
-	svc.registerCodexSupport()
 	svc.registerXAISubscriptionSupport()
 	svc.registerGithubCopilotSupport()
 	svc.registerNanoGPTSupport()
@@ -533,12 +532,12 @@ func (svc *ProviderQuotaService) loadQuotaCache(ctx context.Context) {
 	}
 
 	for _, r := range records {
-		// Usage-query results from releases that auto-enabled built-in presets
-		// must not keep a channel unavailable after that query is disabled.
-		// Saved disabled settings are invalidated on write; this guard covers
-		// pre-existing persisted rows while preserving the database record for
-		// the normal status-retention policy.
-		if r.ProviderType == providerquotastatus.ProviderTypeUsageQuery && !hasEnabledUsageQuery(r.Edges.Channel) {
+		// Results from releases that used the native Codex, Claude Code, or
+		// OpenCode Go checkers must not keep a channel unavailable once the
+		// script query is disabled. Saved disabled settings are invalidated on
+		// write; this guard covers pre-existing persisted rows while preserving
+		// the database record for the normal status-retention policy.
+		if (r.ProviderType == providerquotastatus.ProviderTypeUsageQuery || usageQueryIsExclusiveForChannel(r.Edges.Channel)) && !hasEnabledUsageQuery(r.Edges.Channel) {
 			continue
 		}
 		svc.quotaCache.Store(r.ChannelID, &QuotaChannelStatus{
@@ -979,12 +978,13 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 		return "usage_query"
 	}
 
-	switch ch.Type { //nolint:exhaustive
-	case channel.TypeClaudecode, channel.TypeCodex, channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic:
-		// These channel types use the script-based usage-query host exclusively.
-		// A preset is only a form default; no saved enabled configuration means no
-		// provider quota request of any kind.
+	if usageQueryIsExclusiveForChannel(ch) {
+		// A preset is only a form default; no saved enabled configuration means
+		// no provider quota request of any kind.
 		return ""
+	}
+
+	switch ch.Type { //nolint:exhaustive
 	case channel.TypeXaiSubscription:
 		return "xai_subscription"
 	case channel.TypeGithubCopilot:
@@ -1003,6 +1003,19 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 		return "zhipu"
 	default:
 		return ""
+	}
+}
+
+func usageQueryIsExclusiveForChannel(ch *ent.Channel) bool {
+	if ch == nil {
+		return false
+	}
+
+	switch ch.Type { //nolint:exhaustive
+	case channel.TypeClaudecode, channel.TypeCodex, channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic:
+		return true
+	default:
+		return false
 	}
 }
 
