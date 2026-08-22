@@ -26,6 +26,9 @@ local:
     - 86c06faeceefc128c9c3213c2612faf8cb77bb87
     - bbf3d0fc34f19fd9716e8401c3f4811b1ad357cc
     - f336b09c4f31621b3b919f3caa2964e279f50d7b
+    - 85399a55b1c5e8dfb45a29d52f7375125ea188e0
+    - bea6adb1d554d7ed1759b22c3d2284a9d5146f26
+    - d06afc53f2c12933aa0fd9e083652722bc501bca
   modules:
     - internal/objects/channel.go
     - internal/server/biz/channel_usage_query.go
@@ -68,6 +71,10 @@ database:
 Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提供商的重置 API；它不是用量查询路径。Claude OAuth 端点及窗口命名按 [CodexBar 的 Claude OAuth 说明](https://github.com/steipete/CodexBar/blob/main/docs/claude.md)核对；本项目未移植其实现。
 
 以上四种预设的脚本由服务端持有并在保存时强制覆盖客户端提交内容。管理端可通过“编辑预设”把当前预设脚本复制并转换为 `CUSTOM`，再进行修改；转换后地址、参数和脚本文本都会保留，只有 `CUSTOM` 可保存修改。
+
+所有渠道的用量查询默认关闭。Codex OAuth、Claude OAuth 和 OpenCode Go 只会在编辑窗口中预填对应预设，管理员保存 `enabled=true` 后才会参与后台轮询、全量刷新、单渠道刷新、路由配额判断和右上角配额卡；未保存或已关闭的预设绝不发起用量 HTTP 请求。窗口中的“测试”按钮是一次明确的临时测试，仍可在保存前验证脚本。
+
+Codex、Claude Code、OpenCode Go（含 Anthropic 变体）是脚本查询专用渠道：旧的原生 Codex／Claude checker 不再注册，配额采集设置中也不再列出这三种旧 provider type。升级前持久化的 `usage_query` 结果或旧原生状态同样必须对应保存的 `enabled=true` 才会载入路由缓存；否则不会因陈旧的“耗尽”状态阻止调用。
 
 ## 脚本对象和变量
 
@@ -119,7 +126,8 @@ Codex 的“立即兑换重置额度”仍是独立操作，继续调用该提�
 }
 ```
 
-- `balance` 面向 OpenRouter／New API 等有货币余额的渠道；不适用金额的 Codex、Claude、OpenCode Go 应直接省略。`A$` 在界面固定显示两位小数。
+- `balance` 面向 OpenRouter／New API、OpenCode Go 等有可折算货币余额的渠道；不适用金额的 Codex、Claude 应直接省略。
+- 所有 `balance.remaining` 都以数值保存、以两位小数展示；数值本身不能承载尾随零，因而脚本不得把它转换成字符串。OpenCode Go 将三个窗口折算后的最小余额作为 `balance: { remaining, unit: "USD" }` 返回，同时保留进度条，不再使用 `text` 承载余额。
 - `text` 不限制长度和格式，可以写解释文字或纯文本进度摘要。列表和配额卡只显示两行；完整内容通过鼠标悬浮、触摸或键盘焦点的气泡查看。
 - `tags` 是简短标签数组，适合套餐名称、并发等不应占用文本区的信息。余额存在时显示在余额数字后；没有余额时和电池图标左对齐单独显示。
 - 当渠道同时具备 Codex OAuth 当日统计时，`tags` 与请求数、Token、A$ 同行展示，并沿用统计标签的紧凑中性色块外观。
@@ -201,7 +209,7 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 ## 数据库兼容与上游
 
 - `channels.settings.usageQuery` 和 `channels.credentials.usageQueryApiKey` 都是既有 JSON 列中的可选字段；`provider_quota_status.provider_type` 的 `usage_query` 枚举由早期功能引入。本次 v2 不新增 Schema、表、字段或数据回填。
-- 历史的 `claudecode`、`codex`、`opencode_go` 采集开关会在规范化系统设置时忽略；三者现在统一受 `usage_query` 采集开关控制。旧的已保存状态仍可安全读取，首次脚本刷新会写成 `usage_query`。
+- 历史的 `claudecode`、`codex`、`opencode_go` 采集开关会在规范化系统设置时忽略；三者现在统一受渠道级 `usage_query.enabled` 控制。旧的已保存状态不会在未启用脚本时进入路由缓存，首次脚本刷新会写成 `usage_query`。
 - 回退到旧版本后编辑含新 JSON 的渠道，旧版本可能重序列化并丢弃未知字段；若需回退，先恢复部署前 SQLite 快照。
 - 2026-08-22 比较 `upstream/unstable@49ade6f279eae7aed46858dc121258e922ec9870`，上游未包含此脚本协议或预设，关系为 `none`。
 
@@ -211,6 +219,10 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 - `go test ./internal/server/biz/provider_quota ./internal/server/biz ./internal/server/gql -count=1`：覆盖 v1／v2 参数兼容、响应头与 `context.now`、窗口校验、四个预设解析、预设脚本服务端固定、自动渠道映射和 GraphQL。
 - `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：覆盖管理端类型。
 - `git diff --check` 与 locale JSON 解析：检查格式和翻译 JSON。
+- `go test ./internal/server/biz/provider_quota ./internal/server/biz -run 'Test(BuiltInUsageQuerySettings|UsageQueryPresetScripts|ProviderQuotaService_(RunQuotaCheck_SkipsUnconfiguredBuiltInUsageQueries|RefreshUsageQueries_SkipsUnconfiguredBuiltInPresets))' -count=1`：通过，覆盖未保存预设不轮询、不允许刷新，及已启用脚本保持可刷新。
+- `node --test frontend/src/features/channels/data/usage-query-presets.test.mjs`：通过，覆盖 OpenCode Go 前端预览预设返回 USD 余额且不返回文本。
+- `go test ./internal/server/biz/provider_quota ./internal/server/biz -count=1`：通过，覆盖预设默认关闭、旧原生状态不加载到路由缓存、注册 checker 与支持列表一致，以及其他业务包回归。
+- `cd frontend && node --test src/features/channels/data/usage-query-presets.test.mjs src/features/channels/data/channel-test-api-formats.test.mjs && node_modules/.bin/tsc --noEmit -p tsconfig.json`：通过。
 
 ## 更新历史
 
@@ -226,3 +238,6 @@ Codex OAuth 才显示本日请求数、Token 和 A$ 实际成本；脚本查询�
 | 2026-08-21 | 本地编辑体验；上游比较至 `49ade6f2` | `86c06fae` | original：内置预设可显式转为 `CUSTOM` 后编辑，系统预设本身仍不可被覆盖。 |
 | 2026-08-21 | 本地回归覆盖；上游比较至 `49ade6f2` | `bbf3d0fc` | original：验证 41 号渠道任一窗口耗尽会暂停路由、额度恢复后重新可用。 |
 | 2026-08-22 | 本地展示修正 | `f336b09c4f31621b3b919f3caa2964e279f50d7b` | original：脚本 tags 与 Codex OAuth 当日统计使用同一摘要行和标签样式。 |
+| 2026-08-22 | 本地行为修正 | `85399a55b1c5e8dfb45a29d52f7375125ea188e0` | original：内置预设改为仅预填且默认关闭；只有保存的 `enabled=true` 可触发脚本查询，遗留未启用结果不参与配额卡或路由缓存。 |
+| 2026-08-22 | 本地协议与展示修正 | `bea6adb1d554d7ed1759b22c3d2284a9d5146f26` | original：OpenCode Go 最小窗口余额改为 USD `balance`，移除余额文本；所有脚本余额统一两位小数显示。 |
+| 2026-08-22 | 本地路径收敛 | `d06afc53f2c12933aa0fd9e083652722bc501bca` | original：移除旧原生 Codex／Claude checker 注册和旧 provider 设置项；关闭脚本时忽略历史原生配额状态，避免陈旧缓存参与路由。 |
