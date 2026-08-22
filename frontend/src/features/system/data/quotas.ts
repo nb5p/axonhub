@@ -15,6 +15,12 @@ const RESET_CHANNEL_QUOTA_NOW_MUTATION = `
 
 const PROVIDER_QUOTA_STATUSES_QUERY = `
   query ProviderQuotaStatuses($input: QueryChannelInput!) {
+    providerQuotaTodayUsageStats {
+      channelId
+      requestCount
+      totalTokens
+      actualCost
+    }
     queryChannels(input: $input) {
       edges {
         node {
@@ -718,7 +724,16 @@ type QueryChannelsResponse = {
   };
 };
 
-type ProviderQuotaStatusesResponse = QueryChannelsResponse;
+export type ProviderQuotaTodayUsageStats = {
+  channelId: string;
+  requestCount: number;
+  totalTokens: number;
+  actualCost: number;
+};
+
+type ProviderQuotaStatusesResponse = QueryChannelsResponse & {
+  providerQuotaTodayUsageStats: ProviderQuotaTodayUsageStats[];
+};
 
 type QueryChannelNodeWithQuota = QueryChannelNode & {
   providerQuotaStatus: ProviderQuotaStatusNode;
@@ -915,8 +930,13 @@ export function useProviderQuotaStatuses() {
     })
     .map(parseChannelNode);
 
+  const todayUsageByChannelId = new Map(
+    (query.data?.providerQuotaTodayUsageStats ?? []).map((usage) => [usage.channelId, usage])
+  );
+
   return {
     channels,
+    todayUsageByChannelId,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

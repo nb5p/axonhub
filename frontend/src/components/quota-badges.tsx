@@ -20,6 +20,7 @@ import {
   ProviderSyntheticQuotaData,
   ProviderNeuralWattQuotaData,
   ProviderApertisQuotaData,
+  ProviderQuotaTodayUsageStats,
   ProviderUsageQueryQuotaData,
   ProviderUsageQueryProgressWindow,
   ProviderCharmHyperQuotaData,
@@ -424,12 +425,14 @@ function PeriodQuotaEstimate({ limits }: { limits: ProviderQuotaLimit[] }) {
 
 function QuotaRow({
   channel,
+  todayUsage,
   enforcementMode,
   reverseUsageDisplay = false,
   timeWindowDisplayStyle = 'TRIANGLE',
   allowedChannelIDs,
 }: {
   channel: ProviderQuotaChannel;
+  todayUsage?: ProviderQuotaTodayUsageStats;
   enforcementMode?: QuotaEnforcementMode | null;
   reverseUsageDisplay?: boolean;
   timeWindowDisplayStyle?: QuotaTimeWindowDisplayStyle;
@@ -463,6 +466,7 @@ function QuotaRow({
       percent: Math.round(displayPercentage),
     });
   };
+  const formatActualCost = (actualCost: number) => `A$${actualCost.toFixed(2)}`;
   const timeProgressLabel = t(reverseUsageDisplay ? 'quota.label.time_remaining' : 'quota.label.time_elapsed');
   const getTimeDisplayPercentage = (elapsedPercentage: number) =>
     getQuotaDisplayPercentage(elapsedPercentage, reverseUsageDisplay);
@@ -601,6 +605,8 @@ function QuotaRow({
     return format(date, 'yyyy-MM-dd HH:mm');
   };
   const quotaData = quota.quotaData;
+  const channelTodayUsage = todayUsage ?? { requestCount: 0, totalTokens: 0, actualCost: 0 };
+  const showCodexUsage = channel.type === 'usage_query' && (quotaData as ProviderUsageQueryQuotaData).showCodexUsage === true;
   return (
     <div className='space-y-3 border-b py-3 first:pt-1 last:border-0 last:pb-1'>
       <div className='flex items-center justify-between'>
@@ -647,8 +653,21 @@ function QuotaRow({
 
             return (
               <>
-                {tags.length > 0 && (
+                {(showCodexUsage || tags.length > 0) && (
                   <div className='flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground'>
+                    {showCodexUsage && (
+                      <>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.requests')}>
+                          {formatTokenCount(channelTodayUsage.requestCount)} {t('quota.todayUsage.requestsShort')}
+                        </span>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.tokens')}>
+                          {formatTokenCount(channelTodayUsage.totalTokens)} {t('quota.todayUsage.tokensShort')}
+                        </span>
+                        <span className='bg-muted rounded px-1.5 py-0.5' title={t('quota.todayUsage.actualCost')}>
+                          {formatActualCost(channelTodayUsage.actualCost)}
+                        </span>
+                      </>
+                    )}
                     {tags.map((tag, index) => (
                       <span key={`${tag}-${index}`} className='bg-muted rounded px-1.5 py-0.5' title={tag}>
                         {tag}
@@ -1913,7 +1932,7 @@ function QuotaBadgeTrigger({ channels, isLoading, isError }: { channels: Provide
 
 export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean; onRefresh: () => void }) {
   const { t } = useTranslation();
-  const { channels, isLoading, isError, error } = useProviderQuotaStatuses();
+  const { channels, todayUsageByChannelId, isLoading, isError, error } = useProviderQuotaStatuses();
   const { data: enforcementSettings } = useQuotaEnforcementSettings();
   const { data: displaySettings } = useQuotaDisplaySettings();
   const enforcementMode = enforcementSettings?.enabled ? enforcementSettings.mode : null;
@@ -1964,6 +1983,7 @@ export function QuotaBadges({ isRefreshing, onRefresh }: { isRefreshing: boolean
           <QuotaRow
             key={channel.id}
             channel={channel}
+            todayUsage={todayUsageByChannelId.get(channel.id)}
             enforcementMode={enforcementMode}
             reverseUsageDisplay={displaySettings?.reverseUsageDisplay}
             timeWindowDisplayStyle={displaySettings?.timeWindowDisplayStyle}
