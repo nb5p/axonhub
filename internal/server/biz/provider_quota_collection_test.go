@@ -104,7 +104,7 @@ func TestProviderQuotaService_RegisteredCheckersMatchSupportedProviderTypes(t *t
 	require.ElementsMatch(t, SupportedProviderQuotaTypes(), registeredProviderTypes)
 }
 
-func TestProviderQuotaService_RunQuotaCheck_CollectionDisabledForSelectedProviders(t *testing.T) {
+func TestProviderQuotaService_RunQuotaCheck_SkipsUnconfiguredBuiltInUsageQueries(t *testing.T) {
 	service, systemService, ctx, client := setupProviderQuotaCollectionService(t)
 	defer client.Close()
 
@@ -130,7 +130,7 @@ func TestProviderQuotaService_RunQuotaCheck_CollectionDisabledForSelectedProvide
 
 	require.Zero(t, minimaxChecker.calls.Load())
 	require.Zero(t, zhipuChecker.calls.Load())
-	require.EqualValues(t, 1, usageQueryChecker.calls.Load())
+	require.Zero(t, usageQueryChecker.calls.Load())
 }
 
 func TestProviderQuotaService_GetQuotaStatus_CollectionDisabledForProvider(t *testing.T) {
@@ -210,7 +210,7 @@ func TestProviderQuotaService_RefreshUsageQueries_RefreshesEnabledScriptsWhenCol
 	require.EqualValues(t, 3, checker.calls.Load())
 }
 
-func TestProviderQuotaService_RefreshUsageQueries_IncludesBuiltInPresets(t *testing.T) {
+func TestProviderQuotaService_RefreshUsageQueries_SkipsUnconfiguredBuiltInPresets(t *testing.T) {
 	service, _, ctx, client := setupProviderQuotaCollectionService(t)
 	defer client.Close()
 
@@ -219,8 +219,8 @@ func TestProviderQuotaService_RefreshUsageQueries_IncludesBuiltInPresets(t *test
 	channelEntity := createProviderQuotaCollectionChannel(t, ctx, client, "Codex", channel.TypeCodex)
 
 	require.NoError(t, service.RefreshUsageQueries(ctx))
-	require.EqualValues(t, 1, checker.calls.Load())
+	require.Zero(t, checker.calls.Load())
 
-	require.NoError(t, service.RefreshUsageQueryChannel(ctx, channelEntity.ID))
-	require.EqualValues(t, 2, checker.calls.Load())
+	require.ErrorContains(t, service.RefreshUsageQueryChannel(ctx, channelEntity.ID), "usage query is not enabled")
+	require.Zero(t, checker.calls.Load())
 }

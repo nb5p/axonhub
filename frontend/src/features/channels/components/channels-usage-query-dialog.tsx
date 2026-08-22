@@ -57,7 +57,7 @@ export function ChannelsUsageQueryDialog({ open, onOpenChange, currentRow }: Pro
     if (!open || !data) return;
     const nextPreset = data.script ? data.preset : 'NEW_API';
     const nextScript = data.script || getUsageQueryPreset(nextPreset).script;
-    setEnabled(data.script ? data.enabled : true);
+    setEnabled(data.enabled);
     setShowInProviderQuota(data.showInProviderQuota);
     setPreset(nextPreset);
     setBaseUrlOverride(data.baseUrlOverride ?? '');

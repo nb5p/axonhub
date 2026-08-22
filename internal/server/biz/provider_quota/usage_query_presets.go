@@ -24,9 +24,10 @@ func UsageQueryPresetScript(preset objects.ChannelUsageQueryPreset) (string, boo
 	}
 }
 
-// BuiltInUsageQuerySettings makes the three native coding-subscription
-// channels use the same JavaScript host as custom usage queries. A saved
-// channel configuration still takes priority, including CUSTOM.
+// BuiltInUsageQuerySettings provides the prefilled script for the native
+// coding-subscription channels. It is intentionally disabled until an
+// administrator explicitly saves the channel's usage-query configuration.
+// A saved channel configuration still takes priority, including CUSTOM.
 func BuiltInUsageQuerySettings(ch *ent.Channel) *objects.ChannelUsageQuerySettings {
 	if ch == nil || (ch.Settings != nil && ch.Settings.UsageQuery != nil) {
 		return nil
@@ -59,7 +60,7 @@ func BuiltInUsageQuerySettings(ch *ent.Channel) *objects.ChannelUsageQuerySettin
 		return nil
 	}
 	return &objects.ChannelUsageQuerySettings{
-		Enabled:             true,
+		Enabled:             false,
 		ShowInProviderQuota: boolPtr(true),
 		Preset:              preset,
 		BaseURLOverride:     baseURL,

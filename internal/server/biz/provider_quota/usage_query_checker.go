@@ -114,7 +114,7 @@ func effectiveUsageQuerySettings(ch *ent.Channel) *objects.ChannelUsageQuerySett
 	if ch != nil && ch.Settings != nil && ch.Settings.UsageQuery != nil && ch.Settings.UsageQuery.Enabled {
 		return ch.Settings.UsageQuery
 	}
-	return BuiltInUsageQuerySettings(ch)
+	return nil
 }
 
 func (c *UsageQueryChecker) executeRequest(

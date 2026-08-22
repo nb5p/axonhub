@@ -765,7 +765,6 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
   const refreshUsageQuery = useRefreshChannelUsageQuery();
   const channel = row.original;
   const configured = channel.settings?.usageQuery?.enabled === true;
-  const builtInPreset = channel.type === 'codex' || channel.type === 'claudecode' || channel.type === 'opencode_go' || channel.type === 'opencode_go_anthropic';
   const quotaStatus = channel.providerQuotaStatus?.providerType === 'usage_query' ? channel.providerQuotaStatus : null;
   const quotaData = quotaStatus?.quotaData as ProviderUsageQueryQuotaData | null | undefined;
 
@@ -828,7 +827,7 @@ const UsageQueryCell = memo(({ row, canWrite }: { row: Row<Channel>; canWrite: b
         </TooltipTrigger>
         <TooltipContent className='max-w-96 whitespace-pre-line break-words'>{fullText}</TooltipContent>
       </Tooltip>
-      {canWrite && (configured || builtInPreset) && (
+      {canWrite && configured && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

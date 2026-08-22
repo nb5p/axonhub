@@ -526,13 +526,21 @@ func (svc *ProviderQuotaService) getCheckInterval() time.Duration {
 }
 
 func (svc *ProviderQuotaService) loadQuotaCache(ctx context.Context) {
-	records, err := svc.db.ProviderQuotaStatus.Query().All(ctx)
+	records, err := svc.db.ProviderQuotaStatus.Query().WithChannel().All(ctx)
 	if err != nil {
 		log.Error(ctx, "Failed to load quota cache from DB", log.Cause(err))
 		return
 	}
 
 	for _, r := range records {
+		// Usage-query results from releases that auto-enabled built-in presets
+		// must not keep a channel unavailable after that query is disabled.
+		// Saved disabled settings are invalidated on write; this guard covers
+		// pre-existing persisted rows while preserving the database record for
+		// the normal status-retention policy.
+		if r.ProviderType == providerquotastatus.ProviderTypeUsageQuery && !hasEnabledUsageQuery(r.Edges.Channel) {
+			continue
+		}
 		svc.quotaCache.Store(r.ChannelID, &QuotaChannelStatus{
 			ProviderType: r.ProviderType.String(),
 			Status:       r.Status,
@@ -611,7 +619,7 @@ func (svc *ProviderQuotaService) RefreshUsageQueryChannel(ctx context.Context, c
 	if err != nil {
 		return fmt.Errorf("failed to load channel for usage query refresh: %w", err)
 	}
-	if provider_quota.BuiltInUsageQuerySettings(ch) == nil && !hasEnabledUsageQuery(ch) {
+	if !hasEnabledUsageQuery(ch) {
 		return fmt.Errorf("usage query is not enabled for channel %d", channelID)
 	}
 
@@ -633,9 +641,7 @@ func (svc *ProviderQuotaService) RefreshUsageQueries(ctx context.Context) error 
 	if err != nil {
 		return fmt.Errorf("failed to load channels for usage query refresh: %w", err)
 	}
-	channels = lo.Filter(channels, func(ch *ent.Channel, _ int) bool {
-		return provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch)
-	})
+	channels = lo.Filter(channels, func(ch *ent.Channel, _ int) bool { return hasEnabledUsageQuery(ch) })
 	if len(channels) == 0 {
 		return nil
 	}
@@ -969,15 +975,16 @@ func (svc *ProviderQuotaService) saveQuotaError(
 }
 
 func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
-	if provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch) {
+	if hasEnabledUsageQuery(ch) {
 		return "usage_query"
 	}
 
 	switch ch.Type { //nolint:exhaustive
-	case channel.TypeClaudecode:
-		return "claudecode"
-	case channel.TypeCodex:
-		return "codex"
+	case channel.TypeClaudecode, channel.TypeCodex, channel.TypeOpencodeGo, channel.TypeOpencodeGoAnthropic:
+		// These channel types use the script-based usage-query host exclusively.
+		// A preset is only a form default; no saved enabled configuration means no
+		// provider quota request of any kind.
+		return ""
 	case channel.TypeXaiSubscription:
 		return "xai_subscription"
 	case channel.TypeGithubCopilot:
@@ -1000,7 +1007,7 @@ func (svc *ProviderQuotaService) getProviderType(ch *ent.Channel) string {
 }
 
 func hasCredentialsForProvider(ch *ent.Channel) bool {
-	if provider_quota.BuiltInUsageQuerySettings(ch) != nil || hasEnabledUsageQuery(ch) {
+	if hasEnabledUsageQuery(ch) {
 		// A custom query may be unauthenticated. If its script references an
 		// unavailable key, the checker will persist a useful extraction error.
 		return true

@@ -93,7 +93,7 @@ func TestUsageQueryPresetScripts_ParseAndExtract(t *testing.T) {
 	}
 }
 
-func TestBuiltInUsageQuerySettings_UsesPresetsAndHonorsSavedDisable(t *testing.T) {
+func TestBuiltInUsageQuerySettings_UsesDisabledPresetsAndHonorsSavedDisable(t *testing.T) {
 	codex := &ent.Channel{
 		Type: channel.TypeCodex,
 		Credentials: objects.ChannelCredentials{
@@ -102,8 +102,10 @@ func TestBuiltInUsageQuerySettings_UsesPresetsAndHonorsSavedDisable(t *testing.T
 	}
 	settings := BuiltInUsageQuerySettings(codex)
 	require.NotNil(t, settings)
+	require.False(t, settings.Enabled)
 	require.Equal(t, objects.ChannelUsageQueryPresetCodex, settings.Preset)
 	require.Equal(t, "https://chatgpt.com", settings.BaseURLOverride)
+	require.False(t, NewUsageQueryChecker(nil).SupportsChannel(codex))
 
 	codex.Settings = &objects.ChannelSettings{UsageQuery: &objects.ChannelUsageQuerySettings{Enabled: false}}
 	require.Nil(t, BuiltInUsageQuerySettings(codex))
