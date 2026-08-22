@@ -138,11 +138,21 @@ type ChannelSettings struct {
 	// then the model "openai/gpt-4", "deepseek/deepseek-chat", "deepseek-chat", "gpt-4" will be accepted.
 	AutoTrimedModelPrefixes []string `json:"autoTrimedModelPrefixes"`
 
-	// AutoTrimedModelSuffixes configures suffixes to automatically trim from
-	// supported model names. A configured value matches the final `:<suffix>`
-	// segment, for example "free" turns "z-ai/glm-5.2:free" into
-	// "z-ai/glm-5.2". It can be combined with AutoTrimedModelPrefixes.
+	// AutoTrimedModelSuffixes configures suffix text to automatically trim from
+	// supported model names. Whether a preceding colon or hyphen is trimmed too
+	// is configured independently below. It can be combined with
+	// AutoTrimedModelPrefixes.
 	AutoTrimedModelSuffixes []string `json:"autoTrimedModelSuffixes"`
+
+	// AutoTrimedModelSuffixColon controls whether a colon immediately before a
+	// configured suffix is trimmed as part of the alias. A nil value keeps the
+	// historical colon-trimming behavior for existing channel settings.
+	AutoTrimedModelSuffixColon *bool `json:"autoTrimedModelSuffixColon,omitempty"`
+
+	// AutoTrimedModelSuffixHyphen controls whether a hyphen immediately before
+	// a configured suffix is trimmed as part of the alias. It defaults to false
+	// so existing settings do not start matching hyphen-delimited model names.
+	AutoTrimedModelSuffixHyphen *bool `json:"autoTrimedModelSuffixHyphen,omitempty"`
 
 	// ModelMappings add model alias for the model in the channels.
 	// e.g. {"from": "deepseek-chat", "to": "deepseek/deepseek-chat"} will add a alias "deepseek-chat" for "deepseek/deepseek-chat".

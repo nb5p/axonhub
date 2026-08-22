@@ -160,6 +160,8 @@ type ChannelSettings {
   modelMappings: [ModelMapping!]
   autoTrimedModelPrefixes: [String!]
   autoTrimedModelSuffixes: [String!]
+  autoTrimedModelSuffixColon: Boolean
+  autoTrimedModelSuffixHyphen: Boolean
   hideOriginalModels: Boolean
   hideMappedModels: Boolean
   lowercaseModelId: Boolean
@@ -230,6 +232,8 @@ input ChannelSettingsInput {
   modelMappings: [ModelMappingInput!]
   autoTrimedModelPrefixes: [String!]
   autoTrimedModelSuffixes: [String!]
+  autoTrimedModelSuffixColon: Boolean
+  autoTrimedModelSuffixHyphen: Boolean
   hideOriginalModels: Boolean
   hideMappedModels: Boolean
   lowercaseModelId: Boolean

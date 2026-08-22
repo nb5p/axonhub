@@ -95,6 +95,8 @@ const CREATE_CHANNEL_MUTATION = `
         }
         autoTrimedModelPrefixes
         autoTrimedModelSuffixes
+        autoTrimedModelSuffixColon
+        autoTrimedModelSuffixHyphen
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -166,6 +168,8 @@ const DUPLICATE_CHANNEL_MUTATION = `
         }
         autoTrimedModelPrefixes
         autoTrimedModelSuffixes
+        autoTrimedModelSuffixColon
+        autoTrimedModelSuffixHyphen
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -237,6 +241,8 @@ const BULK_CREATE_CHANNELS_MUTATION = `
         }
         autoTrimedModelPrefixes
         autoTrimedModelSuffixes
+        autoTrimedModelSuffixColon
+        autoTrimedModelSuffixHyphen
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -308,6 +314,8 @@ const UPDATE_CHANNEL_MUTATION = `
         }
         autoTrimedModelPrefixes
         autoTrimedModelSuffixes
+        autoTrimedModelSuffixColon
+        autoTrimedModelSuffixHyphen
         hideOriginalModels
         hideMappedModels
         lowercaseModelId
@@ -501,6 +509,8 @@ const BULK_IMPORT_CHANNELS_MUTATION = `
           }
           autoTrimedModelPrefixes
           autoTrimedModelSuffixes
+          autoTrimedModelSuffixColon
+          autoTrimedModelSuffixHyphen
           hideOriginalModels
           hideMappedModels
           lowercaseModelId
@@ -728,6 +738,8 @@ const BULK_UPDATE_CHANNEL_ORDERING_MUTATION = `
           }
           autoTrimedModelPrefixes
           autoTrimedModelSuffixes
+          autoTrimedModelSuffixColon
+          autoTrimedModelSuffixHyphen
           hideOriginalModels
           hideMappedModels
           lowercaseModelId
@@ -841,6 +853,8 @@ const QUERY_CHANNELS_QUERY = `
             }
             autoTrimedModelPrefixes
             autoTrimedModelSuffixes
+            autoTrimedModelSuffixColon
+            autoTrimedModelSuffixHyphen
             hideOriginalModels
             hideMappedModels
             lowercaseModelId

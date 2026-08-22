@@ -3,6 +3,7 @@ package biz
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/looplj/axonhub/internal/ent"
@@ -390,6 +391,92 @@ func TestChannel_ChooseModel_AutoTrimmedPrefixAndSuffix(t *testing.T) {
 		actualModel, err := ch.ChooseModel(requestModel)
 		require.NoError(t, err)
 		require.Equal(t, "z-ai/glm-5.2:free", actualModel)
+	}
+}
+
+func TestChannel_ChooseModel_AutoTrimmedSuffixDelimiters(t *testing.T) {
+	tests := []struct {
+		name     string
+		channel  *Channel
+		expected map[string]ChannelModelEntry
+	}{
+		{
+			name: "colon option removes colon with suffix",
+			channel: &Channel{Channel: &ent.Channel{
+				SupportedModels: []string{"ox-alpha:free"},
+				Settings: &objects.ChannelSettings{
+					AutoTrimedModelSuffixes:     []string{"free"},
+					AutoTrimedModelSuffixColon:  lo.ToPtr(true),
+					AutoTrimedModelSuffixHyphen: lo.ToPtr(false),
+				},
+			}},
+			expected: map[string]ChannelModelEntry{
+				"ox-alpha:free": {RequestModel: "ox-alpha:free", ActualModel: "ox-alpha:free", Source: "direct"},
+				"ox-alpha":      {RequestModel: "ox-alpha", ActualModel: "ox-alpha:free", Source: "auto_trim"},
+			},
+		},
+		{
+			name: "hyphen option removes hyphen with suffix",
+			channel: &Channel{Channel: &ent.Channel{
+				SupportedModels: []string{"ox-alpha-free"},
+				Settings: &objects.ChannelSettings{
+					AutoTrimedModelSuffixes:     []string{"free"},
+					AutoTrimedModelSuffixColon:  lo.ToPtr(false),
+					AutoTrimedModelSuffixHyphen: lo.ToPtr(true),
+				},
+			}},
+			expected: map[string]ChannelModelEntry{
+				"ox-alpha-free": {RequestModel: "ox-alpha-free", ActualModel: "ox-alpha-free", Source: "direct"},
+				"ox-alpha":      {RequestModel: "ox-alpha", ActualModel: "ox-alpha-free", Source: "auto_trim"},
+			},
+		},
+		{
+			name: "disabled delimiters retain their symbols",
+			channel: &Channel{Channel: &ent.Channel{
+				SupportedModels: []string{"ox-alpha:free", "ox-beta-free"},
+				Settings: &objects.ChannelSettings{
+					AutoTrimedModelSuffixes:     []string{"free"},
+					AutoTrimedModelSuffixColon:  lo.ToPtr(false),
+					AutoTrimedModelSuffixHyphen: lo.ToPtr(false),
+				},
+			}},
+			expected: map[string]ChannelModelEntry{
+				"ox-alpha:free": {RequestModel: "ox-alpha:free", ActualModel: "ox-alpha:free", Source: "direct"},
+				"ox-beta-free":  {RequestModel: "ox-beta-free", ActualModel: "ox-beta-free", Source: "direct"},
+				"ox-alpha:":     {RequestModel: "ox-alpha:", ActualModel: "ox-alpha:free", Source: "auto_trim"},
+				"ox-beta-":      {RequestModel: "ox-beta-", ActualModel: "ox-beta-free", Source: "auto_trim"},
+			},
+		},
+		{
+			name: "both options support their respective delimiters",
+			channel: &Channel{Channel: &ent.Channel{
+				SupportedModels: []string{"ox-alpha:free", "ox-beta-free"},
+				Settings: &objects.ChannelSettings{
+					AutoTrimedModelSuffixes:     []string{"free"},
+					AutoTrimedModelSuffixColon:  lo.ToPtr(true),
+					AutoTrimedModelSuffixHyphen: lo.ToPtr(true),
+				},
+			}},
+			expected: map[string]ChannelModelEntry{
+				"ox-alpha:free": {RequestModel: "ox-alpha:free", ActualModel: "ox-alpha:free", Source: "direct"},
+				"ox-beta-free":  {RequestModel: "ox-beta-free", ActualModel: "ox-beta-free", Source: "direct"},
+				"ox-alpha":      {RequestModel: "ox-alpha", ActualModel: "ox-alpha:free", Source: "auto_trim"},
+				"ox-beta":       {RequestModel: "ox-beta", ActualModel: "ox-beta-free", Source: "auto_trim"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entries := tt.channel.GetModelEntries()
+			require.Equal(t, tt.expected, entries)
+
+			for requestModel, expected := range tt.expected {
+				actualModel, err := tt.channel.ChooseModel(requestModel)
+				require.NoError(t, err)
+				require.Equal(t, expected.ActualModel, actualModel)
+			}
+		})
 	}
 }
 

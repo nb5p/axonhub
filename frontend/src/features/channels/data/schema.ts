@@ -324,6 +324,8 @@ export const channelSettingsSchema = z.object({
   modelMappings: z.array(modelMappingSchema).optional().nullable(),
   autoTrimedModelPrefixes: z.array(z.string()).optional().nullable(),
   autoTrimedModelSuffixes: z.array(z.string()).optional().nullable(),
+  autoTrimedModelSuffixColon: z.boolean().optional().nullable(),
+  autoTrimedModelSuffixHyphen: z.boolean().optional().nullable(),
   hideOriginalModels: z.boolean().optional(),
   hideMappedModels: z.boolean().optional(),
   lowercaseModelId: z.boolean().optional(),

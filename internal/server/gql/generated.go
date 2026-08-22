@@ -589,25 +589,27 @@ type ComplexityRoot struct {
 	}
 
 	ChannelSettings struct {
-		AutoTrimedModelPrefixes  func(childComplexity int) int
-		AutoTrimedModelSuffixes  func(childComplexity int) int
-		BodyOverrideOperations   func(childComplexity int) int
-		ExtraModelPrefix         func(childComplexity int) int
-		HeaderOverrideOperations func(childComplexity int) int
-		HideMappedModels         func(childComplexity int) int
-		HideOriginalModels       func(childComplexity int) int
-		LowercaseModelID         func(childComplexity int) int
-		ModelMappings            func(childComplexity int) int
-		PassThroughBody          func(childComplexity int) int
-		PassThroughUserAgent     func(childComplexity int) int
-		ProviderQuota            func(childComplexity int) int
-		Proxy                    func(childComplexity int) int
-		RateLimit                func(childComplexity int) int
-		RetryableErrorPatterns   func(childComplexity int) int
-		RetryableStatusCodes     func(childComplexity int) int
-		TransformOptions         func(childComplexity int) int
-		Treat429AsNonRetryable   func(childComplexity int) int
-		UsageQuery               func(childComplexity int) int
+		AutoTrimedModelPrefixes     func(childComplexity int) int
+		AutoTrimedModelSuffixColon  func(childComplexity int) int
+		AutoTrimedModelSuffixHyphen func(childComplexity int) int
+		AutoTrimedModelSuffixes     func(childComplexity int) int
+		BodyOverrideOperations      func(childComplexity int) int
+		ExtraModelPrefix            func(childComplexity int) int
+		HeaderOverrideOperations    func(childComplexity int) int
+		HideMappedModels            func(childComplexity int) int
+		HideOriginalModels          func(childComplexity int) int
+		LowercaseModelID            func(childComplexity int) int
+		ModelMappings               func(childComplexity int) int
+		PassThroughBody             func(childComplexity int) int
+		PassThroughUserAgent        func(childComplexity int) int
+		ProviderQuota               func(childComplexity int) int
+		Proxy                       func(childComplexity int) int
+		RateLimit                   func(childComplexity int) int
+		RetryableErrorPatterns      func(childComplexity int) int
+		RetryableStatusCodes        func(childComplexity int) int
+		TransformOptions            func(childComplexity int) int
+		Treat429AsNonRetryable      func(childComplexity int) int
+		UsageQuery                  func(childComplexity int) int
 	}
 
 	ChannelSuccessRate struct {
@@ -4538,6 +4540,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelSettings.AutoTrimedModelPrefixes(childComplexity), true
+	case "ChannelSettings.autoTrimedModelSuffixColon":
+		if e.complexity.ChannelSettings.AutoTrimedModelSuffixColon == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.AutoTrimedModelSuffixColon(childComplexity), true
+	case "ChannelSettings.autoTrimedModelSuffixHyphen":
+		if e.complexity.ChannelSettings.AutoTrimedModelSuffixHyphen == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.AutoTrimedModelSuffixHyphen(childComplexity), true
 	case "ChannelSettings.autoTrimedModelSuffixes":
 		if e.complexity.ChannelSettings.AutoTrimedModelSuffixes == nil {
 			break
@@ -21763,6 +21777,10 @@ func (ec *executionContext) fieldContext_Channel_settings(_ context.Context, fie
 				return ec.fieldContext_ChannelSettings_autoTrimedModelPrefixes(ctx, field)
 			case "autoTrimedModelSuffixes":
 				return ec.fieldContext_ChannelSettings_autoTrimedModelSuffixes(ctx, field)
+			case "autoTrimedModelSuffixColon":
+				return ec.fieldContext_ChannelSettings_autoTrimedModelSuffixColon(ctx, field)
+			case "autoTrimedModelSuffixHyphen":
+				return ec.fieldContext_ChannelSettings_autoTrimedModelSuffixHyphen(ctx, field)
 			case "hideOriginalModels":
 				return ec.fieldContext_ChannelSettings_hideOriginalModels(ctx, field)
 			case "hideMappedModels":
@@ -26074,6 +26092,64 @@ func (ec *executionContext) fieldContext_ChannelSettings_autoTrimedModelSuffixes
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelSettings_autoTrimedModelSuffixColon(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_autoTrimedModelSuffixColon,
+		func(ctx context.Context) (any, error) {
+			return obj.AutoTrimedModelSuffixColon, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_autoTrimedModelSuffixColon(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChannelSettings_autoTrimedModelSuffixHyphen(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_autoTrimedModelSuffixHyphen,
+		func(ctx context.Context) (any, error) {
+			return obj.AutoTrimedModelSuffixHyphen, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_autoTrimedModelSuffixHyphen(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -71782,7 +71858,7 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "autoTrimedModelSuffixes", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
+	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "autoTrimedModelSuffixes", "autoTrimedModelSuffixColon", "autoTrimedModelSuffixHyphen", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -71817,6 +71893,20 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 				return it, err
 			}
 			it.AutoTrimedModelSuffixes = data
+		case "autoTrimedModelSuffixColon":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoTrimedModelSuffixColon"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoTrimedModelSuffixColon = data
+		case "autoTrimedModelSuffixHyphen":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoTrimedModelSuffixHyphen"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoTrimedModelSuffixHyphen = data
 		case "hideOriginalModels":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hideOriginalModels"))
 			data, err := ec.unmarshalOBoolean2bool(ctx, v)
@@ -98361,6 +98451,10 @@ func (ec *executionContext) _ChannelSettings(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._ChannelSettings_autoTrimedModelPrefixes(ctx, field, obj)
 		case "autoTrimedModelSuffixes":
 			out.Values[i] = ec._ChannelSettings_autoTrimedModelSuffixes(ctx, field, obj)
+		case "autoTrimedModelSuffixColon":
+			out.Values[i] = ec._ChannelSettings_autoTrimedModelSuffixColon(ctx, field, obj)
+		case "autoTrimedModelSuffixHyphen":
+			out.Values[i] = ec._ChannelSettings_autoTrimedModelSuffixHyphen(ctx, field, obj)
 		case "hideOriginalModels":
 			out.Values[i] = ec._ChannelSettings_hideOriginalModels(ctx, field, obj)
 		case "hideMappedModels":

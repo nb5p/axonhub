@@ -1327,11 +1327,19 @@ func (ch *Channel) GetModelEntries() map[string]ChannelModelEntry {
 
 	suffixes := make([]string, 0, len(ch.Settings.AutoTrimedModelSuffixes))
 	for _, suffix := range ch.Settings.AutoTrimedModelSuffixes {
-		normalizedSuffix := strings.TrimPrefix(strings.TrimSpace(suffix), ":")
+		normalizedSuffix := strings.TrimSpace(suffix)
+		normalizedSuffix = strings.TrimPrefix(normalizedSuffix, ":")
+		normalizedSuffix = strings.TrimPrefix(normalizedSuffix, "-")
 		if normalizedSuffix != "" {
 			suffixes = append(suffixes, normalizedSuffix)
 		}
 	}
+
+	// A missing colon flag represents settings written before delimiter controls
+	// existed, so retain the previous `:<suffix>` behavior. Hyphen trimming is
+	// opt-in because it was not previously supported.
+	trimSuffixColon := ch.Settings.AutoTrimedModelSuffixColon == nil || *ch.Settings.AutoTrimedModelSuffixColon
+	trimSuffixHyphen := ch.Settings.AutoTrimedModelSuffixHyphen != nil && *ch.Settings.AutoTrimedModelSuffixHyphen
 
 	for _, model := range ch.SupportedModels {
 		prefixVariants := []string{model}
@@ -1348,7 +1356,24 @@ func (ch *Channel) GetModelEntries() map[string]ChannelModelEntry {
 
 		for _, variant := range prefixVariants {
 			for _, suffix := range suffixes {
-				if before, ok := strings.CutSuffix(variant, ":"+suffix); ok {
+				if trimSuffixColon {
+					if before, ok := strings.CutSuffix(variant, ":"+suffix); ok {
+						addAutoTrimmedEntry(before, model)
+						continue
+					}
+				}
+
+				if trimSuffixHyphen {
+					if before, ok := strings.CutSuffix(variant, "-"+suffix); ok {
+						addAutoTrimmedEntry(before, model)
+						continue
+					}
+				}
+
+				// With a delimiter disabled (or if the model has no configured
+				// delimiter), only the suffix text is trimmed and the character
+				// immediately before it remains part of the alias.
+				if before, ok := strings.CutSuffix(variant, suffix); ok {
 					addAutoTrimmedEntry(before, model)
 				}
 			}

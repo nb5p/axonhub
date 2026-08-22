@@ -58,6 +58,8 @@ const createModelMappingFormSchema = (supportedModels: string[]) =>
       ),
     autoTrimedModelPrefixes: z.array(z.string()).optional(),
     autoTrimedModelSuffixes: z.array(z.string()).optional(),
+    autoTrimedModelSuffixColon: z.boolean().optional(),
+    autoTrimedModelSuffixHyphen: z.boolean().optional(),
     hideOriginalModels: z.boolean().optional(),
     hideMappedModels: z.boolean().optional(),
     lowercaseModelId: z.boolean().optional(),
@@ -93,7 +95,7 @@ const extractAllPrefixes = (models: string[]): string[] => {
 const extractAllSuffixes = (models: string[]): string[] => {
   const suffixes = new Set<string>();
   models.forEach((model) => {
-    const separatorIndex = model.lastIndexOf(':');
+    const separatorIndex = Math.max(model.lastIndexOf(':'), model.lastIndexOf('-'));
     if (separatorIndex > 0 && separatorIndex < model.length - 1) {
       suffixes.add(model.slice(separatorIndex + 1));
     }
@@ -123,6 +125,8 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
       modelMappings: currentRow.settings?.modelMappings || [],
       autoTrimedModelPrefixes: currentRow.settings?.autoTrimedModelPrefixes || [],
       autoTrimedModelSuffixes: currentRow.settings?.autoTrimedModelSuffixes || [],
+      autoTrimedModelSuffixColon: currentRow.settings?.autoTrimedModelSuffixColon ?? true,
+      autoTrimedModelSuffixHyphen: currentRow.settings?.autoTrimedModelSuffixHyphen ?? false,
       hideOriginalModels: currentRow.settings?.hideOriginalModels || false,
       hideMappedModels: currentRow.settings?.hideMappedModels || false,
       lowercaseModelId: currentRow.settings?.lowercaseModelId || false,
@@ -252,6 +256,8 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
       modelMappings: nextMappings,
       autoTrimedModelPrefixes: currentRow.settings?.autoTrimedModelPrefixes || [],
       autoTrimedModelSuffixes: currentRow.settings?.autoTrimedModelSuffixes || [],
+      autoTrimedModelSuffixColon: currentRow.settings?.autoTrimedModelSuffixColon ?? true,
+      autoTrimedModelSuffixHyphen: currentRow.settings?.autoTrimedModelSuffixHyphen ?? false,
       hideOriginalModels: currentRow.settings?.hideOriginalModels || false,
       hideMappedModels: currentRow.settings?.hideMappedModels || false,
       lowercaseModelId: currentRow.settings?.lowercaseModelId || false,
@@ -336,6 +342,8 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
         modelMappings: values.modelMappings,
         autoTrimedModelPrefixes: values.autoTrimedModelPrefixes || [],
         autoTrimedModelSuffixes: values.autoTrimedModelSuffixes || [],
+        autoTrimedModelSuffixColon: values.autoTrimedModelSuffixColon ?? true,
+        autoTrimedModelSuffixHyphen: values.autoTrimedModelSuffixHyphen ?? false,
         hideOriginalModels: values.hideOriginalModels,
         hideMappedModels: values.hideMappedModels,
         lowercaseModelId: values.lowercaseModelId,
@@ -507,6 +515,35 @@ export function ChannelsModelMappingDialog({ open, onOpenChange, currentRow }: P
                         </FormItem>
                       )}
                     />
+
+                    <div className='flex flex-wrap items-center gap-x-6 gap-y-3 pt-1'>
+                      <div className='flex items-center gap-2'>
+                        <Checkbox
+                          id='autoTrimedModelSuffixColon'
+                          checked={form.watch('autoTrimedModelSuffixColon') ?? true}
+                          onCheckedChange={(checked) => form.setValue('autoTrimedModelSuffixColon', checked === true)}
+                        />
+                        <label
+                          htmlFor='autoTrimedModelSuffixColon'
+                          className='cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+                        >
+                          {t('channels.dialogs.settings.autoTrimedModelSuffixes.trimColon')}
+                        </label>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Checkbox
+                          id='autoTrimedModelSuffixHyphen'
+                          checked={form.watch('autoTrimedModelSuffixHyphen') ?? false}
+                          onCheckedChange={(checked) => form.setValue('autoTrimedModelSuffixHyphen', checked === true)}
+                        />
+                        <label
+                          htmlFor='autoTrimedModelSuffixHyphen'
+                          className='cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+                        >
+                          {t('channels.dialogs.settings.autoTrimedModelSuffixes.trimHyphen')}
+                        </label>
+                      </div>
+                    </div>
 
                     {suffixSuggestions.length > 0 && (
                       <div className='flex items-center gap-2 pt-2'>
