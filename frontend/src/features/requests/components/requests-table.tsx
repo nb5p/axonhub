@@ -345,8 +345,6 @@ export function RequestsTable({
         showRefresh={showRefresh}
         autoRefreshInterval={autoRefreshInterval}
         onAutoRefreshIntervalChange={onAutoRefreshIntervalChange}
-        enableColumnOrdering
-        getColumnLabel={(id) => t(`requests.columns.${id}`, { defaultValue: id })}
       />
       <div
         ref={scrollContainerRef}
