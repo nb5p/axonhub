@@ -24,6 +24,7 @@ local:
   modules:
     - frontend/src/features/requests/components/requests-columns.tsx
     - frontend/src/features/requests/components/requests-table.tsx
+    - frontend/src/features/requests/components/data-table-toolbar.tsx
     - frontend/src/features/requests/components/request-detail-content.tsx
     - frontend/src/features/requests/components/request-conversation-viewer.tsx
     - frontend/src/components/json-tree-view.tsx
@@ -61,6 +62,7 @@ database:
 - 在用量右侧恢复独立的缓存命中率列；输入不少于 40,000 Token 且命中率低于 80% 时使用红色提醒。
 - 请求详情的请求头 JSON 默认折叠并显示项目数量；JSON 框仍随根节点状态在最小内容高度和完整高度间切换。
 - 移除 JSON 框中央的折叠悬浮按钮，统一复用页面右下角上箭头：有展开的 JSON 时优先“收起所有展开的内容”，全部收起后恢复“回到页首”。
+- 请求页不再显示独立的“重排列”弹窗按钮；列设置菜单中的拖拽排序和重置顺序功能继续保留，避免出现两套入口。
 
 ## 与来源的差异
 
@@ -92,3 +94,4 @@ database:
 | 2026-08-11 | 本地反馈与上游历史缓存命中率逻辑 | `1afef2bec18329f7ccf987cd21cf1664896f1423` | 修复宽屏右侧空白，调整密钥列，并恢复缓存命中率。 |
 | 2026-08-11 | 用户反馈 | `8d9a437cc9aa46ecd419b725762cd4bc76bc3428` | 让请求详情 JSON 框跟随根节点折叠，并增加滚动时的居中折叠入口。 |
 | 2026-08-12 | 用户反馈 | `3a139b8958b6d8cc4a1fdeac0749ae6a889fcf2c` | 请求头改为默认折叠，删除居中折叠入口，并让右下角上箭头优先收起当前展开的 JSON。 |
+| 2026-08-22 | 用户反馈 | `f976c1d9bed1` | 移除请求页重复的“重排列”入口，保留列设置中的拖拽排序。 |
