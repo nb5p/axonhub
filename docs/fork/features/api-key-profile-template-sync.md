@@ -21,6 +21,7 @@ local:
     - b72cac454d23392b3eac985e7e1e101d288e3f9f
     - 3939673c0e1338d0387f48f8de12921c3c0af714
     - 8d110d917849690ba9688d4585ac8b7d62e417af
+    - 8d259c1d1936210ad5726d5de1e23ab29ba3d239
   modules:
     - internal/objects/apikey.go
     - internal/server/biz/api_key.go
@@ -96,6 +97,7 @@ database:
 - `api-key-profile-template-activation.test.mjs` 另覆盖服务端响应确认、列表/详情缓存回填、具体错误处理与未保存状态提示。
 - `TestSynchronizedTemplatePublishesAPIKeyProfileEdits` 覆盖新关联、Key 端修改、跨 Key 传播、运行时缓存失效和开关不可关闭。
 - `TestLoadTemplate_NameConflict`、`TestLoadTemplate_AlreadyLinked` 和 `TestAPIKeyService_UpdateAPIKeyProfiles/Template_names_are_canonical_and_reserved` 覆盖模板唯一名称、旧别名收敛及重名拒绝。
+- `pnpm --dir frontend exec tsc --noEmit`：通过；覆盖 API Key 生效配置编辑弹窗的 `cn` 符号解析。
 
 ## 更新历史
 
@@ -107,3 +109,4 @@ database:
 | 2026-08-15 | 用户反馈 | `3939673c0e1338d0387f48f8de12921c3c0af714` | 取消关联配置的本地别名，统一采用模板名；脱离后强制重新命名，并阻止独立配置与模板重名。 |
 | 2026-08-15 | 用户反馈 | `8d110d917849690ba9688d4585ac8b7d62e417af` | 修复快捷切换误将数字模板 ID 直接提交给 GraphQL 的问题，统一发送 `APIKeyProfileTemplate` GUID。 |
 | 2026-08-20 | Alma 隐私模式误路由诊断 | 工作区未提交 | 加固 profile 切换的同步缓存失效、服务端确认回填、错误反馈和审计日志，并明确配置弹窗的保存边界；保留既有跨渠道容错语义。 |
+| 2026-08-22 | 用户反馈：编辑 API Key 生效配置立即进入 500 | `8d259c1d1936210ad5726d5de1e23ab29ba3d239` | 修复未保存状态提示使用 `cn` 却漏导入的前端运行时错误；该错误会在编辑弹窗初次渲染时中断整页。 |
