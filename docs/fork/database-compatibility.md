@@ -50,6 +50,7 @@
 | `request-log-layout` | `none` | 是 | 无 | 仅涉及请求日志查询字段和前端表格布局。 |
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
 | `channel-model-auto-suffix-trim` | `additive` | 是 | 既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes` | 旧渠道缺失时关闭，不需要回填。 |
+| `channel-model-api-format-disable` | `additive` | 是 | 既有 `channels.settings` JSON 增加可选 `disabledModelApiFormats` | 缺失时没有禁用规则；旧版本保存该渠道可能丢失未知字段。 |
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
 | `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；`usageQuery.showInProviderQuota` 缺失时默认显示；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
@@ -203,6 +204,17 @@
 - 备份与恢复：部署到绿色前，对 `/Users/tux/Playground/AxonHub/data/axonhub.db` 创建 SQLite `.backup`，对源库和副本执行 `PRAGMA quick_check`，并登记 Obsidian 备份日志。回退时恢复该副本。
 - 回滚能力：旧版本忽略新增审计表；原有 Webhook 配置继续可读。若回退前已保存含 Bark 字段的设置，旧版编辑器可能重写配置并丢弃未知字段，需避免保存或恢复部署前快照。
 - 最低升级版本：`c34299aebf320f35094760533353b2b73209801e`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-23 — channel-model-api-format-disable
+
+- 兼容等级：`additive`。
+- 本地 commit：`43228ad1b6ea89f8fd7777a85f9475269affa682`。
+- 影响结构：不新增或修改 Ent Schema、表、列、索引或迁移；既有 `channels.settings` JSON 新增可选 `disabledModelApiFormats`，每项保存模型名与被禁用的端点 API 格式数组。
+- 旧数据库验证样本：缺失字段按空规则处理，无需回填。业务层规范化、同渠道端点选择、Remote Compaction 排除和 GraphQL 编译检查均已通过。
+- 备份与恢复：本次未创建备份、未部署。部署到绿色 SQLite 前必须按蓝绿流程以 `.backup` 创建一致性副本，对源库和副本执行 `PRAGMA quick_check`，并把时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
+- 回滚能力：旧版本读取渠道 JSON 不会因未知字段失败，但旧 GraphQL 输入不会回传该字段；回退后不要保存已配置规则的渠道。若需保留规则，恢复部署前快照或在回退前导出渠道设置。
+- 最低升级版本：`43228ad1b6ea89f8fd7777a85f9475269affa682`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
