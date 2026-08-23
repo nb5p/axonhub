@@ -594,6 +594,7 @@ type ComplexityRoot struct {
 		AutoTrimedModelSuffixHyphen func(childComplexity int) int
 		AutoTrimedModelSuffixes     func(childComplexity int) int
 		BodyOverrideOperations      func(childComplexity int) int
+		DisabledModelAPIFormats     func(childComplexity int) int
 		ExtraModelPrefix            func(childComplexity int) int
 		HeaderOverrideOperations    func(childComplexity int) int
 		HideMappedModels            func(childComplexity int) int
@@ -791,6 +792,11 @@ type ComplexityRoot struct {
 		ExpiresAt  func(childComplexity int) int
 		Key        func(childComplexity int) int
 		Reason     func(childComplexity int) int
+	}
+
+	DisabledModelAPIFormat struct {
+		APIFormats func(childComplexity int) int
+		Model      func(childComplexity int) int
 	}
 
 	ExcludeAssociation struct {
@@ -4564,6 +4570,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChannelSettings.BodyOverrideOperations(childComplexity), true
+	case "ChannelSettings.disabledModelApiFormats":
+		if e.complexity.ChannelSettings.DisabledModelAPIFormats == nil {
+			break
+		}
+
+		return e.complexity.ChannelSettings.DisabledModelAPIFormats(childComplexity), true
 	case "ChannelSettings.extraModelPrefix":
 		if e.complexity.ChannelSettings.ExtraModelPrefix == nil {
 			break
@@ -5280,6 +5292,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DisabledAPIKey.Reason(childComplexity), true
+
+	case "DisabledModelAPIFormat.apiFormats":
+		if e.complexity.DisabledModelAPIFormat.APIFormats == nil {
+			break
+		}
+
+		return e.complexity.DisabledModelAPIFormat.APIFormats(childComplexity), true
+	case "DisabledModelAPIFormat.model":
+		if e.complexity.DisabledModelAPIFormat.Model == nil {
+			break
+		}
+
+		return e.complexity.DisabledModelAPIFormat.Model(childComplexity), true
 
 	case "ExcludeAssociation.channelIds":
 		if e.complexity.ExcludeAssociation.ChannelIds == nil {
@@ -12351,6 +12376,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputDataStorageWhereInput,
 		ec.unmarshalInputDateRangeInput,
 		ec.unmarshalInputDeveloperModelSettingsInput,
+		ec.unmarshalInputDisabledModelAPIFormatInput,
 		ec.unmarshalInputExcludeAssociationInput,
 		ec.unmarshalInputFastestChannelsInput,
 		ec.unmarshalInputFetchModelsInput,
@@ -21787,6 +21813,8 @@ func (ec *executionContext) fieldContext_Channel_settings(_ context.Context, fie
 				return ec.fieldContext_ChannelSettings_hideMappedModels(ctx, field)
 			case "lowercaseModelId":
 				return ec.fieldContext_ChannelSettings_lowercaseModelId(ctx, field)
+			case "disabledModelApiFormats":
+				return ec.fieldContext_ChannelSettings_disabledModelApiFormats(ctx, field)
 			case "proxy":
 				return ec.fieldContext_ChannelSettings_proxy(ctx, field)
 			case "transformOptions":
@@ -26242,6 +26270,41 @@ func (ec *executionContext) fieldContext_ChannelSettings_lowercaseModelId(_ cont
 	return fc, nil
 }
 
+func (ec *executionContext) _ChannelSettings_disabledModelApiFormats(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ChannelSettings_disabledModelApiFormats,
+		func(ctx context.Context) (any, error) {
+			return obj.DisabledModelAPIFormats, nil
+		},
+		nil,
+		ec.marshalODisabledModelAPIFormat2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormatᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ChannelSettings_disabledModelApiFormats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChannelSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "model":
+				return ec.fieldContext_DisabledModelAPIFormat_model(ctx, field)
+			case "apiFormats":
+				return ec.fieldContext_DisabledModelAPIFormat_apiFormats(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DisabledModelAPIFormat", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChannelSettings_proxy(ctx context.Context, field graphql.CollectedField, obj *objects.ChannelSettings) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -29730,6 +29793,64 @@ func (ec *executionContext) fieldContext_DisabledAPIKey_expiresAt(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DisabledModelAPIFormat_model(ctx context.Context, field graphql.CollectedField, obj *objects.DisabledModelAPIFormat) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DisabledModelAPIFormat_model,
+		func(ctx context.Context) (any, error) {
+			return obj.Model, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_DisabledModelAPIFormat_model(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DisabledModelAPIFormat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DisabledModelAPIFormat_apiFormats(ctx context.Context, field graphql.CollectedField, obj *objects.DisabledModelAPIFormat) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DisabledModelAPIFormat_apiFormats,
+		func(ctx context.Context) (any, error) {
+			return obj.APIFormats, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_DisabledModelAPIFormat_apiFormats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DisabledModelAPIFormat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -71858,7 +71979,7 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "autoTrimedModelSuffixes", "autoTrimedModelSuffixColon", "autoTrimedModelSuffixHyphen", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
+	fieldsInOrder := [...]string{"extraModelPrefix", "modelMappings", "autoTrimedModelPrefixes", "autoTrimedModelSuffixes", "autoTrimedModelSuffixColon", "autoTrimedModelSuffixHyphen", "hideOriginalModels", "hideMappedModels", "lowercaseModelId", "disabledModelApiFormats", "proxy", "transformOptions", "headerOverrideOperations", "bodyOverrideOperations", "passThroughUserAgent", "passThroughBody", "rateLimit", "treat429AsNonRetryable", "retryableStatusCodes", "retryableErrorPatterns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -71928,6 +72049,13 @@ func (ec *executionContext) unmarshalInputChannelSettingsInput(ctx context.Conte
 				return it, err
 			}
 			it.LowercaseModelID = data
+		case "disabledModelApiFormats":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("disabledModelApiFormats"))
+			data, err := ec.unmarshalODisabledModelAPIFormatInput2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormatᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisabledModelAPIFormats = data
 		case "proxy":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("proxy"))
 			data, err := ec.unmarshalOProxyConfigInput2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋllmᚋhttpclientᚐProxyConfig(ctx, v)
@@ -75575,6 +75703,40 @@ func (ec *executionContext) unmarshalInputDeveloperModelSettingsInput(ctx contex
 				return it, err
 			}
 			it.Associations = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDisabledModelAPIFormatInput(ctx context.Context, obj any) (objects.DisabledModelAPIFormat, error) {
+	var it objects.DisabledModelAPIFormat
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"model", "apiFormats"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "model":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("model"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Model = data
+		case "apiFormats":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("apiFormats"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.APIFormats = data
 		}
 	}
 
@@ -98461,6 +98623,8 @@ func (ec *executionContext) _ChannelSettings(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._ChannelSettings_hideMappedModels(ctx, field, obj)
 		case "lowercaseModelId":
 			out.Values[i] = ec._ChannelSettings_lowercaseModelId(ctx, field, obj)
+		case "disabledModelApiFormats":
+			out.Values[i] = ec._ChannelSettings_disabledModelApiFormats(ctx, field, obj)
 		case "proxy":
 			out.Values[i] = ec._ChannelSettings_proxy(ctx, field, obj)
 		case "transformOptions":
@@ -100014,6 +100178,50 @@ func (ec *executionContext) _DisabledAPIKey(ctx context.Context, sel ast.Selecti
 			out.Values[i] = ec._DisabledAPIKey_reason(ctx, field, obj)
 		case "expiresAt":
 			out.Values[i] = ec._DisabledAPIKey_expiresAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var disabledModelAPIFormatImplementors = []string{"DisabledModelAPIFormat"}
+
+func (ec *executionContext) _DisabledModelAPIFormat(ctx context.Context, sel ast.SelectionSet, obj *objects.DisabledModelAPIFormat) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, disabledModelAPIFormatImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DisabledModelAPIFormat")
+		case "model":
+			out.Values[i] = ec._DisabledModelAPIFormat_model(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "apiFormats":
+			out.Values[i] = ec._DisabledModelAPIFormat_apiFormats(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -117700,6 +117908,15 @@ func (ec *executionContext) marshalNDisabledAPIKey2ᚖgithubᚗcomᚋloopljᚋax
 	return ec._DisabledAPIKey(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNDisabledModelAPIFormat2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormat(ctx context.Context, sel ast.SelectionSet, v objects.DisabledModelAPIFormat) graphql.Marshaler {
+	return ec._DisabledModelAPIFormat(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNDisabledModelAPIFormatInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormat(ctx context.Context, v any) (objects.DisabledModelAPIFormat, error) {
+	res, err := ec.unmarshalInputDisabledModelAPIFormatInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNExcludeAssociation2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐExcludeAssociation(ctx context.Context, sel ast.SelectionSet, v *objects.ExcludeAssociation) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -124424,6 +124641,71 @@ func (ec *executionContext) marshalODisabledAPIKey2ᚕᚖgithubᚗcomᚋlooplj�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalODisabledModelAPIFormat2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormatᚄ(ctx context.Context, sel ast.SelectionSet, v []objects.DisabledModelAPIFormat) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDisabledModelAPIFormat2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormat(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalODisabledModelAPIFormatInput2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormatᚄ(ctx context.Context, v any) ([]objects.DisabledModelAPIFormat, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]objects.DisabledModelAPIFormat, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNDisabledModelAPIFormatInput2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐDisabledModelAPIFormat(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalOExcludeAssociation2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐExcludeAssociationᚄ(ctx context.Context, sel ast.SelectionSet, v []*objects.ExcludeAssociation) graphql.Marshaler {

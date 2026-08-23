@@ -34,7 +34,8 @@ type ChannelsDialogType =
   | 'keyManagement'
   | 'disabledAPIKeys'
   | 'endpoints'
-  | 'usageQuery';
+  | 'usageQuery'
+  | 'modelFormatDisables';
 
 interface ChannelsContextType {
   open: ChannelsDialogType | null;

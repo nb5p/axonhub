@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { IconFlask, IconPlayerPlay, IconSearch } from '@tabler/icons-react';
+import { IconCircleOff, IconFlask, IconPlayerPlay, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,10 @@ import {
 } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
 import { ErrorDisplay } from '../utils/error-formatter';
+import { mergeChannelSettingsForUpdate } from '../utils/merge';
+import { disableModelAPIFormat, isModelAPIFormatDisabled } from '../utils/model-api-format-disables';
 
-type TestStatus = 'not_started' | 'testing' | 'success' | 'failed' | 'skipped';
+type TestStatus = 'not_started' | 'testing' | 'success' | 'failed' | 'skipped' | 'disabled';
 
 interface ModelTestResult {
   status: TestStatus;
@@ -52,6 +54,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>([]);
   const [isTesting, setIsTesting] = useState(false);
   const [isRemovePopoverOpen, setIsRemovePopoverOpen] = useState(false);
+  const [disabledModelAPIFormats, setDisabledModelAPIFormats] = useState(channel.settings?.disabledModelApiFormats ?? []);
   const testChannel = useTestChannel();
   const updateChannel = useUpdateChannel();
 
@@ -72,8 +75,9 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       setSelectedModels([]);
       setSelectedAPIFormats(defaultAvailableAPIFormats);
       setSearchQuery('');
+      setDisabledModelAPIFormats(channel.settings?.disabledModelApiFormats ?? []);
     }
-  }, [open, channel.supportedModels, defaultAvailableAPIFormats]);
+  }, [channel.settings?.disabledModelApiFormats, channel.supportedModels, defaultAvailableAPIFormats, open]);
 
   const isFormatAvailable = (format: ChannelTestAPIFormat) => availableEndpointFormats.has(getChannelTestAPIFormat(format).endpointFormat);
 
@@ -101,6 +105,12 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   };
 
   const testModel = async (modelName: string, format: ChannelTestAPIFormat) => {
+    const endpointFormat = getChannelTestAPIFormat(format).endpointFormat;
+    if (isModelAPIFormatDisabled(disabledModelAPIFormats, modelName, endpointFormat)) {
+      setTestResult(modelName, format, { status: 'disabled' });
+      return;
+    }
+
     if (!isFormatAvailable(format)) {
       setTestResult(modelName, format, { status: 'skipped', error: t('channels.dialogs.test.formatUnavailable') });
       return;
@@ -142,7 +152,10 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
 
   const handleTestSelected = async () => {
     const tasks = selectedModels.flatMap((modelName) =>
-      selectedAPIFormats.filter(isFormatAvailable).map((format) => ({ modelName, format }))
+      selectedAPIFormats
+        .filter((format) => isFormatAvailable(format))
+        .filter((format) => !isModelAPIFormatDisabled(disabledModelAPIFormats, modelName, getChannelTestAPIFormat(format).endpointFormat))
+        .map((format) => ({ modelName, format }))
     );
     if (tasks.length === 0 || isTesting) return;
 
@@ -164,6 +177,8 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
         return <Badge variant='destructive'>{t('channels.dialogs.test.testFailed')}</Badge>;
       case 'skipped':
         return <Badge variant='outline'>{t('channels.dialogs.test.formatUnavailable')}</Badge>;
+      case 'disabled':
+        return <Badge variant='outline'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
       default:
         return <Badge variant='outline'>{t('channels.dialogs.test.notStarted')}</Badge>;
     }
@@ -187,6 +202,29 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       setTestResults(makeInitialResults(newSupportedModels));
       setIsRemovePopoverOpen(false);
     } catch (_error) {
+      // Errors are handled by useUpdateChannel toast.
+    }
+  };
+
+  const handleDisableModelFormat = async (modelName: string, format: ChannelTestAPIFormat) => {
+    const nextDisabledModelAPIFormats = disableModelAPIFormat(
+      disabledModelAPIFormats,
+      modelName,
+      getChannelTestAPIFormat(format).endpointFormat
+    );
+
+    try {
+      await updateChannel.mutateAsync({
+        id: channel.id,
+        input: {
+          settings: mergeChannelSettingsForUpdate(channel.settings, {
+            disabledModelApiFormats: nextDisabledModelAPIFormats,
+          }),
+        },
+      });
+      setDisabledModelAPIFormats(nextDisabledModelAPIFormats);
+      setTestResult(modelName, format, { status: 'disabled' });
+    } catch {
       // Errors are handled by useUpdateChannel toast.
     }
   };
@@ -252,21 +290,38 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                       {selectedAPIFormats.map((format) => {
                         const result = testResults[model]?.[format];
                         const available = isFormatAvailable(format);
+                        const disabled = isModelAPIFormatDisabled(
+                          disabledModelAPIFormats,
+                          model,
+                          getChannelTestAPIFormat(format).endpointFormat
+                        );
                         return (
                           <TableCell key={format} className='min-w-52 align-top'>
                             <div className='space-y-2'>
-                              {getStatusBadge(available ? result?.status || 'not_started' : 'skipped')}
+                              {getStatusBadge(disabled ? 'disabled' : available ? result?.status || 'not_started' : 'skipped')}
                               {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
                               {result?.error && <ErrorDisplay error={result.error} messageClassName='text-xs font-medium text-red-600' />}
                               <Button
                                 size='sm'
                                 variant='outline'
                                 onClick={() => testModel(model, format)}
-                                disabled={!available || result?.status === 'testing' || isTesting}
+                                disabled={!available || disabled || result?.status === 'testing' || isTesting || updateChannel.isPending}
                               >
                                 <IconPlayerPlay className='h-3 w-3' />
                                 {result?.status === 'testing' ? t('channels.dialogs.test.testingModel') : t('channels.dialogs.test.testModel')}
                               </Button>
+                              {result?.status === 'failed' && !disabled && (
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  className='border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive'
+                                  onClick={() => handleDisableModelFormat(model, format)}
+                                  disabled={isTesting || updateChannel.isPending}
+                                >
+                                  <IconCircleOff className='h-3 w-3' />
+                                  {t('channels.dialogs.modelFormatDisables.disableThisFormat')}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         );

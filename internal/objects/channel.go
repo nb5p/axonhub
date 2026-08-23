@@ -172,6 +172,12 @@ type ChannelSettings struct {
 	// balancing where providers use different casing for the same model.
 	LowercaseModelID bool `json:"lowercaseModelId"`
 
+	// DisabledModelAPIFormats lists endpoint API formats that must not be used
+	// for a specific model on this channel. The restriction is outbound-only:
+	// callers may keep using their original inbound API format when another
+	// compatible endpoint can transform the request.
+	DisabledModelAPIFormats []DisabledModelAPIFormat `json:"disabledModelApiFormats,omitempty"`
+
 	// OverrideParameters sets the channel override the request body.
 	// A json string.
 	// e.g. {"max_tokens": 100}, {"temperature": 0.7}
@@ -239,6 +245,17 @@ type ChannelSettings struct {
 	// describes the HTTP request and extracts the JSON response; network access
 	// remains owned by the Go host.
 	UsageQuery *ChannelUsageQuerySettings `json:"usageQuery,omitempty"`
+}
+
+// DisabledModelAPIFormat disables one or more outbound endpoint API formats
+// for a model supported by a channel.
+//
+// Model is stored as the channel's actual model ID. Runtime matching also
+// accepts request aliases so mappings, prefixes, and automatic trimming retain
+// the same restriction.
+type DisabledModelAPIFormat struct {
+	Model      string   `json:"model"`
+	APIFormats []string `json:"apiFormats"`
 }
 
 type RetryableErrorPattern struct {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/looplj/axonhub/internal/log"
 	"github.com/looplj/axonhub/internal/objects"
+	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm"
 )
 
@@ -29,9 +30,8 @@ func filterResolvedCandidatesForRequest(
 	})
 	if !hasConditionalCandidates {
 		candidates := aggregateChannelModelCandidates(resolvedCandidates)
-		populateAPIFormat(candidates, req)
 
-		return candidates
+		return populateAPIFormat(candidates, req)
 	}
 
 	promptTokens := estimatePromptTokens(req)
@@ -63,24 +63,61 @@ func filterResolvedCandidatesForRequest(
 		)
 	}
 
-	populateAPIFormat(candidates, req)
-
-	return candidates
+	return populateAPIFormat(candidates, req)
 }
 
-func populateAPIFormat(candidates []*ChannelModelsCandidate, req *llm.Request) {
+func populateAPIFormat(candidates []*ChannelModelsCandidate, req *llm.Request) []*ChannelModelsCandidate {
+	populated := make([]*ChannelModelsCandidate, 0, len(candidates))
 	for _, c := range candidates {
-		if c == nil || c.Channel == nil {
+		if c == nil || c.Channel == nil || len(c.Models) == 0 {
 			continue
 		}
 
 		if c.APIFormat != "" {
+			c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat)
+			if len(c.Models) > 0 {
+				populated = append(populated, c)
+			}
+
 			continue
 		}
 
-		endpoints := c.Channel.ResolveEndpoints()
+		// A candidate may contain multiple fallback models. Pick the endpoint
+		// for its first attempt, then drop only fallback models that prohibit
+		// that exact endpoint. This keeps retries safe without preventing the
+		// channel from handling a compatible primary model.
+		endpoints := FilterEndpointsForModel(c.Channel.ResolveEndpoints(), c.Channel.Settings, c.Models[0])
 		c.APIFormat = SelectAPIFormat(endpoints, req)
+		if c.APIFormat == "" {
+			continue
+		}
+
+		c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat)
+		if len(c.Models) == 0 {
+			continue
+		}
+
+		populated = append(populated, c)
 	}
+
+	return populated
+}
+
+func filterModelsForAPIFormat(
+	settings *objects.ChannelSettings,
+	models []biz.ChannelModelEntry,
+	apiFormat string,
+) []biz.ChannelModelEntry {
+	filtered := make([]biz.ChannelModelEntry, 0, len(models))
+	for _, entry := range models {
+		if IsModelAPIFormatDisabled(settings, entry, apiFormat) {
+			continue
+		}
+
+		filtered = append(filtered, entry)
+	}
+
+	return filtered
 }
 
 func reqStream(req *llm.Request) bool {

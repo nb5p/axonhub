@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IconCheck, IconFlask, IconLoader2, IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
+import { IconCheck, IconCircleOff, IconFlask, IconLoader2, IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,14 @@ import { TruncatedText } from '@/components/truncated-text';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useChannels } from '../context/channels-context';
-import { useBulkRecoverChannels, useTestChannel } from '../data/channels';
+import { useBulkRecoverChannels, useTestChannel, useUpdateChannel } from '../data/channels';
 import { ChannelTestAPIFormat, defaultChannelTestAPIFormats, getChannelTestAPIFormat } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
 import { getErrorCode } from '../utils/error-formatter';
+import { mergeChannelSettingsForUpdate } from '../utils/merge';
+import { disableModelAPIFormat, isModelAPIFormatDisabled, type DisabledModelAPIFormat } from '../utils/model-api-format-disables';
 
-type BulkTestStatus = 'idle' | 'testing' | 'success' | 'failed' | 'skipped';
+type BulkTestStatus = 'idle' | 'testing' | 'success' | 'failed' | 'skipped' | 'disabled';
 
 interface BulkTestResult {
   modelID?: string;
@@ -34,10 +36,12 @@ export function ChannelsBulkTestDialog() {
   const { open, setOpen, selectedChannels, resetRowSelection, setSelectedChannels } = useChannels();
   const testChannel = useTestChannel({ silent: true });
   const bulkRecoverChannels = useBulkRecoverChannels();
+  const updateChannel = useUpdateChannel();
   const [dialogContent, setDialogContent] = useState<HTMLDivElement | null>(null);
   const [results, setResults] = useState<BulkTestResults>({});
   const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>(defaultChannelTestAPIFormats);
   const [isTesting, setIsTesting] = useState(false);
+  const [disabledByChannel, setDisabledByChannel] = useState<Record<string, DisabledModelAPIFormat[]>>({});
 
   const isDialogOpen = open === 'bulkTest';
 
@@ -49,6 +53,17 @@ export function ChannelsBulkTestDialog() {
     },
     []
   );
+  const isFormatDisabled = useCallback(
+    (channel: Channel, format: ChannelTestAPIFormat) => {
+      const modelID = resolveTestModel(channel);
+      return !!modelID && isModelAPIFormatDisabled(
+        disabledByChannel[channel.id] ?? channel.settings?.disabledModelApiFormats,
+        modelID,
+        getChannelTestAPIFormat(format).endpointFormat
+      );
+    },
+    [disabledByChannel, resolveTestModel]
+  );
 
   const initializeResults = useCallback(() => {
     const nextResults = selectedChannels.reduce<BulkTestResults>((accumulator, channel) => {
@@ -56,9 +71,10 @@ export function ChannelsBulkTestDialog() {
       accumulator[channel.id] = {};
       selectedAPIFormats.forEach((format) => {
         const available = isFormatAvailable(channel, format);
+        const disabled = isFormatDisabled(channel, format);
         accumulator[channel.id][format] = {
           modelID: modelID || undefined,
-          status: modelID && available ? 'idle' : 'skipped',
+          status: disabled ? 'disabled' : modelID && available ? 'idle' : 'skipped',
           error: modelID ? (available ? undefined : t('channels.dialogs.test.formatUnavailable')) : t('channels.dialogs.bulkTest.noTestModel'),
         };
       });
@@ -66,14 +82,17 @@ export function ChannelsBulkTestDialog() {
     }, {});
 
     setResults(nextResults);
-  }, [isFormatAvailable, resolveTestModel, selectedAPIFormats, selectedChannels, t]);
+  }, [isFormatAvailable, isFormatDisabled, resolveTestModel, selectedAPIFormats, selectedChannels, t]);
 
   useEffect(() => {
     if (isDialogOpen && dialogContent) {
+      setDisabledByChannel(
+        Object.fromEntries(selectedChannels.map((channel) => [channel.id, channel.settings?.disabledModelApiFormats ?? []]))
+      );
       initializeResults();
       setIsTesting(false);
     }
-  }, [dialogContent, initializeResults, isDialogOpen]);
+  }, [dialogContent, initializeResults, isDialogOpen, selectedChannels]);
 
   const resultList = useMemo(
     () =>
@@ -81,22 +100,29 @@ export function ChannelsBulkTestDialog() {
         selectedAPIFormats.map((format) => {
           const modelID = resolveTestModel(channel);
           const available = isFormatAvailable(channel, format);
+          const disabled = isFormatDisabled(channel, format);
           return (
             results[channel.id]?.[format] ?? {
               modelID: modelID || undefined,
-              status: modelID && available ? ('idle' as const) : ('skipped' as const),
+              status: disabled ? ('disabled' as const) : modelID && available ? ('idle' as const) : ('skipped' as const),
               error: modelID ? (available ? undefined : t('channels.dialogs.test.formatUnavailable')) : t('channels.dialogs.bulkTest.noTestModel'),
             }
           );
         })
       ),
-    [isFormatAvailable, resolveTestModel, results, selectedAPIFormats, selectedChannels, t]
+    [isFormatAvailable, isFormatDisabled, resolveTestModel, results, selectedAPIFormats, selectedChannels, t]
   );
 
-  const completedCount = useMemo(() => resultList.filter((result) => ['success', 'failed', 'skipped'].includes(result.status)).length, [resultList]);
+  const completedCount = useMemo(
+    () => resultList.filter((result) => ['success', 'failed', 'skipped', 'disabled'].includes(result.status)).length,
+    [resultList]
+  );
   const successCount = useMemo(() => resultList.filter((result) => result.status === 'success').length, [resultList]);
   const failedCount = useMemo(() => resultList.filter((result) => result.status === 'failed').length, [resultList]);
-  const skippedCount = useMemo(() => resultList.filter((result) => result.status === 'skipped').length, [resultList]);
+  const skippedCount = useMemo(
+    () => resultList.filter((result) => result.status === 'skipped' || result.status === 'disabled').length,
+    [resultList]
+  );
 
   const recoverableChannels = useMemo(
     () =>
@@ -148,6 +174,10 @@ export function ChannelsBulkTestDialog() {
         setResultStatus(channel, format, 'skipped', { error: t('channels.dialogs.test.formatUnavailable') });
         return;
       }
+      if (isFormatDisabled(channel, format)) {
+        setResultStatus(channel, format, 'disabled', { error: undefined, latency: undefined, modelID });
+        return;
+      }
 
       setResultStatus(channel, format, 'testing', { error: undefined, latency: undefined, modelID });
       try {
@@ -164,12 +194,12 @@ export function ChannelsBulkTestDialog() {
         });
       }
     },
-    [isFormatAvailable, resolveTestModel, setResultStatus, t, testChannel]
+    [isFormatAvailable, isFormatDisabled, resolveTestModel, setResultStatus, t, testChannel]
   );
 
   const runBatch = useCallback(
     async (tasks: Array<{ channel: Channel; format: ChannelTestAPIFormat }>) => {
-      const queue = tasks.filter(({ channel, format }) => !!resolveTestModel(channel) && isFormatAvailable(channel, format));
+      const queue = tasks.filter(({ channel, format }) => !!resolveTestModel(channel) && isFormatAvailable(channel, format) && !isFormatDisabled(channel, format));
       const workerCount = Math.min(MAX_CONCURRENT_TESTS, queue.length);
       await Promise.all(
         Array.from({ length: workerCount }, async () => {
@@ -181,7 +211,7 @@ export function ChannelsBulkTestDialog() {
         })
       );
     },
-    [isFormatAvailable, resolveTestModel, runSingleTest]
+    [isFormatAvailable, isFormatDisabled, resolveTestModel, runSingleTest]
   );
 
   const allTasks = useMemo(
@@ -189,8 +219,8 @@ export function ChannelsBulkTestDialog() {
     [selectedAPIFormats, selectedChannels]
   );
   const runnableTaskCount = useMemo(
-    () => allTasks.filter(({ channel, format }) => !!resolveTestModel(channel) && isFormatAvailable(channel, format)).length,
-    [allTasks, isFormatAvailable, resolveTestModel]
+    () => allTasks.filter(({ channel, format }) => !!resolveTestModel(channel) && isFormatAvailable(channel, format) && !isFormatDisabled(channel, format)).length,
+    [allTasks, isFormatAvailable, isFormatDisabled, resolveTestModel]
   );
 
   const handleRunAll = useCallback(async () => {
@@ -249,11 +279,42 @@ export function ChannelsBulkTestDialog() {
           return <Badge variant='destructive'>{t('channels.dialogs.bulkTest.failed')}</Badge>;
         case 'skipped':
           return <Badge variant='outline'>{t('channels.dialogs.bulkTest.skipped')}</Badge>;
+        case 'disabled':
+          return <Badge variant='outline'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
         default:
           return <Badge variant='outline'>{t('channels.dialogs.bulkTest.idle')}</Badge>;
       }
     },
     [t]
+  );
+
+  const handleDisableModelFormat = useCallback(
+    async (channel: Channel, format: ChannelTestAPIFormat) => {
+      const modelID = resolveTestModel(channel);
+      if (!modelID) return;
+
+      const nextDisabledModelAPIFormats = disableModelAPIFormat(
+        disabledByChannel[channel.id] ?? channel.settings?.disabledModelApiFormats,
+        modelID,
+        getChannelTestAPIFormat(format).endpointFormat
+      );
+
+      try {
+        await updateChannel.mutateAsync({
+          id: channel.id,
+          input: {
+            settings: mergeChannelSettingsForUpdate(channel.settings, {
+              disabledModelApiFormats: nextDisabledModelAPIFormats,
+            }),
+          },
+        });
+        setDisabledByChannel((previous) => ({ ...previous, [channel.id]: nextDisabledModelAPIFormats }));
+        setResultStatus(channel, format, 'disabled', { error: undefined, latency: undefined, modelID });
+      } catch {
+        // Errors are handled by useUpdateChannel toast.
+      }
+    },
+    [disabledByChannel, resolveTestModel, setResultStatus, updateChannel]
   );
 
   if (selectedChannels.length === 0 && !isDialogOpen) return null;
@@ -313,7 +374,8 @@ export function ChannelsBulkTestDialog() {
                       {selectedAPIFormats.map((format) => {
                         const result = results[channel.id]?.[format];
                         const available = isFormatAvailable(channel, format);
-                        const status = available && resolveTestModel(channel) ? result?.status || 'idle' : 'skipped';
+                        const disabled = isFormatDisabled(channel, format);
+                        const status = disabled ? 'disabled' : available && resolveTestModel(channel) ? result?.status || 'idle' : 'skipped';
                         return (
                           <TableCell key={format} className='min-w-52'>
                             <div className='space-y-2'>
@@ -334,11 +396,23 @@ export function ChannelsBulkTestDialog() {
                                 size='sm'
                                 variant='outline'
                                 onClick={() => runSingleTest(channel, format)}
-                                disabled={!available || !resolveTestModel(channel) || status === 'testing' || isTesting}
+                                disabled={!available || disabled || !resolveTestModel(channel) || status === 'testing' || isTesting || updateChannel.isPending}
                               >
                                 <IconPlayerPlay className='h-3 w-3' />
                                 {status === 'testing' ? t('channels.dialogs.bulkTest.testing') : t('channels.dialogs.test.testModel')}
                               </Button>
+                              {result?.status === 'failed' && !disabled && (
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  className='border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive'
+                                  onClick={() => handleDisableModelFormat(channel, format)}
+                                  disabled={isTesting || updateChannel.isPending}
+                                >
+                                  <IconCircleOff className='h-3 w-3' />
+                                  {t('channels.dialogs.modelFormatDisables.disableThisFormat')}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         );

@@ -329,6 +329,15 @@ export const channelSettingsSchema = z.object({
   hideOriginalModels: z.boolean().optional(),
   hideMappedModels: z.boolean().optional(),
   lowercaseModelId: z.boolean().optional(),
+  disabledModelApiFormats: z
+    .array(
+      z.object({
+        model: z.string(),
+        apiFormats: z.array(z.string()),
+      })
+    )
+    .optional()
+    .nullable(),
   bodyOverrideOperations: z.array(overrideOperationSchema).optional(),
   headerOverrideOperations: z.array(overrideOperationSchema).optional(),
   proxy: proxyConfigSchema.optional().nullable(),

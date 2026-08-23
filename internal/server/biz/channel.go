@@ -561,6 +561,10 @@ func (svc *ChannelService) createChannel(ctx context.Context, input ent.CreateCh
 		if err := NormalizeRetryableErrorPatterns(input.Settings); err != nil {
 			return nil, err
 		}
+
+		if err := NormalizeDisabledModelAPIFormats(input.Settings); err != nil {
+			return nil, err
+		}
 	}
 
 	if input.Endpoints != nil {
@@ -695,6 +699,68 @@ func NormalizeRetryableErrorPatterns(settings *objects.ChannelSettings) error {
 	}
 
 	settings.RetryableErrorPatterns = patterns
+
+	return nil
+}
+
+// NormalizeDisabledModelAPIFormats validates and canonicalizes per-model
+// outbound API format restrictions before they are persisted.
+func NormalizeDisabledModelAPIFormats(settings *objects.ChannelSettings) error {
+	if settings == nil || len(settings.DisabledModelAPIFormats) == 0 {
+		return nil
+	}
+
+	normalized := make([]objects.DisabledModelAPIFormat, 0, len(settings.DisabledModelAPIFormats))
+	byModel := make(map[string]int, len(settings.DisabledModelAPIFormats))
+	for index, entry := range settings.DisabledModelAPIFormats {
+		entry.Model = strings.TrimSpace(entry.Model)
+		if entry.Model == "" {
+			return fmt.Errorf("disabled model API format entry %d requires a model", index+1)
+		}
+
+		formats := make([]string, 0, len(entry.APIFormats))
+		seenFormats := make(map[string]struct{}, len(entry.APIFormats))
+		for _, apiFormat := range entry.APIFormats {
+			apiFormat = strings.TrimSpace(apiFormat)
+			if apiFormat == "" {
+				continue
+			}
+			if _, seen := seenFormats[apiFormat]; seen {
+				continue
+			}
+
+			seenFormats[apiFormat] = struct{}{}
+			formats = append(formats, apiFormat)
+		}
+		if len(formats) == 0 {
+			return fmt.Errorf("disabled model API format entry %d requires at least one API format", index+1)
+		}
+
+		if existingIndex, exists := byModel[entry.Model]; exists {
+			existing := &normalized[existingIndex]
+			seenExisting := make(map[string]struct{}, len(existing.APIFormats))
+			for _, apiFormat := range existing.APIFormats {
+				seenExisting[apiFormat] = struct{}{}
+			}
+			for _, apiFormat := range formats {
+				if _, seen := seenExisting[apiFormat]; seen {
+					continue
+				}
+
+				seenExisting[apiFormat] = struct{}{}
+				existing.APIFormats = append(existing.APIFormats, apiFormat)
+			}
+			continue
+		}
+
+		byModel[entry.Model] = len(normalized)
+		normalized = append(normalized, objects.DisabledModelAPIFormat{
+			Model:      entry.Model,
+			APIFormats: formats,
+		})
+	}
+
+	settings.DisabledModelAPIFormats = normalized
 
 	return nil
 }
@@ -845,6 +911,10 @@ func (svc *ChannelService) UpdateChannel(ctx context.Context, id int, input *ent
 		if err := NormalizeRetryableErrorPatterns(input.Settings); err != nil {
 			return nil, err
 		}
+
+		if err := NormalizeDisabledModelAPIFormats(input.Settings); err != nil {
+			return nil, err
+		}
 	}
 
 	if input.Endpoints != nil {
@@ -890,9 +960,13 @@ func (svc *ChannelService) UpdateChannel(ctx context.Context, id int, input *ent
 				Select(channel.FieldSettings).
 				Only(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to preserve channel usage query settings: %w", err)
+				return fmt.Errorf("failed to preserve channel settings excluded from the regular editor: %w", err)
 			}
 			if existingSettings.Settings != nil {
+				// ProviderQuota and UsageQuery have dedicated configuration APIs and
+				// are deliberately absent from ChannelSettingsInput. Keep them while
+				// regular settings updates replace the rest of the settings object.
+				input.Settings.ProviderQuota = existingSettings.Settings.ProviderQuota
 				input.Settings.UsageQuery = existingSettings.Settings.UsageQuery
 			}
 		}

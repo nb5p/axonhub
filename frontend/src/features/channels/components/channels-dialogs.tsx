@@ -27,6 +27,7 @@ import { ChannelsTransformOptionsDialog } from './channels-transform-options-dia
 import { ChannelsEndpointsDialog } from './channels-endpoints-dialog';
 import { ChannelsSystemSettingsDialog } from './channels-system-settings-dialog';
 import { ChannelsUsageQueryDialog } from './channels-usage-query-dialog';
+import { ChannelModelFormatDisablesDialog } from './channel-model-format-disables-dialog';
 
 export function ChannelsDialogs() {
   const { open, setOpen, currentRow, setCurrentRow, selectedChannels } = useChannels();
@@ -235,6 +236,22 @@ export function ChannelsDialogs() {
             onOpenChange={(isOpen) => {
               if (isOpen) {
                 setOpen('testHistory');
+              } else {
+                setOpen(null);
+                setTimeout(() => {
+                  setCurrentRow(null);
+                }, 500);
+              }
+            }}
+            channel={currentRow}
+          />
+
+          <ChannelModelFormatDisablesDialog
+            key={`channel-model-format-disables-${currentRow.id}`}
+            open={open === 'modelFormatDisables'}
+            onOpenChange={(isOpen) => {
+              if (isOpen) {
+                setOpen('modelFormatDisables');
               } else {
                 setOpen(null);
                 setTimeout(() => {

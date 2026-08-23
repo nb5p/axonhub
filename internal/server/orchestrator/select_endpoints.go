@@ -214,8 +214,17 @@ func SelectAPIFormat(endpoints []objects.ChannelEndpoint, req *llm.Request) stri
 	preferredFormat := string(req.APIFormat)
 	allowed := llm.CapableAPIFormats(req.RequestType)
 	if isOpenAIResponsesRemoteCompaction(req) {
-		allowed = remoteCompactionCapableAPIFormats
-		preferredFormat = llm.APIFormatOpenAIResponse.String()
+		// Remote compaction requests carry opaque Responses-only state. They
+		// cannot be represented by another chat endpoint, so a channel without
+		// Responses must be excluded instead of silently choosing its first
+		// endpoint.
+		for _, ep := range endpoints {
+			if _, ok := remoteCompactionCapableAPIFormats[ep.APIFormat]; ok {
+				return ep.APIFormat
+			}
+		}
+
+		return ""
 	} else if req.RequestType == llm.RequestTypeAlphaSearch {
 		allowed = alphaSearchCapableAPIFormats
 	}

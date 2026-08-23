@@ -25,6 +25,7 @@ import {
   IconHistory,
   IconPlugConnected,
   IconClockPlay,
+  IconCircleOff,
   IconSearch,
   IconRefresh,
 } from '@tabler/icons-react';
@@ -237,6 +238,17 @@ const ActionCell = memo(({ row }: { row: Row<Channel> }) => {
             >
               <IconPlugConnected size={16} className='mr-2' />
               {t('channels.endpoints.title')}
+            </DropdownMenuItem>
+          )}
+          {channelPermissions.canWrite && (
+            <DropdownMenuItem
+              onClick={() => {
+                setCurrentRow(channel);
+                setOpen('modelFormatDisables');
+              }}
+            >
+              <IconCircleOff size={16} className='mr-2' />
+              {t('channels.dialogs.modelFormatDisables.action')}
             </DropdownMenuItem>
           )}
           {channelPermissions.canWrite && (

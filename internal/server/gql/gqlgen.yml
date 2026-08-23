@@ -148,6 +148,12 @@ models:
   ChannelSettingsInput:
     model:
       - github.com/looplj/axonhub/internal/objects.ChannelSettings
+  DisabledModelAPIFormat:
+    model:
+      - github.com/looplj/axonhub/internal/objects.DisabledModelAPIFormat
+  DisabledModelAPIFormatInput:
+    model:
+      - github.com/looplj/axonhub/internal/objects.DisabledModelAPIFormat
   RetryableErrorPattern:
     model:
       - github.com/looplj/axonhub/internal/objects.RetryableErrorPattern

@@ -155,6 +155,16 @@ type ChannelUsageQueryListSettings {
   showInProviderQuota: Boolean
 }
 
+type DisabledModelAPIFormat {
+  model: String!
+  apiFormats: [String!]!
+}
+
+input DisabledModelAPIFormatInput {
+  model: String!
+  apiFormats: [String!]!
+}
+
 type ChannelSettings {
   extraModelPrefix: String
   modelMappings: [ModelMapping!]
@@ -165,6 +175,7 @@ type ChannelSettings {
   hideOriginalModels: Boolean
   hideMappedModels: Boolean
   lowercaseModelId: Boolean
+  disabledModelApiFormats: [DisabledModelAPIFormat!]
   proxy: ProxyConfig
   transformOptions: TransformOptions
   headerOverrideOperations: [OverrideOperation!]! @goField(forceResolver: true)
@@ -237,6 +248,7 @@ input ChannelSettingsInput {
   hideOriginalModels: Boolean
   hideMappedModels: Boolean
   lowercaseModelId: Boolean
+  disabledModelApiFormats: [DisabledModelAPIFormatInput!]
   proxy: ProxyConfigInput
   transformOptions: TransformOptionsInput
   headerOverrideOperations: [OverrideOperationInput!]

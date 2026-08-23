@@ -39,7 +39,15 @@ func TestChannelUsageQueryConfig_SaveAndRegularUpdatePreserveSecret(t *testing.T
 			APIKey:           "request-key",
 			UsageQueryAPIKey: "query-key",
 		}).
-		SetSettings(&objects.ChannelSettings{ExtraModelPrefix: "old-prefix"}).
+		SetSettings(&objects.ChannelSettings{
+			ExtraModelPrefix: "old-prefix",
+			ProviderQuota: &objects.ChannelProviderQuotaSettings{
+				OpencodeGo: &objects.OpenCodeGoQuotaSettings{
+					WorkspaceID: "workspace-1",
+					AuthCookie:  "session-cookie",
+				},
+			},
+		}).
 		SetSupportedModels([]string{"test-model"}).
 		SetDefaultTestModel("test-model").
 		SetStatus(channel.StatusEnabled).
@@ -75,6 +83,10 @@ func TestChannelUsageQueryConfig_SaveAndRegularUpdatePreserveSecret(t *testing.T
 	require.Equal(t, channelUsageQueryTestScript, updated.Settings.UsageQuery.Script)
 	require.NotNil(t, updated.Settings.UsageQuery.ShowInProviderQuota)
 	require.False(t, *updated.Settings.UsageQuery.ShowInProviderQuota)
+	require.NotNil(t, updated.Settings.ProviderQuota)
+	require.NotNil(t, updated.Settings.ProviderQuota.OpencodeGo)
+	require.Equal(t, "workspace-1", updated.Settings.ProviderQuota.OpencodeGo.WorkspaceID)
+	require.Equal(t, "session-cookie", updated.Settings.ProviderQuota.OpencodeGo.AuthCookie)
 	require.Equal(t, "new-prefix", updated.Settings.ExtraModelPrefix)
 }
 
