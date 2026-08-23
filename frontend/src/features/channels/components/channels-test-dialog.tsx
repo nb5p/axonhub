@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChannelTestFailureBadge } from './channel-test-failure-badge';
 import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
 import {
@@ -18,7 +19,6 @@ import {
   getDefaultAvailableChannelTestAPIFormats,
 } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
-import { ErrorDisplay } from '../utils/error-formatter';
 import { mergeChannelSettingsForUpdate } from '../utils/merge';
 import { disableModelAPIFormat, isModelAPIFormatDisabled } from '../utils/model-api-format-disables';
 
@@ -28,6 +28,7 @@ interface ModelTestResult {
   status: TestStatus;
   latency?: number;
   error?: string;
+  requestID?: string;
 }
 
 type ModelTestResults = Record<string, Partial<Record<ChannelTestAPIFormat, ModelTestResult>>>;
@@ -127,6 +128,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
         status: result.success ? 'success' : 'failed',
         latency: result.success ? result.latency || latency : undefined,
         error: result.success ? undefined : result.error || t('channels.dialogs.test.testFailed'),
+        requestID: result.requestID ?? undefined,
       });
     } catch (error) {
       setTestResult(modelName, format, {
@@ -167,18 +169,22 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
     }
   };
 
-  const getStatusBadge = (status: TestStatus) => {
+  const getStatusBadge = (status: TestStatus, result?: ModelTestResult) => {
     switch (status) {
       case 'testing':
         return <Badge variant='secondary'>{t('channels.dialogs.test.testingModel')}</Badge>;
       case 'success':
         return <Badge className='border-green-200 bg-green-100 text-green-800'>{t('channels.dialogs.test.testSuccess')}</Badge>;
       case 'failed':
-        return <Badge variant='destructive'>{t('channels.dialogs.test.testFailed')}</Badge>;
+        return (
+          <ChannelTestFailureBadge error={result?.error} requestID={result?.requestID}>
+            <Badge variant='destructive'>{t('channels.dialogs.test.testFailed')}</Badge>
+          </ChannelTestFailureBadge>
+        );
       case 'skipped':
         return <Badge variant='outline'>{t('channels.dialogs.test.formatUnavailable')}</Badge>;
       case 'disabled':
-        return <Badge variant='outline'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
+        return <Badge variant='outline' className='border-muted-foreground/20 bg-muted text-muted-foreground'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
       default:
         return <Badge variant='outline'>{t('channels.dialogs.test.notStarted')}</Badge>;
     }
@@ -298,9 +304,8 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                         return (
                           <TableCell key={format} className='min-w-52 align-top'>
                             <div className='space-y-2'>
-                              {getStatusBadge(disabled ? 'disabled' : available ? result?.status || 'not_started' : 'skipped')}
+                              {getStatusBadge(disabled ? 'disabled' : available ? result?.status || 'not_started' : 'skipped', result)}
                               {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
-                              {result?.error && <ErrorDisplay error={result.error} messageClassName='text-xs font-medium text-red-600' />}
                               <Button
                                 size='sm'
                                 variant='outline'

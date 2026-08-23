@@ -253,6 +253,7 @@
   "channels.dialogs.test.testingModel": "测试中...",
   "channels.dialogs.test.testSuccess": "✅ 成功",
   "channels.dialogs.test.testFailed": "❌ 失败",
+  "channels.dialogs.test.viewRequestDetails": "查看请求详情",
   "channels.dialogs.test.notStarted": "未开始",
   "channels.dialogs.test.removeFailed": "移除失败模型",
   "channels.dialogs.test.removeFailedConfirm": "确定要从选中列表中移除所有失败的模型吗？",

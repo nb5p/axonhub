@@ -8,13 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TruncatedText } from '@/components/truncated-text';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChannelTestFailureBadge } from './channel-test-failure-badge';
 import { ChannelTestFormatSelector } from './channel-test-format-selector';
 import { useChannels } from '../context/channels-context';
 import { useBulkRecoverChannels, useTestChannel, useUpdateChannel } from '../data/channels';
 import { ChannelTestAPIFormat, defaultChannelTestAPIFormats, getChannelTestAPIFormat } from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
-import { getErrorCode } from '../utils/error-formatter';
 import { mergeChannelSettingsForUpdate } from '../utils/merge';
 import { disableModelAPIFormat, isModelAPIFormatDisabled, type DisabledModelAPIFormat } from '../utils/model-api-format-disables';
 
@@ -25,6 +24,7 @@ interface BulkTestResult {
   status: BulkTestStatus;
   latency?: number;
   error?: string;
+  requestID?: string;
 }
 
 type BulkTestResults = Record<string, Partial<Record<ChannelTestAPIFormat, BulkTestResult>>>;
@@ -179,13 +179,14 @@ export function ChannelsBulkTestDialog() {
         return;
       }
 
-      setResultStatus(channel, format, 'testing', { error: undefined, latency: undefined, modelID });
+      setResultStatus(channel, format, 'testing', { error: undefined, latency: undefined, modelID, requestID: undefined });
       try {
         const result = await testChannel.mutateAsync({ channelID: channel.id, modelID, apiFormat: format });
         setResultStatus(channel, format, result.success ? 'success' : 'failed', {
           modelID,
           latency: result.success ? result.latency : undefined,
           error: result.success ? undefined : result.error || t('common.errors.internalServerError'),
+          requestID: result.requestID ?? undefined,
         });
       } catch (error) {
         setResultStatus(channel, format, 'failed', {
@@ -269,18 +270,22 @@ export function ChannelsBulkTestDialog() {
   );
 
   const getStatusBadge = useCallback(
-    (status: BulkTestStatus) => {
+    (status: BulkTestStatus, result?: BulkTestResult) => {
       switch (status) {
         case 'testing':
           return <Badge variant='secondary'>{t('channels.dialogs.bulkTest.testing')}</Badge>;
         case 'success':
           return <Badge className='border-green-200 bg-green-100 text-green-800'>{t('channels.dialogs.bulkTest.success')}</Badge>;
         case 'failed':
-          return <Badge variant='destructive'>{t('channels.dialogs.bulkTest.failed')}</Badge>;
+          return (
+            <ChannelTestFailureBadge error={result?.error} requestID={result?.requestID}>
+              <Badge variant='destructive'>{t('channels.dialogs.bulkTest.failed')}</Badge>
+            </ChannelTestFailureBadge>
+          );
         case 'skipped':
           return <Badge variant='outline'>{t('channels.dialogs.bulkTest.skipped')}</Badge>;
         case 'disabled':
-          return <Badge variant='outline'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
+          return <Badge variant='outline' className='border-muted-foreground/20 bg-muted text-muted-foreground'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
         default:
           return <Badge variant='outline'>{t('channels.dialogs.bulkTest.idle')}</Badge>;
       }
@@ -379,19 +384,9 @@ export function ChannelsBulkTestDialog() {
                         return (
                           <TableCell key={format} className='min-w-52'>
                             <div className='space-y-2'>
-                              {getStatusBadge(status)}
+                              {getStatusBadge(status, result)}
                               {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
                               {result?.status === 'testing' && <IconLoader2 className='text-muted-foreground h-4 w-4 animate-spin' />}
-                              {result?.error && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className='inline-flex cursor-help text-xs font-medium text-red-600' tabIndex={0}>
-                                      {getErrorCode(result.error)}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent className='max-w-md whitespace-pre-wrap break-words'>{result.error}</TooltipContent>
-                                </Tooltip>
-                              )}
                               <Button
                                 size='sm'
                                 variant='outline'

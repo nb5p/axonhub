@@ -8,8 +8,10 @@ import (
 
 	"github.com/looplj/axonhub/internal/authz"
 	"github.com/looplj/axonhub/internal/contexts"
+	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/log"
 	"github.com/looplj/axonhub/internal/metrics"
+	"github.com/looplj/axonhub/internal/objects"
 	"github.com/looplj/axonhub/internal/pkg/xcontext"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm/httpclient"
@@ -176,6 +178,7 @@ type ChatCompletionResult struct {
 	ChatCompletion       *httpclient.Response
 	ChatCompletionStream streams.Stream[*httpclient.StreamEvent]
 	ResponseHeaders      http.Header
+	RequestID            *objects.GUID
 }
 
 func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, request *httpclient.Request) (ChatCompletionResult, error) {
@@ -319,6 +322,7 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 	)
 
 	result, err := pipe.Process(ctx, request)
+	requestID := persistedRequestGUID(outbound)
 	if err != nil {
 		persistCtx, cancel := xcontext.DetachWithTimeout(ctx, time.Second*10)
 		defer cancel()
@@ -347,7 +351,7 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 			}
 		}
 
-		return ChatCompletionResult{}, err
+		return ChatCompletionResult{RequestID: requestID}, err
 	}
 
 	// Commit turn-state provenance only when the final upstream response
@@ -368,6 +372,7 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 			ChatCompletion:       nil,
 			ChatCompletionStream: result.EventStream,
 			ResponseHeaders:      result.ResponseHeaders,
+			RequestID:            requestID,
 		}, nil
 	}
 
@@ -375,7 +380,24 @@ func (processor *ChatCompletionOrchestrator) Process(ctx context.Context, reques
 		ChatCompletion:       result.Response,
 		ChatCompletionStream: nil,
 		ResponseHeaders:      result.ResponseHeaders,
+		RequestID:            requestID,
 	}, nil
+}
+
+func persistedRequestGUID(outbound *PersistentOutboundTransformer) *objects.GUID {
+	if outbound == nil {
+		return nil
+	}
+
+	persistedRequest := outbound.GetRequest()
+	if persistedRequest == nil {
+		return nil
+	}
+
+	return &objects.GUID{
+		Type: ent.TypeRequest,
+		ID:   persistedRequest.ID,
+	}
 }
 
 func maybeEvaluateChannelAPIKeyRulesOnFailure(

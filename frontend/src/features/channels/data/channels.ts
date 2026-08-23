@@ -450,6 +450,7 @@ const TEST_CHANNEL_MUTATION = `
       success
       error
       message
+      requestID
     }
   }
 `;
@@ -1508,6 +1509,7 @@ export function useTestChannel(options?: { silent?: boolean }) {
             success: boolean;
             message?: string | null;
             error?: string | null;
+            requestID?: string | null;
           };
         }>(TEST_CHANNEL_MUTATION, { input: { channelID, modelID, proxy, apiFormat } });
         return data.testChannel;

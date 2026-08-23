@@ -1917,10 +1917,11 @@ type ComplexityRoot struct {
 	}
 
 	TestChannelPayload struct {
-		Error   func(childComplexity int) int
-		Latency func(childComplexity int) int
-		Message func(childComplexity int) int
-		Success func(childComplexity int) int
+		Error     func(childComplexity int) int
+		Latency   func(childComplexity int) int
+		Message   func(childComplexity int) int
+		RequestID func(childComplexity int) int
+		Success   func(childComplexity int) int
 	}
 
 	TestRequestListSettings struct {
@@ -10834,6 +10835,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TestChannelPayload.Message(childComplexity), true
+	case "TestChannelPayload.requestID":
+		if e.complexity.TestChannelPayload.RequestID == nil {
+			break
+		}
+
+		return e.complexity.TestChannelPayload.RequestID(childComplexity), true
 	case "TestChannelPayload.success":
 		if e.complexity.TestChannelPayload.Success == nil {
 			break
@@ -34827,6 +34834,8 @@ func (ec *executionContext) fieldContext_Mutation_testChannel(ctx context.Contex
 				return ec.fieldContext_TestChannelPayload_message(ctx, field)
 			case "error":
 				return ec.fieldContext_TestChannelPayload_error(ctx, field)
+			case "requestID":
+				return ec.fieldContext_TestChannelPayload_requestID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TestChannelPayload", field.Name)
 		},
@@ -57964,6 +57973,35 @@ func (ec *executionContext) fieldContext_TestChannelPayload_error(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TestChannelPayload_requestID(ctx context.Context, field graphql.CollectedField, obj *TestChannelPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TestChannelPayload_requestID,
+		func(ctx context.Context) (any, error) {
+			return obj.RequestID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋobjectsᚐGUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_TestChannelPayload_requestID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TestChannelPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -111320,6 +111358,8 @@ func (ec *executionContext) _TestChannelPayload(ctx context.Context, sel ast.Sel
 			out.Values[i] = ec._TestChannelPayload_message(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._TestChannelPayload_error(ctx, field, obj)
+		case "requestID":
+			out.Values[i] = ec._TestChannelPayload_requestID(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

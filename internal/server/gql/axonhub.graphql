@@ -358,6 +358,7 @@ type TestChannelPayload {
   success: Boolean!
   message: String
   error: String
+  requestID: ID
 }
 
 type TestAPIKeyResult {

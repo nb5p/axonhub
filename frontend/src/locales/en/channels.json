@@ -256,6 +256,7 @@
   "channels.dialogs.test.testingModel": "Testing...",
   "channels.dialogs.test.testSuccess": "✅ Success",
   "channels.dialogs.test.testFailed": "❌ Failed",
+  "channels.dialogs.test.viewRequestDetails": "View request details",
   "channels.dialogs.test.notStarted": "Not started",
   "channels.dialogs.test.removeFailed": "Remove Failed",
   "channels.dialogs.test.removeFailedConfirm": "Are you sure you want to remove all failed models from the selected list?",

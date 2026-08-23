@@ -273,10 +273,11 @@ func (r *mutationResolver) TestChannel(ctx context.Context, input TestChannelInp
 	}
 
 	return &TestChannelPayload{
-		Latency: result.Latency,
-		Success: result.Success,
-		Message: result.Message,
-		Error:   result.Error,
+		Latency:   result.Latency,
+		Success:   result.Success,
+		Message:   result.Message,
+		Error:     result.Error,
+		RequestID: result.RequestID,
 	}, nil
 }
 

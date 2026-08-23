@@ -259,10 +259,11 @@ func newChannelTestInbound(apiFormat llm.APIFormat) (transformer.Inbound, error)
 
 // TestChannelResult represents the result of a channel test.
 type TestChannelResult struct {
-	Latency float64
-	Success bool
-	Message *string
-	Error   *string
+	Latency   float64
+	Success   bool
+	Message   *string
+	Error     *string
+	RequestID *objects.GUID
 }
 
 // TestChannel tests a specific channel with a simple request.
@@ -339,41 +340,45 @@ func (processor *TestChannelOrchestrator) TestChannel(
 	// Measure latency
 	startTime := time.Now()
 	rawResponse, err := chatProcessor.Process(ctx, httpRequest)
+	requestID := rawResponse.RequestID
 
 	rawErr := inbound.TransformError(ctx, err)
 	message := gjson.GetBytes(rawErr.Body, "error.message").String()
 
 	if err != nil {
 		return &TestChannelResult{
-			Latency: time.Since(startTime).Seconds(),
-			Success: false,
-			Message: new(""),
-			Error:   new(message),
+			Latency:   time.Since(startTime).Seconds(),
+			Success:   false,
+			Message:   new(""),
+			Error:     new(message),
+			RequestID: requestID,
 		}, nil
 	}
 
 	// Handle streaming response
 	if rawResponse.ChatCompletionStream != nil {
-		return processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, apiFormat)
+		return processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, apiFormat, requestID)
 	}
 
 	latency := time.Since(startTime).Seconds()
 
 	if rawResponse.ChatCompletion == nil || len(rawResponse.ChatCompletion.Body) == 0 {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: new(""),
-			Error:   new("No response body"),
+			Latency:   latency,
+			Success:   false,
+			Message:   new(""),
+			Error:     new("No response body"),
+			RequestID: requestID,
 		}, nil
 	}
 
 	if apiFormat != llm.APIFormatOpenAIChatCompletion {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: true,
-			Message: new(""),
-			Error:   nil,
+			Latency:   latency,
+			Success:   true,
+			Message:   new(""),
+			Error:     nil,
+			RequestID: requestID,
 		}, nil
 	}
 
@@ -381,27 +386,30 @@ func (processor *TestChannelOrchestrator) TestChannel(
 	response, err := xjson.To[llm.Response](rawResponse.ChatCompletion.Body)
 	if err != nil {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: new(""),
-			Error:   new(err.Error()),
+			Latency:   latency,
+			Success:   false,
+			Message:   new(""),
+			Error:     new(err.Error()),
+			RequestID: requestID,
 		}, nil
 	}
 
 	if len(response.Choices) == 0 {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: new(""),
-			Error:   new("No message in response"),
+			Latency:   latency,
+			Success:   false,
+			Message:   new(""),
+			Error:     new("No message in response"),
+			RequestID: requestID,
 		}, nil
 	}
 
 	return &TestChannelResult{
-		Latency: latency,
-		Success: true,
-		Message: response.Choices[0].Message.Content.Content,
-		Error:   nil,
+		Latency:   latency,
+		Success:   true,
+		Message:   response.Choices[0].Message.Content.Content,
+		Error:     nil,
+		RequestID: requestID,
 	}, nil
 }
 
@@ -411,6 +419,7 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 	stream streams.Stream[*httpclient.StreamEvent],
 	startTime time.Time,
 	apiFormat llm.APIFormat,
+	requestID *objects.GUID,
 ) (*TestChannelResult, error) {
 	defer func() {
 		_ = stream.Close()
@@ -426,10 +435,11 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 		select {
 		case <-ctx.Done():
 			return &TestChannelResult{
-				Latency: time.Since(startTime).Seconds(),
-				Success: false,
-				Message: lo.ToPtr(accumulatedContent),
-				Error:   lo.ToPtr(ctx.Err().Error()),
+				Latency:   time.Since(startTime).Seconds(),
+				Success:   false,
+				Message:   lo.ToPtr(accumulatedContent),
+				Error:     lo.ToPtr(ctx.Err().Error()),
+				RequestID: requestID,
 			}, nil
 		default:
 		}
@@ -468,36 +478,40 @@ func (processor *TestChannelOrchestrator) handleStreamResponse(
 
 	if err := ctx.Err(); err != nil {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: lo.ToPtr(accumulatedContent),
-			Error:   lo.ToPtr(err.Error()),
+			Latency:   latency,
+			Success:   false,
+			Message:   lo.ToPtr(accumulatedContent),
+			Error:     lo.ToPtr(err.Error()),
+			RequestID: requestID,
 		}, nil
 	}
 
 	if stream.Err() != nil {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: lo.ToPtr(""),
-			Error:   lo.ToPtr(stream.Err().Error()),
+			Latency:   latency,
+			Success:   false,
+			Message:   lo.ToPtr(""),
+			Error:     lo.ToPtr(stream.Err().Error()),
+			RequestID: requestID,
 		}, nil
 	}
 
 	if !receivedEvent || (apiFormat == llm.APIFormatOpenAIChatCompletion && accumulatedContent == "") {
 		return &TestChannelResult{
-			Latency: latency,
-			Success: false,
-			Message: lo.ToPtr(""),
-			Error:   lo.ToPtr("No content in stream response"),
+			Latency:   latency,
+			Success:   false,
+			Message:   lo.ToPtr(""),
+			Error:     lo.ToPtr("No content in stream response"),
+			RequestID: requestID,
 		}, nil
 	}
 
 	return &TestChannelResult{
-		Latency: latency,
-		Success: true,
-		Message: lo.ToPtr(accumulatedContent),
-		Error:   nil,
+		Latency:   latency,
+		Success:   true,
+		Message:   lo.ToPtr(accumulatedContent),
+		Error:     nil,
+		RequestID: requestID,
 	}, nil
 }
 
@@ -739,7 +753,7 @@ func (processor *TestChannelOrchestrator) testSingleKey(
 
 	// Handle streaming response
 	if rawResponse.ChatCompletionStream != nil {
-		streamResult, _ := processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, llm.APIFormatOpenAIChatCompletion)
+		streamResult, _ := processor.handleStreamResponse(ctx, rawResponse.ChatCompletionStream, startTime, llm.APIFormatOpenAIChatCompletion, rawResponse.RequestID)
 
 		return &TestAPIKeyResult{
 			KeyPrefix: keyPrefix,

@@ -527,10 +527,11 @@ type TestChannelInput struct {
 }
 
 type TestChannelPayload struct {
-	Latency float64 `json:"latency"`
-	Success bool    `json:"success"`
-	Message *string `json:"message,omitempty"`
-	Error   *string `json:"error,omitempty"`
+	Latency   float64       `json:"latency"`
+	Success   bool          `json:"success"`
+	Message   *string       `json:"message,omitempty"`
+	Error     *string       `json:"error,omitempty"`
+	RequestID *objects.GUID `json:"requestID,omitempty"`
 }
 
 type TokenStats struct {
