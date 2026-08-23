@@ -209,12 +209,12 @@
 ### 2026-08-23 — channel-model-api-format-disable
 
 - 兼容等级：`additive`。
-- 本地 commit：`43228ad1b6ea89f8fd7777a85f9475269affa682`。
-- 影响结构：不新增或修改 Ent Schema、表、列、索引或迁移；既有 `channels.settings` JSON 新增可选 `disabledModelApiFormats`，每项保存模型名与被禁用的端点 API 格式数组。
-- 旧数据库验证样本：缺失字段按空规则处理，无需回填。业务层规范化、同渠道端点选择、Remote Compaction 排除和 GraphQL 编译检查均已通过。
+- 本地 commit：`43228ad1b6ea89f8fd7777a85f9475269affa682`、`6531cb32d84729d3590549fb67463ffd5cefafdd`。
+- 影响结构：不新增或修改 Ent Schema、表、列、索引或迁移；既有 `channels.settings` JSON 新增可选 `disabledModelApiFormats`，每项保存模型名与被禁用的端点 API 格式数组。GraphQL `TestChannelPayload` 额外增加可空 `requestID`，它只引用既有请求记录的 GID，不写入新数据。
+- 旧数据库验证样本：缺失字段按空规则处理，无需回填。业务层规范化、同渠道端点选择、Remote Compaction 排除，以及测试请求 ID 的 GraphQL 编译检查均已通过。
 - 备份与恢复：本次未创建备份、未部署。部署到绿色 SQLite 前必须按蓝绿流程以 `.backup` 创建一致性副本，对源库和副本执行 `PRAGMA quick_check`，并把时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
 - 回滚能力：旧版本读取渠道 JSON 不会因未知字段失败，但旧 GraphQL 输入不会回传该字段；回退后不要保存已配置规则的渠道。若需保留规则，恢复部署前快照或在回退前导出渠道设置。
-- 最低升级版本：`43228ad1b6ea89f8fd7777a85f9475269affa682`。
+- 最低升级版本：`6531cb32d84729d3590549fb67463ffd5cefafdd`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板

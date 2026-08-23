@@ -17,6 +17,7 @@ local:
   commit_marker: "🧩"
   commits:
     - 43228ad1b6ea89f8fd7777a85f9475269affa682
+    - 6531cb32d84729d3590549fb67463ffd5cefafdd
   modules:
     - frontend/src/features/channels
     - frontend/src/locales
@@ -58,6 +59,8 @@ database:
 - 规则同时匹配请求模型名和映射后的实际模型名，因此模型映射、前后缀和自动裁剪后的请求仍可命中禁用项。
 - 路由在为模型选择端点前过滤该模型禁止的格式。普通 Responses 请求仍可由现有 Transformer 改为 Chat Completions；Remote Compaction 的 Responses 状态不可安全转换，若 Responses 被禁则排除该渠道，绝不伪造 Chat 请求。
 - 渠道模型测试中，已禁用的模型×格式显示“已禁用”且不发请求。某单元格测试失败后，可直接“禁用该模型的此格式”，不再只能删除模型。批量测试把这些格计为跳过，不会卡住进度。
+- 单渠道和批量测试的失败格只显示“失败”标签，完整错误在悬浮或触摸标签后显示，避免错误文本把测试表格撑宽。已禁用标签使用浅灰背景与灰色文字，和失败状态明确区分。
+- `testChannel` 额外返回可空 `requestID`。只要本次测试已经写入请求记录，失败提示中的“查看请求详情”链接即可直接跳到该记录；请求在持久化前失败时仍显示完整错误，但不会伪造链接。
 - 渠道操作菜单新增“模型 API 格式禁用情况”，弹窗列出模型和格式，并可逐项解除。
 - 所有渠道读取与编辑 mutation 的 GraphQL fragments 都返回这个字段，避免其他渠道编辑操作覆盖既有禁用规则。
 - GraphQL 通用 `ChannelSettingsInput` 不暴露 Provider Quota / Usage Query 的敏感凭据。保存一般渠道设置时，后端会保留既有的这两部分数据，避免新增禁用规则时抹掉 OpenCode Go 的 `workspaceId`、`authCookie` 等配置。
@@ -81,6 +84,7 @@ database:
 - `go test ./internal/server/orchestrator -run 'Test(PopulateAPIFormat|IsModelAPIFormatDisabled|SpecifiedChannelSelector)' -count=1`：通过，覆盖同渠道 Responses→Chat、全部格式禁用时排除渠道、Remote Compaction 不转换、显式禁用格式报错。
 - `go test ./internal/server/biz -run 'Test(NormalizeDisabledModelAPIFormats|ChannelUsageQueryConfig_SaveAndRegularUpdatePreserveSecret)' -count=1`：通过，覆盖规则规范化和一般 settings 更新保留 Provider Quota 凭据。
 - `go test ./internal/server/gql -run '^$' -count=1` 与 `make generate`：通过，GraphQL schema 与生成代码一致。
+- `go test ./internal/server/gql ./internal/server/orchestrator -run '^$' -count=1`：通过，验证新增 `TestChannelPayload.requestID` 的 Go/GraphQL 编译链路。
 - `frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json`：通过。
 - `git diff --check`：通过。
 - 本次未构建、部署、重启服务或创建数据库备份。
@@ -90,3 +94,4 @@ database:
 | 日期 | 来源范围 | 本地 commit | 决策与结果 |
 |---|---|---|---|
 | 2026-08-23 | `upstream/unstable@37e54737` | `43228ad1b6ea89f8fd7777a85f9475269affa682` | original：新增模型级格式禁用、同渠道安全转换、测试快捷禁用与可视化管理。 |
+| 2026-08-23 | 本地测试结果 UX 增量 | `6531cb32d84729d3590549fb67463ffd5cefafdd` | original：失败标签以 Tooltip 展示完整错误并链接测试请求详情；已禁用格式改为浅灰标签。 |
