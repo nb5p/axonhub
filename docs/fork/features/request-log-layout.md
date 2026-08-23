@@ -22,6 +22,7 @@ local:
     - 8d9a437cc9aa46ecd419b725762cd4bc76bc3428
     - 3a139b8958b6d8cc4a1fdeac0749ae6a889fcf2c
     - 247d33c813d08d3430f7e01d2bf8b2becc5b8fe9
+    - 5a36ae1eb1a2cabf601cc5c41aeb427a85418274
   modules:
     - frontend/src/features/requests/components/requests-columns.tsx
     - frontend/src/features/requests/components/requests-table.tsx
@@ -30,6 +31,7 @@ local:
     - frontend/src/features/requests/components/request-conversation-viewer.tsx
     - frontend/src/components/json-tree-view.tsx
     - frontend/src/features/requests/data/requests.ts
+    - frontend/src/features/requests/data/schema.ts
     - frontend/src/locales
 upstream:
   repository: https://github.com/looplj/axonhub
@@ -65,6 +67,7 @@ database:
 - 移除 JSON 框中央的折叠悬浮按钮，统一复用页面右下角上箭头：有展开的 JSON 时优先“收起所有展开的内容”，全部收起后恢复“回到页首”。
 - 请求页不再显示独立的“重排列”弹窗按钮；列设置菜单中的拖拽排序和重置顺序功能继续保留，避免出现两套入口。
 - 删除列表末尾重复注册的 `caller` 列，仅保留位于客户端 IP 与渠道之间的“密钥”列；详情操作列现可在列设置中隐藏和调整位置。
+- 新增默认显示的“客户端”列，展示已分类的 Codex、其他或未知调用方；它和其他列一样可在列设置中隐藏、拖动和恢复默认。分类与持久化语义见 `request-client-classification`。
 
 ## 与来源的差异
 
@@ -98,3 +101,4 @@ database:
 | 2026-08-12 | 用户反馈 | `3a139b8958b6d8cc4a1fdeac0749ae6a889fcf2c` | 请求头改为默认折叠，删除居中折叠入口，并让右下角上箭头优先收起当前展开的 JSON。 |
 | 2026-08-22 | 用户反馈 | `f976c1d9bed1` | 移除请求页重复的“重排列”入口，保留列设置中的拖拽排序。 |
 | 2026-08-22 | 用户反馈 | `247d33c813d08d3430f7e01d2bf8b2becc5b8fe9` | 移除重复的密钥列，并让请求操作列可隐藏、排序。 |
+| 2026-08-23 | 请求客户端分类 | `5a36ae1eb1a2cabf601cc5c41aeb427a85418274` | 新增可隐藏、可排序的客户端列；数据库分类字段由 `request-client-classification` 维护。 |

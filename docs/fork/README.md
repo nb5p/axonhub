@@ -32,6 +32,7 @@ AI 每次处理本仓库任务时都必须先阅读本页。涉及下列内容�
 | `prompt-protection-cache-refresh-logging` | 本地原创 | `active` | `764ba81f` | `none` | [`features/prompt-protection-cache-refresh-logging.md`](features/prompt-protection-cache-refresh-logging.md) |
 | `channel-api-key-copy` | 本地原创 | `active` | `236ff5c2`, `c636e07f` | `none` | [`features/channel-api-key-copy.md`](features/channel-api-key-copy.md) |
 | `request-log-layout` | 本地原创 | `active` | `d476d57b`, `81c62c6e`, `1afef2be`, `8d9a437c` | `none` | [`features/request-log-layout.md`](features/request-log-layout.md) |
+| `request-client-classification` | 本地原创 | `active` | `5a36ae1e` | `additive` | [`features/request-client-classification.md`](features/request-client-classification.md) |
 | `request-detail-responsive-interactions` | 本地原创 | `active` | `5963e77e` | `none` | [`features/request-detail-responsive-interactions.md`](features/request-detail-responsive-interactions.md) |
 | `channel-model-multi-filter` | 本地原创 | `active` | `42e7db95`, `b3e3aba6`, `8b0178d0` | `none` | [`features/channel-model-multi-filter.md`](features/channel-model-multi-filter.md) |
 | `channel-model-auto-suffix-trim` | 本地原创 | `active` | `8dfb6603` | `additive` | [`features/channel-model-auto-suffix-trim.md`](features/channel-model-auto-suffix-trim.md) |

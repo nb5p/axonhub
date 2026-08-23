@@ -51,6 +51,7 @@
 | `channel-model-multi-filter` | `none` | 是 | 无 | 新增 GraphQL 查询参数和筛选逻辑，不修改持久化结构。 |
 | `channel-model-auto-suffix-trim` | `additive` | 是 | 既有 `channels.settings` JSON 增加可选 `autoTrimedModelSuffixes` | 旧渠道缺失时关闭，不需要回填。 |
 | `channel-model-api-format-disable` | `additive` | 是 | 既有 `channels.settings` JSON 增加可选 `disabledModelApiFormats` | 缺失时没有禁用规则；旧版本保存该渠道可能丢失未知字段。 |
+| `request-client-classification` | `additive` | 是 | `requests` 表新增不可变 enum `client`，默认 `unknown` | 旧请求不回填；写入渠道客户端范围规则后回退到旧版本并保存该渠道，可能丢失 `clients` 字段。 |
 | `filter-state-persistence` | `none` | 是 | 无 | 仅使用浏览器本地存储保存页面筛选状态。 |
 | `provider-quota-display` | `none` | 是 | 无 | 复用现有系统键值表中的配额 JSON；新增字段带安全默认值，不修改 Ent Schema。 |
 | `channel-usage-query` | `additive` | 是 | 扩展 `provider_quota_status.provider_type` 枚举；在渠道 settings/credentials JSON 中增加可选字段 | 旧数据无需回填；`usageQuery.showInProviderQuota` 缺失时默认显示；回退后用旧版本编辑已配置渠道可能丢失未知 JSON 字段。 |
@@ -215,6 +216,17 @@
 - 备份与恢复：本次未创建备份、未部署。部署到绿色 SQLite 前必须按蓝绿流程以 `.backup` 创建一致性副本，对源库和副本执行 `PRAGMA quick_check`，并把时间、路径、大小、哈希和校验结果登记到 Obsidian 备份日志。
 - 回滚能力：旧版本读取渠道 JSON 不会因未知字段失败，但旧 GraphQL 输入不会回传该字段；回退后不要保存已配置规则的渠道。若需保留规则，恢复部署前快照或在回退前导出渠道设置。
 - 最低升级版本：`6531cb32d84729d3590549fb67463ffd5cefafdd`。
+- 用户批准（仅 breaking）：不适用。
+
+### 2026-08-23 — request-client-classification
+
+- 兼容等级：`additive`。
+- 本地 commit：`5a36ae1eb1a2cabf601cc5c41aeb427a85418274`。
+- 影响结构：Ent 在 `requests` 表新增不可变 enum `client`，允许值为 `unknown`、`other`、`codex`，数据库默认值为 `unknown`。同时 `channels.settings.disabledModelApiFormats` 的每个条目可选写入 `clients` 数组，以限定规则作用的请求客户端。
+- 旧数据库验证样本：旧请求保留默认 `unknown`，不从历史请求头反向推断或回填；缺失或空 `clients` 数组仍表示全客户端规则。新增列使用安全默认值，升级不需要数据迁移。
+- 备份与恢复：部署到绿色前必须以 SQLite `.backup` 创建一致性副本，并在源库与副本执行 `PRAGMA quick_check`，同时登记 Obsidian 备份日志。
+- 回滚能力：旧版本可读取新的请求列；但旧版本保存含 `disabledModelApiFormats.clients` 的渠道设置时不能带回该字段，回退后不要编辑该渠道，或从部署前备份恢复设置。
+- 最低升级版本：`5a36ae1eb1a2cabf601cc5c41aeb427a85418274`。
 - 用户批准（仅 breaking）：不适用。
 
 ## 后续登记模板
