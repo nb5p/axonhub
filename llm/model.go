@@ -266,6 +266,10 @@ type Request struct {
 	// RawRequest is the raw request from the client.
 	RawRequest *httpclient.Request `json:"raw_request,omitempty"`
 
+	// Client is the classified inbound request client. It is runtime metadata
+	// used for routing and persistence, not part of an outbound provider body.
+	Client RequestClient `json:"-"`
+
 	// RequestType is the original inbound request type from the client.
 	// e.g. the request from the chat/completions endpoint is in the chat type.
 	// if it is embedding request, it will be embedding.

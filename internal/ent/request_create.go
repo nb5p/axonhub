@@ -128,6 +128,20 @@ func (_c *RequestCreate) SetNillableSource(v *request.Source) *RequestCreate {
 	return _c
 }
 
+// SetClient sets the "client" field.
+func (_c *RequestCreate) SetClient(v request.Client) *RequestCreate {
+	_c.mutation.SetClient(v)
+	return _c
+}
+
+// SetNillableClient sets the "client" field if the given value is not nil.
+func (_c *RequestCreate) SetNillableClient(v *request.Client) *RequestCreate {
+	if v != nil {
+		_c.SetClient(*v)
+	}
+	return _c
+}
+
 // SetModelID sets the "model_id" field.
 func (_c *RequestCreate) SetModelID(v string) *RequestCreate {
 	_c.mutation.SetModelID(v)
@@ -460,6 +474,10 @@ func (_c *RequestCreate) defaults() error {
 		v := request.DefaultSource
 		_c.mutation.SetSource(v)
 	}
+	if _, ok := _c.mutation.GetClient(); !ok {
+		v := request.DefaultClient
+		_c.mutation.SetClient(v)
+	}
 	if _, ok := _c.mutation.Format(); !ok {
 		v := request.DefaultFormat
 		_c.mutation.SetFormat(v)
@@ -490,6 +508,14 @@ func (_c *RequestCreate) check() error {
 	if v, ok := _c.mutation.Source(); ok {
 		if err := request.SourceValidator(v); err != nil {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Request.source": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.GetClient(); !ok {
+		return &ValidationError{Name: "client", err: errors.New(`ent: missing required field "Request.client"`)}
+	}
+	if v, ok := _c.mutation.GetClient(); ok {
+		if err := request.ClientValidator(v); err != nil {
+			return &ValidationError{Name: "client", err: fmt.Errorf(`ent: validator failed for field "Request.client": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ModelID(); !ok {
@@ -564,6 +590,10 @@ func (_c *RequestCreate) createSpec() (*Request, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Source(); ok {
 		_spec.SetField(request.FieldSource, field.TypeEnum, value)
 		_node.Source = value
+	}
+	if value, ok := _c.mutation.GetClient(); ok {
+		_spec.SetField(request.FieldClient, field.TypeEnum, value)
+		_node.Client = value
 	}
 	if value, ok := _c.mutation.ModelID(); ok {
 		_spec.SetField(request.FieldModelID, field.TypeString, value)
@@ -1092,6 +1122,9 @@ func (u *RequestUpsertOne) UpdateNewValues() *RequestUpsertOne {
 		}
 		if _, exists := u.create.mutation.Source(); exists {
 			s.SetIgnore(request.FieldSource)
+		}
+		if _, exists := u.create.mutation.GetClient(); exists {
+			s.SetIgnore(request.FieldClient)
 		}
 		if _, exists := u.create.mutation.ModelID(); exists {
 			s.SetIgnore(request.FieldModelID)
@@ -1636,6 +1669,9 @@ func (u *RequestUpsertBulk) UpdateNewValues() *RequestUpsertBulk {
 			}
 			if _, exists := b.mutation.Source(); exists {
 				s.SetIgnore(request.FieldSource)
+			}
+			if _, exists := b.mutation.GetClient(); exists {
+				s.SetIgnore(request.FieldClient)
 			}
 			if _, exists := b.mutation.ModelID(); exists {
 				s.SetIgnore(request.FieldModelID)

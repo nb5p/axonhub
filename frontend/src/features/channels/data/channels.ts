@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { graphqlRequest } from '@/gql/graphql';
 import { fetchAllConnectionPages, MAX_CONNECTION_PAGE_SIZE } from '@/gql/fetch-all-connection';
+import { graphqlRequest } from '@/gql/graphql';
 import { pageInfoSchema } from '@/gql/pagination';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -103,6 +103,7 @@ const CREATE_CHANNEL_MUTATION = `
         disabledModelApiFormats {
           model
           apiFormats
+          clients
         }
         proxy {
           type
@@ -180,6 +181,7 @@ const DUPLICATE_CHANNEL_MUTATION = `
         disabledModelApiFormats {
           model
           apiFormats
+          clients
         }
         proxy {
           type
@@ -257,6 +259,7 @@ const BULK_CREATE_CHANNELS_MUTATION = `
         disabledModelApiFormats {
           model
           apiFormats
+          clients
         }
         proxy {
           type
@@ -334,6 +337,7 @@ const UPDATE_CHANNEL_MUTATION = `
         disabledModelApiFormats {
           model
           apiFormats
+          clients
         }
         proxy {
           type
@@ -534,6 +538,7 @@ const BULK_IMPORT_CHANNELS_MUTATION = `
           disabledModelApiFormats {
             model
             apiFormats
+            clients
           }
           transformOptions {
             forceArrayInstructions
@@ -767,6 +772,7 @@ const BULK_UPDATE_CHANNEL_ORDERING_MUTATION = `
           disabledModelApiFormats {
             model
             apiFormats
+            clients
           }
           transformOptions {
             forceArrayInstructions
@@ -883,9 +889,10 @@ const QUERY_CHANNELS_QUERY = `
             hideOriginalModels
             hideMappedModels
             lowercaseModelId
-            disabledModelApiFormats {
-              model
-              apiFormats
+          disabledModelApiFormats {
+            model
+            apiFormats
+            clients
             }
             bodyOverrideOperations {
               op

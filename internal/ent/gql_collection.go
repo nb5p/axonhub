@@ -3762,6 +3762,11 @@ func (_q *RequestQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, request.FieldSource)
 				fieldSeen[request.FieldSource] = struct{}{}
 			}
+		case "client":
+			if _, ok := fieldSeen[request.FieldClient]; !ok {
+				selectedFields = append(selectedFields, request.FieldClient)
+				fieldSeen[request.FieldClient] = struct{}{}
+			}
 		case "modelID":
 			if _, ok := fieldSeen[request.FieldModelID]; !ok {
 				selectedFields = append(selectedFields, request.FieldModelID)

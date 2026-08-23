@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,23 @@ type mockInboundTransformer struct {
 	aggregateResponseBody []byte
 	aggregateMeta         llm.ResponseMeta
 	aggregateErr          error
+}
+
+func TestPersistentInboundTransformer_ClassifiesRequestClient(t *testing.T) {
+	state := &PersistenceState{}
+	persistent := &PersistentInboundTransformer{
+		wrapped: &mockInboundTransformer{},
+		state:   state,
+	}
+
+	request, err := persistent.TransformRequest(context.Background(), &httpclient.Request{
+		Headers: http.Header{
+			"User-Agent": {"Codex Desktop/0.149.0-alpha.4.1 (Mac OS 26.5.1; arm64)"},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, llm.RequestClientCodex, request.Client)
+	require.Same(t, request, state.LlmRequest)
 }
 
 func (m *mockInboundTransformer) APIFormat() llm.APIFormat {

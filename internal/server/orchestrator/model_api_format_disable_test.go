@@ -103,8 +103,39 @@ func TestIsModelAPIFormatDisabled_MatchesActualModel(t *testing.T) {
 	}}}
 	entry := biz.ChannelModelEntry{RequestModel: "glm-5.2", ActualModel: "provider/glm-5.2"}
 
-	require.True(t, IsModelAPIFormatDisabled(settings, entry, llm.APIFormatOpenAIResponse.String()))
-	require.False(t, IsModelAPIFormatDisabled(settings, entry, llm.APIFormatOpenAIChatCompletion.String()))
+	require.True(t, IsModelAPIFormatDisabled(settings, entry, llm.APIFormatOpenAIResponse.String(), llm.RequestClientOther))
+	require.False(t, IsModelAPIFormatDisabled(settings, entry, llm.APIFormatOpenAIChatCompletion.String(), llm.RequestClientOther))
+}
+
+func TestPopulateAPIFormat_CodexScopedResponsesRestriction(t *testing.T) {
+	entry := biz.ChannelModelEntry{RequestModel: "glm-5.2", ActualModel: "glm-5.2"}
+	settings := &objects.ChannelSettings{DisabledModelAPIFormats: []objects.DisabledModelAPIFormat{{
+		Model:      "glm-5.2",
+		APIFormats: []string{llm.APIFormatOpenAIResponse.String()},
+		Clients:    []string{string(llm.RequestClientCodex)},
+	}}}
+	makeCandidates := func() []*ChannelModelsCandidate {
+		return []*ChannelModelsCandidate{{
+			Channel: testChannelWithEndpoints(settings, []objects.ChannelEndpoint{{APIFormat: llm.APIFormatOpenAIResponse.String()}}),
+			Models:  []biz.ChannelModelEntry{entry},
+		}}
+	}
+
+	codex := populateAPIFormat(makeCandidates(), &llm.Request{
+		RequestType: llm.RequestTypeChat,
+		APIFormat:   llm.APIFormatOpenAIResponse,
+		Client:      llm.RequestClientCodex,
+	})
+	require.Len(t, codex, 1)
+	require.Equal(t, llm.APIFormatOpenAIChatCompletion.String(), codex[0].APIFormat)
+
+	other := populateAPIFormat(makeCandidates(), &llm.Request{
+		RequestType: llm.RequestTypeChat,
+		APIFormat:   llm.APIFormatOpenAIResponse,
+		Client:      llm.RequestClientOther,
+	})
+	require.Len(t, other, 1)
+	require.Equal(t, llm.APIFormatOpenAIResponse.String(), other[0].APIFormat)
 }
 
 func testChannelWithEndpoints(settings *objects.ChannelSettings, endpoints []objects.ChannelEndpoint) *biz.Channel {

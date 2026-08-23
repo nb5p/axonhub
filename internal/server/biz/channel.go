@@ -24,6 +24,7 @@ import (
 	"github.com/looplj/axonhub/internal/pkg/xcache/live"
 	"github.com/looplj/axonhub/internal/pkg/xerrors"
 	"github.com/looplj/axonhub/internal/server/scheduler"
+	"github.com/looplj/axonhub/llm"
 	"github.com/looplj/axonhub/llm/httpclient"
 	"github.com/looplj/axonhub/llm/transformer"
 	xaisubscription "github.com/looplj/axonhub/llm/transformer/xai/subscription"
@@ -711,7 +712,7 @@ func NormalizeDisabledModelAPIFormats(settings *objects.ChannelSettings) error {
 	}
 
 	normalized := make([]objects.DisabledModelAPIFormat, 0, len(settings.DisabledModelAPIFormats))
-	byModel := make(map[string]int, len(settings.DisabledModelAPIFormats))
+	byModelAndClients := make(map[string]int, len(settings.DisabledModelAPIFormats))
 	for index, entry := range settings.DisabledModelAPIFormats {
 		entry.Model = strings.TrimSpace(entry.Model)
 		if entry.Model == "" {
@@ -736,7 +737,30 @@ func NormalizeDisabledModelAPIFormats(settings *objects.ChannelSettings) error {
 			return fmt.Errorf("disabled model API format entry %d requires at least one API format", index+1)
 		}
 
-		if existingIndex, exists := byModel[entry.Model]; exists {
+		var clients []string
+		if len(entry.Clients) > 0 {
+			clients = make([]string, 0, len(entry.Clients))
+		}
+		seenClients := make(map[string]struct{}, len(entry.Clients))
+		for _, client := range entry.Clients {
+			client = strings.ToLower(strings.TrimSpace(client))
+			if client == "" {
+				continue
+			}
+			if !llm.IsKnownRequestClient(llm.RequestClient(client)) {
+				return fmt.Errorf("disabled model API format entry %d has unsupported client %q", index+1, client)
+			}
+			if _, seen := seenClients[client]; seen {
+				continue
+			}
+
+			seenClients[client] = struct{}{}
+			clients = append(clients, client)
+		}
+		slices.Sort(clients)
+
+		key := entry.Model + "\x00" + strings.Join(clients, "\x00")
+		if existingIndex, exists := byModelAndClients[key]; exists {
 			existing := &normalized[existingIndex]
 			seenExisting := make(map[string]struct{}, len(existing.APIFormats))
 			for _, apiFormat := range existing.APIFormats {
@@ -753,10 +777,11 @@ func NormalizeDisabledModelAPIFormats(settings *objects.ChannelSettings) error {
 			continue
 		}
 
-		byModel[entry.Model] = len(normalized)
+		byModelAndClients[key] = len(normalized)
 		normalized = append(normalized, objects.DisabledModelAPIFormat{
 			Model:      entry.Model,
 			APIFormats: formats,
+			Clients:    clients,
 		})
 	}
 

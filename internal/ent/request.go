@@ -38,6 +38,8 @@ type Request struct {
 	DataStorageID int `json:"data_storage_id,omitempty"`
 	// Source holds the value of the "source" field.
 	Source request.Source `json:"source,omitempty"`
+	// Classified request client derived from the inbound User-Agent
+	Client request.Client `json:"client,omitempty"`
 	// ModelID holds the value of the "model_id" field.
 	ModelID string `json:"model_id,omitempty"`
 	// Reasoning effort used for reasoning models
@@ -192,7 +194,7 @@ func (*Request) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case request.FieldID, request.FieldAPIKeyID, request.FieldProjectID, request.FieldTraceID, request.FieldDataStorageID, request.FieldChannelID, request.FieldMetricsLatencyMs, request.FieldMetricsFirstTokenLatencyMs, request.FieldMetricsReasoningDurationMs, request.FieldContentStorageID:
 			values[i] = new(sql.NullInt64)
-		case request.FieldSource, request.FieldModelID, request.FieldReasoningEffort, request.FieldFormat, request.FieldExternalID, request.FieldStatus, request.FieldClientIP, request.FieldContentStorageKey:
+		case request.FieldSource, request.FieldClient, request.FieldModelID, request.FieldReasoningEffort, request.FieldFormat, request.FieldExternalID, request.FieldStatus, request.FieldClientIP, request.FieldContentStorageKey:
 			values[i] = new(sql.NullString)
 		case request.FieldCreatedAt, request.FieldUpdatedAt, request.FieldContentSavedAt:
 			values[i] = new(sql.NullTime)
@@ -258,6 +260,12 @@ func (_m *Request) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field source", values[i])
 			} else if value.Valid {
 				_m.Source = request.Source(value.String)
+			}
+		case request.FieldClient:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field client", values[i])
+			} else if value.Valid {
+				_m.Client = request.Client(value.String)
 			}
 		case request.FieldModelID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -478,6 +486,9 @@ func (_m *Request) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("source=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Source))
+	builder.WriteString(", ")
+	builder.WriteString("client=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Client))
 	builder.WriteString(", ")
 	builder.WriteString("model_id=")
 	builder.WriteString(_m.ModelID)

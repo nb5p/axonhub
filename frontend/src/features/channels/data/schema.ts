@@ -334,6 +334,7 @@ export const channelSettingsSchema = z.object({
       z.object({
         model: z.string(),
         apiFormats: z.array(z.string()),
+        clients: z.array(z.string()).optional().nullable(),
       })
     )
     .optional()
@@ -570,9 +571,7 @@ function validateOAuthCredentials(type: string, apiKey: string | undefined, ctx:
   if (requiresJSON && !apiKey.trim().startsWith('{')) {
     ctx.addIssue({
       code: 'custom' as const,
-      message: isCopilot
-        ? 'channels.dialogs.oauth.errors.copilotCredentialsInvalid'
-        : 'channels.dialogs.oauth.errors.credentialsInvalid',
+      message: isCopilot ? 'channels.dialogs.oauth.errors.copilotCredentialsInvalid' : 'channels.dialogs.oauth.errors.credentialsInvalid',
       path: ['credentials', 'apiKey'],
     });
     return;

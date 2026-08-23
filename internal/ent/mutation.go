@@ -16236,6 +16236,7 @@ type RequestMutation struct {
 	created_at                        *time.Time
 	updated_at                        *time.Time
 	source                            *request.Source
+	client                            *request.Client
 	model_id                          *string
 	reasoning_effort                  *string
 	format                            *string
@@ -16671,6 +16672,42 @@ func (m *RequestMutation) OldSource(ctx context.Context) (v request.Source, err 
 // ResetSource resets all changes to the "source" field.
 func (m *RequestMutation) ResetSource() {
 	m.source = nil
+}
+
+// SetClient sets the "client" field.
+func (m *RequestMutation) SetClient(r request.Client) {
+	m.client = &r
+}
+
+// GetClient returns the value of the "client" field in the mutation.
+func (m *RequestMutation) GetClient() (r request.Client, exists bool) {
+	v := m.client
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClient returns the old "client" field's value of the Request entity.
+// If the Request object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RequestMutation) OldClient(ctx context.Context) (v request.Client, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClient is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClient requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClient: %w", err)
+	}
+	return oldValue.Client, nil
+}
+
+// ResetClient resets all changes to the "client" field.
+func (m *RequestMutation) ResetClient() {
+	m.client = nil
 }
 
 // SetModelID sets the "model_id" field.
@@ -17937,7 +17974,7 @@ func (m *RequestMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RequestMutation) Fields() []string {
-	fields := make([]string, 0, 26)
+	fields := make([]string, 0, 27)
 	if m.created_at != nil {
 		fields = append(fields, request.FieldCreatedAt)
 	}
@@ -17958,6 +17995,9 @@ func (m *RequestMutation) Fields() []string {
 	}
 	if m.source != nil {
 		fields = append(fields, request.FieldSource)
+	}
+	if m.client != nil {
+		fields = append(fields, request.FieldClient)
 	}
 	if m.model_id != nil {
 		fields = append(fields, request.FieldModelID)
@@ -18038,6 +18078,8 @@ func (m *RequestMutation) Field(name string) (ent.Value, bool) {
 		return m.DataStorageID()
 	case request.FieldSource:
 		return m.Source()
+	case request.FieldClient:
+		return m.GetClient()
 	case request.FieldModelID:
 		return m.ModelID()
 	case request.FieldReasoningEffort:
@@ -18099,6 +18141,8 @@ func (m *RequestMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldDataStorageID(ctx)
 	case request.FieldSource:
 		return m.OldSource(ctx)
+	case request.FieldClient:
+		return m.OldClient(ctx)
 	case request.FieldModelID:
 		return m.OldModelID(ctx)
 	case request.FieldReasoningEffort:
@@ -18194,6 +18238,13 @@ func (m *RequestMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSource(v)
+		return nil
+	case request.FieldClient:
+		v, ok := value.(request.Client)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClient(v)
 		return nil
 	case request.FieldModelID:
 		v, ok := value.(string)
@@ -18541,6 +18592,9 @@ func (m *RequestMutation) ResetField(name string) error {
 		return nil
 	case request.FieldSource:
 		m.ResetSource()
+		return nil
+	case request.FieldClient:
+		m.ResetClient()
 		return nil
 	case request.FieldModelID:
 		m.ResetModelID()

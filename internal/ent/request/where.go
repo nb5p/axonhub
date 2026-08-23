@@ -365,6 +365,26 @@ func SourceNotIn(vs ...Source) predicate.Request {
 	return predicate.Request(sql.FieldNotIn(FieldSource, vs...))
 }
 
+// ClientEQ applies the EQ predicate on the "client" field.
+func ClientEQ(v Client) predicate.Request {
+	return predicate.Request(sql.FieldEQ(FieldClient, v))
+}
+
+// ClientNEQ applies the NEQ predicate on the "client" field.
+func ClientNEQ(v Client) predicate.Request {
+	return predicate.Request(sql.FieldNEQ(FieldClient, v))
+}
+
+// ClientIn applies the In predicate on the "client" field.
+func ClientIn(vs ...Client) predicate.Request {
+	return predicate.Request(sql.FieldIn(FieldClient, vs...))
+}
+
+// ClientNotIn applies the NotIn predicate on the "client" field.
+func ClientNotIn(vs ...Client) predicate.Request {
+	return predicate.Request(sql.FieldNotIn(FieldClient, vs...))
+}
+
 // ModelIDEQ applies the EQ predicate on the "model_id" field.
 func ModelIDEQ(v string) predicate.Request {
 	return predicate.Request(sql.FieldEQ(FieldModelID, v))

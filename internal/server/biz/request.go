@@ -231,6 +231,7 @@ func (s *RequestService) CreateRequest(
 	mut := client.Request.Create().
 		SetProjectID(projectID).
 		SetModelID(llmRequest.Model).
+		SetClient(request.Client(llm.NormalizeRequestClient(llmRequest.Client))).
 		SetFormat(string(format)).
 		SetSource(contexts.GetSourceOrDefault(ctx, request.SourceAPI)).
 		SetStatus(request.StatusProcessing).

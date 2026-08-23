@@ -74,7 +74,7 @@ func populateAPIFormat(candidates []*ChannelModelsCandidate, req *llm.Request) [
 		}
 
 		if c.APIFormat != "" {
-			c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat)
+			c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat, req.Client)
 			if len(c.Models) > 0 {
 				populated = append(populated, c)
 			}
@@ -86,13 +86,13 @@ func populateAPIFormat(candidates []*ChannelModelsCandidate, req *llm.Request) [
 		// for its first attempt, then drop only fallback models that prohibit
 		// that exact endpoint. This keeps retries safe without preventing the
 		// channel from handling a compatible primary model.
-		endpoints := FilterEndpointsForModel(c.Channel.ResolveEndpoints(), c.Channel.Settings, c.Models[0])
+		endpoints := FilterEndpointsForModel(c.Channel.ResolveEndpoints(), c.Channel.Settings, c.Models[0], req.Client)
 		c.APIFormat = SelectAPIFormat(endpoints, req)
 		if c.APIFormat == "" {
 			continue
 		}
 
-		c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat)
+		c.Models = filterModelsForAPIFormat(c.Channel.Settings, c.Models, c.APIFormat, req.Client)
 		if len(c.Models) == 0 {
 			continue
 		}
@@ -107,10 +107,11 @@ func filterModelsForAPIFormat(
 	settings *objects.ChannelSettings,
 	models []biz.ChannelModelEntry,
 	apiFormat string,
+	requestClient llm.RequestClient,
 ) []biz.ChannelModelEntry {
 	filtered := make([]biz.ChannelModelEntry, 0, len(models))
 	for _, entry := range models {
-		if IsModelAPIFormatDisabled(settings, entry, apiFormat) {
+		if IsModelAPIFormatDisabled(settings, entry, apiFormat, requestClient) {
 			continue
 		}
 

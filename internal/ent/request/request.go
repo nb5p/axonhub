@@ -32,6 +32,8 @@ const (
 	FieldDataStorageID = "data_storage_id"
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
+	// FieldClient holds the string denoting the client field in the database.
+	FieldClient = "client"
 	// FieldModelID holds the string denoting the model_id field in the database.
 	FieldModelID = "model_id"
 	// FieldReasoningEffort holds the string denoting the reasoning_effort field in the database.
@@ -147,6 +149,7 @@ var Columns = []string{
 	FieldTraceID,
 	FieldDataStorageID,
 	FieldSource,
+	FieldClient,
 	FieldModelID,
 	FieldReasoningEffort,
 	FieldFormat,
@@ -233,6 +236,33 @@ func SourceValidator(s Source) error {
 	}
 }
 
+// Client defines the type for the "client" enum field.
+type Client string
+
+// ClientUnknown is the default value of the Client enum.
+const DefaultClient = ClientUnknown
+
+// Client values.
+const (
+	ClientUnknown Client = "unknown"
+	ClientOther   Client = "other"
+	ClientCodex   Client = "codex"
+)
+
+func (c Client) String() string {
+	return string(c)
+}
+
+// ClientValidator is a validator for the "client" field enum values. It is called by the builders before save.
+func ClientValidator(c Client) error {
+	switch c {
+	case ClientUnknown, ClientOther, ClientCodex:
+		return nil
+	default:
+		return fmt.Errorf("request: invalid enum value for client field: %q", c)
+	}
+}
+
 // Status defines the type for the "status" enum field.
 type Status string
 
@@ -300,6 +330,11 @@ func ByDataStorageID(opts ...sql.OrderTermOption) OrderOption {
 // BySource orders the results by the source field.
 func BySource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// ByClient orders the results by the client field.
+func ByClient(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldClient, opts...).ToFunc()
 }
 
 // ByModelID orders the results by the model_id field.
@@ -503,6 +538,24 @@ func (e *Source) UnmarshalGQL(val interface{}) error {
 	*e = Source(str)
 	if err := SourceValidator(*e); err != nil {
 		return fmt.Errorf("%s is not a valid Source", str)
+	}
+	return nil
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (e Client) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(e.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (e *Client) UnmarshalGQL(val interface{}) error {
+	str, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("enum %T must be a string", val)
+	}
+	*e = Client(str)
+	if err := ClientValidator(*e); err != nil {
+		return fmt.Errorf("%s is not a valid Client", str)
 	}
 	return nil
 }

@@ -6505,6 +6505,12 @@ type RequestWhereInput struct {
 	SourceIn    []request.Source `json:"sourceIn,omitempty"`
 	SourceNotIn []request.Source `json:"sourceNotIn,omitempty"`
 
+	// "client" field predicates.
+	Client      *request.Client  `json:"client,omitempty"`
+	ClientNEQ   *request.Client  `json:"clientNEQ,omitempty"`
+	ClientIn    []request.Client `json:"clientIn,omitempty"`
+	ClientNotIn []request.Client `json:"clientNotIn,omitempty"`
+
 	// "model_id" field predicates.
 	ModelID             *string  `json:"modelID,omitempty"`
 	ModelIDNEQ          *string  `json:"modelIDNEQ,omitempty"`
@@ -6932,6 +6938,18 @@ func (i *RequestWhereInput) P() (predicate.Request, error) {
 	}
 	if len(i.SourceNotIn) > 0 {
 		predicates = append(predicates, request.SourceNotIn(i.SourceNotIn...))
+	}
+	if i.Client != nil {
+		predicates = append(predicates, request.ClientEQ(*i.Client))
+	}
+	if i.ClientNEQ != nil {
+		predicates = append(predicates, request.ClientNEQ(*i.ClientNEQ))
+	}
+	if len(i.ClientIn) > 0 {
+		predicates = append(predicates, request.ClientIn(i.ClientIn...))
+	}
+	if len(i.ClientNotIn) > 0 {
+		predicates = append(predicates, request.ClientNotIn(i.ClientNotIn...))
 	}
 	if i.ModelID != nil {
 		predicates = append(predicates, request.ModelIDEQ(*i.ModelID))

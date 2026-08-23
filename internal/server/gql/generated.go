@@ -796,6 +796,7 @@ type ComplexityRoot struct {
 
 	DisabledModelAPIFormat struct {
 		APIFormats func(childComplexity int) int
+		Clients    func(childComplexity int) int
 		Model      func(childComplexity int) int
 	}
 
@@ -1566,6 +1567,7 @@ type ComplexityRoot struct {
 		APIKeyID                   func(childComplexity int) int
 		Channel                    func(childComplexity int) int
 		ChannelID                  func(childComplexity int) int
+		Client                     func(childComplexity int) int
 		ClientIP                   func(childComplexity int) int
 		ContentSaved               func(childComplexity int) int
 		ContentSavedAt             func(childComplexity int) int
@@ -5300,6 +5302,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DisabledModelAPIFormat.APIFormats(childComplexity), true
+	case "DisabledModelAPIFormat.clients":
+		if e.complexity.DisabledModelAPIFormat.Clients == nil {
+			break
+		}
+
+		return e.complexity.DisabledModelAPIFormat.Clients(childComplexity), true
 	case "DisabledModelAPIFormat.model":
 		if e.complexity.DisabledModelAPIFormat.Model == nil {
 			break
@@ -9495,6 +9503,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Request.ChannelID(childComplexity), true
+	case "Request.client":
+		if e.complexity.Request.Client == nil {
+			break
+		}
+
+		return e.complexity.Request.Client(childComplexity), true
 	case "Request.clientIP":
 		if e.complexity.Request.ClientIP == nil {
 			break
@@ -26305,6 +26319,8 @@ func (ec *executionContext) fieldContext_ChannelSettings_disabledModelApiFormats
 				return ec.fieldContext_DisabledModelAPIFormat_model(ctx, field)
 			case "apiFormats":
 				return ec.fieldContext_DisabledModelAPIFormat_apiFormats(ctx, field)
+			case "clients":
+				return ec.fieldContext_DisabledModelAPIFormat_clients(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type DisabledModelAPIFormat", field.Name)
 		},
@@ -29851,6 +29867,35 @@ func (ec *executionContext) _DisabledModelAPIFormat_apiFormats(ctx context.Conte
 }
 
 func (ec *executionContext) fieldContext_DisabledModelAPIFormat_apiFormats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DisabledModelAPIFormat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DisabledModelAPIFormat_clients(ctx context.Context, field graphql.CollectedField, obj *objects.DisabledModelAPIFormat) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DisabledModelAPIFormat_clients,
+		func(ctx context.Context) (any, error) {
+			return obj.Clients, nil
+		},
+		nil,
+		ec.marshalOString2ᚕstringᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_DisabledModelAPIFormat_clients(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "DisabledModelAPIFormat",
 		Field:      field,
@@ -51004,6 +51049,35 @@ func (ec *executionContext) fieldContext_Request_source(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Request_client(ctx context.Context, field graphql.CollectedField, obj *ent.Request) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Request_client,
+		func(ctx context.Context) (any, error) {
+			return obj.Client, nil
+		},
+		nil,
+		ec.marshalNRequestClient2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Request_client(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Request",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RequestClient does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Request_modelID(ctx context.Context, field graphql.CollectedField, obj *ent.Request) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -52129,6 +52203,8 @@ func (ec *executionContext) fieldContext_RequestEdge_node(_ context.Context, fie
 				return ec.fieldContext_Request_dataStorageID(ctx, field)
 			case "source":
 				return ec.fieldContext_Request_source(ctx, field)
+			case "client":
+				return ec.fieldContext_Request_client(ctx, field)
 			case "modelID":
 				return ec.fieldContext_Request_modelID(ctx, field)
 			case "reasoningEffort":
@@ -52953,6 +53029,8 @@ func (ec *executionContext) fieldContext_RequestExecution_request(_ context.Cont
 				return ec.fieldContext_Request_dataStorageID(ctx, field)
 			case "source":
 				return ec.fieldContext_Request_source(ctx, field)
+			case "client":
+				return ec.fieldContext_Request_client(ctx, field)
 			case "modelID":
 				return ec.fieldContext_Request_modelID(ctx, field)
 			case "reasoningEffort":
@@ -61684,6 +61762,8 @@ func (ec *executionContext) fieldContext_UsageLog_request(_ context.Context, fie
 				return ec.fieldContext_Request_dataStorageID(ctx, field)
 			case "source":
 				return ec.fieldContext_Request_source(ctx, field)
+			case "client":
+				return ec.fieldContext_Request_client(ctx, field)
 			case "modelID":
 				return ec.fieldContext_Request_modelID(ctx, field)
 			case "reasoningEffort":
@@ -74341,7 +74421,7 @@ func (ec *executionContext) unmarshalInputCreateRequestInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"source", "modelID", "reasoningEffort", "format", "requestHeaders", "requestBody", "responseBody", "responseChunks", "externalID", "status", "stream", "clientIP", "metricsLatencyMs", "metricsFirstTokenLatencyMs", "metricsReasoningDurationMs", "contentSaved", "contentStorageID", "contentStorageKey", "contentSavedAt", "apiKeyID", "projectID", "traceID", "dataStorageID", "channelID"}
+	fieldsInOrder := [...]string{"source", "client", "modelID", "reasoningEffort", "format", "requestHeaders", "requestBody", "responseBody", "responseChunks", "externalID", "status", "stream", "clientIP", "metricsLatencyMs", "metricsFirstTokenLatencyMs", "metricsReasoningDurationMs", "contentSaved", "contentStorageID", "contentStorageKey", "contentSavedAt", "apiKeyID", "projectID", "traceID", "dataStorageID", "channelID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -74355,6 +74435,13 @@ func (ec *executionContext) unmarshalInputCreateRequestInput(ctx context.Context
 				return it, err
 			}
 			it.Source = data
+		case "client":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client"))
+			data, err := ec.unmarshalORequestClient2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Client = data
 		case "modelID":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelID"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -75754,7 +75841,7 @@ func (ec *executionContext) unmarshalInputDisabledModelAPIFormatInput(ctx contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"model", "apiFormats"}
+	fieldsInOrder := [...]string{"model", "apiFormats", "clients"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -75775,6 +75862,13 @@ func (ec *executionContext) unmarshalInputDisabledModelAPIFormatInput(ctx contex
 				return it, err
 			}
 			it.APIFormats = data
+		case "clients":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clients"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Clients = data
 		}
 	}
 
@@ -83591,7 +83685,7 @@ func (ec *executionContext) unmarshalInputRequestWhereInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "createdAt", "createdAtNEQ", "createdAtIn", "createdAtNotIn", "createdAtGT", "createdAtGTE", "createdAtLT", "createdAtLTE", "updatedAt", "updatedAtNEQ", "updatedAtIn", "updatedAtNotIn", "updatedAtGT", "updatedAtGTE", "updatedAtLT", "updatedAtLTE", "apiKeyID", "apiKeyIDNEQ", "apiKeyIDIn", "apiKeyIDNotIn", "apiKeyIDIsNil", "apiKeyIDNotNil", "projectID", "projectIDNEQ", "projectIDIn", "projectIDNotIn", "traceID", "traceIDNEQ", "traceIDIn", "traceIDNotIn", "traceIDIsNil", "traceIDNotNil", "dataStorageID", "dataStorageIDNEQ", "dataStorageIDIn", "dataStorageIDNotIn", "dataStorageIDIsNil", "dataStorageIDNotNil", "source", "sourceNEQ", "sourceIn", "sourceNotIn", "modelID", "modelIDNEQ", "modelIDIn", "modelIDNotIn", "modelIDGT", "modelIDGTE", "modelIDLT", "modelIDLTE", "modelIDContains", "modelIDHasPrefix", "modelIDHasSuffix", "modelIDEqualFold", "modelIDContainsFold", "reasoningEffort", "reasoningEffortNEQ", "reasoningEffortIn", "reasoningEffortNotIn", "reasoningEffortGT", "reasoningEffortGTE", "reasoningEffortLT", "reasoningEffortLTE", "reasoningEffortContains", "reasoningEffortHasPrefix", "reasoningEffortHasSuffix", "reasoningEffortIsNil", "reasoningEffortNotNil", "reasoningEffortEqualFold", "reasoningEffortContainsFold", "format", "formatNEQ", "formatIn", "formatNotIn", "formatGT", "formatGTE", "formatLT", "formatLTE", "formatContains", "formatHasPrefix", "formatHasSuffix", "formatEqualFold", "formatContainsFold", "channelID", "channelIDNEQ", "channelIDIn", "channelIDNotIn", "channelIDIsNil", "channelIDNotNil", "externalID", "externalIDNEQ", "externalIDIn", "externalIDNotIn", "externalIDGT", "externalIDGTE", "externalIDLT", "externalIDLTE", "externalIDContains", "externalIDHasPrefix", "externalIDHasSuffix", "externalIDIsNil", "externalIDNotNil", "externalIDEqualFold", "externalIDContainsFold", "status", "statusNEQ", "statusIn", "statusNotIn", "stream", "streamNEQ", "clientIP", "clientIPNEQ", "clientIPIn", "clientIPNotIn", "clientIPGT", "clientIPGTE", "clientIPLT", "clientIPLTE", "clientIPContains", "clientIPHasPrefix", "clientIPHasSuffix", "clientIPEqualFold", "clientIPContainsFold", "metricsLatencyMs", "metricsLatencyMsNEQ", "metricsLatencyMsIn", "metricsLatencyMsNotIn", "metricsLatencyMsGT", "metricsLatencyMsGTE", "metricsLatencyMsLT", "metricsLatencyMsLTE", "metricsLatencyMsIsNil", "metricsLatencyMsNotNil", "metricsFirstTokenLatencyMs", "metricsFirstTokenLatencyMsNEQ", "metricsFirstTokenLatencyMsIn", "metricsFirstTokenLatencyMsNotIn", "metricsFirstTokenLatencyMsGT", "metricsFirstTokenLatencyMsGTE", "metricsFirstTokenLatencyMsLT", "metricsFirstTokenLatencyMsLTE", "metricsFirstTokenLatencyMsIsNil", "metricsFirstTokenLatencyMsNotNil", "metricsReasoningDurationMs", "metricsReasoningDurationMsNEQ", "metricsReasoningDurationMsIn", "metricsReasoningDurationMsNotIn", "metricsReasoningDurationMsGT", "metricsReasoningDurationMsGTE", "metricsReasoningDurationMsLT", "metricsReasoningDurationMsLTE", "metricsReasoningDurationMsIsNil", "metricsReasoningDurationMsNotNil", "contentSaved", "contentSavedNEQ", "contentStorageID", "contentStorageIDNEQ", "contentStorageIDIn", "contentStorageIDNotIn", "contentStorageIDGT", "contentStorageIDGTE", "contentStorageIDLT", "contentStorageIDLTE", "contentStorageIDIsNil", "contentStorageIDNotNil", "contentStorageKey", "contentStorageKeyNEQ", "contentStorageKeyIn", "contentStorageKeyNotIn", "contentStorageKeyGT", "contentStorageKeyGTE", "contentStorageKeyLT", "contentStorageKeyLTE", "contentStorageKeyContains", "contentStorageKeyHasPrefix", "contentStorageKeyHasSuffix", "contentStorageKeyIsNil", "contentStorageKeyNotNil", "contentStorageKeyEqualFold", "contentStorageKeyContainsFold", "contentSavedAt", "contentSavedAtNEQ", "contentSavedAtIn", "contentSavedAtNotIn", "contentSavedAtGT", "contentSavedAtGTE", "contentSavedAtLT", "contentSavedAtLTE", "contentSavedAtIsNil", "contentSavedAtNotNil", "hasAPIKey", "hasAPIKeyWith", "hasProject", "hasProjectWith", "hasTrace", "hasTraceWith", "hasDataStorage", "hasDataStorageWith", "hasExecutions", "hasExecutionsWith", "hasChannel", "hasChannelWith", "hasUsageLogs", "hasUsageLogsWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "createdAt", "createdAtNEQ", "createdAtIn", "createdAtNotIn", "createdAtGT", "createdAtGTE", "createdAtLT", "createdAtLTE", "updatedAt", "updatedAtNEQ", "updatedAtIn", "updatedAtNotIn", "updatedAtGT", "updatedAtGTE", "updatedAtLT", "updatedAtLTE", "apiKeyID", "apiKeyIDNEQ", "apiKeyIDIn", "apiKeyIDNotIn", "apiKeyIDIsNil", "apiKeyIDNotNil", "projectID", "projectIDNEQ", "projectIDIn", "projectIDNotIn", "traceID", "traceIDNEQ", "traceIDIn", "traceIDNotIn", "traceIDIsNil", "traceIDNotNil", "dataStorageID", "dataStorageIDNEQ", "dataStorageIDIn", "dataStorageIDNotIn", "dataStorageIDIsNil", "dataStorageIDNotNil", "source", "sourceNEQ", "sourceIn", "sourceNotIn", "client", "clientNEQ", "clientIn", "clientNotIn", "modelID", "modelIDNEQ", "modelIDIn", "modelIDNotIn", "modelIDGT", "modelIDGTE", "modelIDLT", "modelIDLTE", "modelIDContains", "modelIDHasPrefix", "modelIDHasSuffix", "modelIDEqualFold", "modelIDContainsFold", "reasoningEffort", "reasoningEffortNEQ", "reasoningEffortIn", "reasoningEffortNotIn", "reasoningEffortGT", "reasoningEffortGTE", "reasoningEffortLT", "reasoningEffortLTE", "reasoningEffortContains", "reasoningEffortHasPrefix", "reasoningEffortHasSuffix", "reasoningEffortIsNil", "reasoningEffortNotNil", "reasoningEffortEqualFold", "reasoningEffortContainsFold", "format", "formatNEQ", "formatIn", "formatNotIn", "formatGT", "formatGTE", "formatLT", "formatLTE", "formatContains", "formatHasPrefix", "formatHasSuffix", "formatEqualFold", "formatContainsFold", "channelID", "channelIDNEQ", "channelIDIn", "channelIDNotIn", "channelIDIsNil", "channelIDNotNil", "externalID", "externalIDNEQ", "externalIDIn", "externalIDNotIn", "externalIDGT", "externalIDGTE", "externalIDLT", "externalIDLTE", "externalIDContains", "externalIDHasPrefix", "externalIDHasSuffix", "externalIDIsNil", "externalIDNotNil", "externalIDEqualFold", "externalIDContainsFold", "status", "statusNEQ", "statusIn", "statusNotIn", "stream", "streamNEQ", "clientIP", "clientIPNEQ", "clientIPIn", "clientIPNotIn", "clientIPGT", "clientIPGTE", "clientIPLT", "clientIPLTE", "clientIPContains", "clientIPHasPrefix", "clientIPHasSuffix", "clientIPEqualFold", "clientIPContainsFold", "metricsLatencyMs", "metricsLatencyMsNEQ", "metricsLatencyMsIn", "metricsLatencyMsNotIn", "metricsLatencyMsGT", "metricsLatencyMsGTE", "metricsLatencyMsLT", "metricsLatencyMsLTE", "metricsLatencyMsIsNil", "metricsLatencyMsNotNil", "metricsFirstTokenLatencyMs", "metricsFirstTokenLatencyMsNEQ", "metricsFirstTokenLatencyMsIn", "metricsFirstTokenLatencyMsNotIn", "metricsFirstTokenLatencyMsGT", "metricsFirstTokenLatencyMsGTE", "metricsFirstTokenLatencyMsLT", "metricsFirstTokenLatencyMsLTE", "metricsFirstTokenLatencyMsIsNil", "metricsFirstTokenLatencyMsNotNil", "metricsReasoningDurationMs", "metricsReasoningDurationMsNEQ", "metricsReasoningDurationMsIn", "metricsReasoningDurationMsNotIn", "metricsReasoningDurationMsGT", "metricsReasoningDurationMsGTE", "metricsReasoningDurationMsLT", "metricsReasoningDurationMsLTE", "metricsReasoningDurationMsIsNil", "metricsReasoningDurationMsNotNil", "contentSaved", "contentSavedNEQ", "contentStorageID", "contentStorageIDNEQ", "contentStorageIDIn", "contentStorageIDNotIn", "contentStorageIDGT", "contentStorageIDGTE", "contentStorageIDLT", "contentStorageIDLTE", "contentStorageIDIsNil", "contentStorageIDNotNil", "contentStorageKey", "contentStorageKeyNEQ", "contentStorageKeyIn", "contentStorageKeyNotIn", "contentStorageKeyGT", "contentStorageKeyGTE", "contentStorageKeyLT", "contentStorageKeyLTE", "contentStorageKeyContains", "contentStorageKeyHasPrefix", "contentStorageKeyHasSuffix", "contentStorageKeyIsNil", "contentStorageKeyNotNil", "contentStorageKeyEqualFold", "contentStorageKeyContainsFold", "contentSavedAt", "contentSavedAtNEQ", "contentSavedAtIn", "contentSavedAtNotIn", "contentSavedAtGT", "contentSavedAtGTE", "contentSavedAtLT", "contentSavedAtLTE", "contentSavedAtIsNil", "contentSavedAtNotNil", "hasAPIKey", "hasAPIKeyWith", "hasProject", "hasProjectWith", "hasTrace", "hasTraceWith", "hasDataStorage", "hasDataStorageWith", "hasExecutions", "hasExecutionsWith", "hasChannel", "hasChannelWith", "hasUsageLogs", "hasUsageLogsWith"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -84065,6 +84159,34 @@ func (ec *executionContext) unmarshalInputRequestWhereInput(ctx context.Context,
 				return it, err
 			}
 			it.SourceNotIn = data
+		case "client":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("client"))
+			data, err := ec.unmarshalORequestClient2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Client = data
+		case "clientNEQ":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clientNEQ"))
+			data, err := ec.unmarshalORequestClient2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientNEQ = data
+		case "clientIn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clientIn"))
+			data, err := ec.unmarshalORequestClient2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClientᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientIn = data
+		case "clientNotIn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clientNotIn"))
+			data, err := ec.unmarshalORequestClient2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClientᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientNotIn = data
 		case "modelID":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -100260,6 +100382,8 @@ func (ec *executionContext) _DisabledModelAPIFormat(ctx context.Context, sel ast
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "clients":
+			out.Values[i] = ec._DisabledModelAPIFormat_clients(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -108042,6 +108166,11 @@ func (ec *executionContext) _Request(ctx context.Context, sel ast.SelectionSet, 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "source":
 			out.Values[i] = ec._Request_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "client":
+			out.Values[i] = ec._Request_client(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
@@ -120248,6 +120377,16 @@ func (ec *executionContext) marshalNRequest2ᚖgithubᚗcomᚋloopljᚋaxonhub�
 	return ec._Request(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNRequestClient2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx context.Context, v any) (request.Client, error) {
+	var res request.Client
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRequestClient2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx context.Context, sel ast.SelectionSet, v request.Client) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNRequestConnection2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐRequestConnection(ctx context.Context, sel ast.SelectionSet, v ent.RequestConnection) graphql.Marshaler {
 	return ec._RequestConnection(ctx, sel, &v)
 }
@@ -127130,6 +127269,87 @@ func (ec *executionContext) marshalORequest2ᚖgithubᚗcomᚋloopljᚋaxonhub�
 		return graphql.Null
 	}
 	return ec._Request(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalORequestClient2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClientᚄ(ctx context.Context, v any) ([]request.Client, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]request.Client, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNRequestClient2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalORequestClient2ᚕgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClientᚄ(ctx context.Context, sel ast.SelectionSet, v []request.Client) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRequestClient2githubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalORequestClient2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx context.Context, v any) (*request.Client, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(request.Client)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORequestClient2ᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚋrequestᚐClient(ctx context.Context, sel ast.SelectionSet, v *request.Client) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalORequestEdge2ᚕᚖgithubᚗcomᚋloopljᚋaxonhubᚋinternalᚋentᚐRequestEdge(ctx context.Context, sel ast.SelectionSet, v []*ent.RequestEdge) graphql.Marshaler {

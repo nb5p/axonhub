@@ -132,7 +132,7 @@ func (s *DefaultSelector) selectChannelCadidates(ctx context.Context, req *llm.R
 			continue
 		}
 
-		endpoints := FilterEndpointsForModel(ch.ResolveEndpoints(), ch.Settings, entry)
+		endpoints := FilterEndpointsForModel(ch.ResolveEndpoints(), ch.Settings, entry, req.Client)
 		apiFormat := SelectAPIFormat(endpoints, req)
 		if apiFormat == "" {
 			continue
@@ -1158,7 +1158,7 @@ func (s *SpecifiedChannelSelector) Select(ctx context.Context, req *llm.Request)
 		return nil, fmt.Errorf("model %s not supported in channel %s", req.Model, channel.Name)
 	}
 
-	endpoints := FilterEndpointsForModel(channel.ResolveEndpoints(), channel.Settings, entry)
+	endpoints := FilterEndpointsForModel(channel.ResolveEndpoints(), channel.Settings, entry, req.Client)
 	apiFormat := SelectAPIFormat(endpoints, req)
 	if apiFormat == "" && s.SelectedAPIFormat == "" {
 		return nil, fmt.Errorf("channel %s model %s has no usable API format", channel.Name, entry.ActualModel)
@@ -1168,7 +1168,7 @@ func (s *SpecifiedChannelSelector) Select(ctx context.Context, req *llm.Request)
 			return nil, fmt.Errorf("API format %s does not support chat requests", s.SelectedAPIFormat)
 		}
 
-		if IsModelAPIFormatDisabled(channel.Settings, entry, s.SelectedAPIFormat) {
+		if IsModelAPIFormatDisabled(channel.Settings, entry, s.SelectedAPIFormat, req.Client) {
 			return nil, fmt.Errorf(
 				"channel %s model %s has disabled API format %s",
 				channel.Name,

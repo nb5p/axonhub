@@ -403,6 +403,7 @@ var schemaGraph = func() *sqlgraph.Schema {
 			request.FieldTraceID:                    {Type: field.TypeInt, Column: request.FieldTraceID},
 			request.FieldDataStorageID:              {Type: field.TypeInt, Column: request.FieldDataStorageID},
 			request.FieldSource:                     {Type: field.TypeEnum, Column: request.FieldSource},
+			request.FieldClient:                     {Type: field.TypeEnum, Column: request.FieldClient},
 			request.FieldModelID:                    {Type: field.TypeString, Column: request.FieldModelID},
 			request.FieldReasoningEffort:            {Type: field.TypeString, Column: request.FieldReasoningEffort},
 			request.FieldFormat:                     {Type: field.TypeString, Column: request.FieldFormat},
@@ -3306,6 +3307,11 @@ func (f *RequestFilter) WhereDataStorageID(p entql.IntP) {
 // WhereSource applies the entql string predicate on the source field.
 func (f *RequestFilter) WhereSource(p entql.StringP) {
 	f.Where(p.Field(request.FieldSource))
+}
+
+// WhereClient applies the entql string predicate on the client field.
+func (f *RequestFilter) WhereClient(p entql.StringP) {
+	f.Where(p.Field(request.FieldClient))
 }
 
 // WhereModelID applies the entql string predicate on the model_id field.

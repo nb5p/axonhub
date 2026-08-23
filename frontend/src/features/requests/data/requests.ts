@@ -19,11 +19,15 @@ function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChann
     ? `
           apiKey {
             id
-            name${permissions.canViewCallerUser ? `
+            name${
+              permissions.canViewCallerUser
+                ? `
             user {
               firstName
               lastName
-            }` : ''}
+            }`
+                : ''
+            }
           }`
     : '';
 
@@ -59,6 +63,7 @@ function buildRequestsQuery(permissions: { canViewApiKeys: boolean; canViewChann
             createdAt
             updatedAt${apiKeyFields}${requestChannelFields}
             source
+            client
             modelID
             format
             reasoningEffort
@@ -122,11 +127,15 @@ function buildRequestDetailQuery(permissions: { canViewApiKeys: boolean; canView
     ? `
           apiKey {
             id
-            name${permissions.canViewCallerUser ? `
+            name${
+              permissions.canViewCallerUser
+                ? `
             user {
               firstName
               lastName
-            }` : ''}
+            }`
+                : ''
+            }
         }`
     : '';
 
@@ -146,6 +155,7 @@ function buildRequestDetailQuery(permissions: { canViewApiKeys: boolean; canView
           createdAt
           updatedAt${apiKeyFields}${requestChannelFields}
           source
+          client
           modelID
           stream
           clientIP
@@ -185,11 +195,15 @@ function buildRequestDetailPollingQuery(permissions: { canViewApiKeys: boolean; 
     ? `
           apiKey {
             id
-            name${permissions.canViewCallerUser ? `
+            name${
+              permissions.canViewCallerUser
+                ? `
             user {
               firstName
               lastName
-            }` : ''}
+            }`
+                : ''
+            }
         }`
     : '';
 
@@ -209,6 +223,7 @@ function buildRequestDetailPollingQuery(permissions: { canViewApiKeys: boolean; 
           createdAt
           updatedAt${apiKeyFields}${requestChannelFields}
           source
+          client
           modelID
           stream
           clientIP
@@ -376,8 +391,7 @@ export function useInfiniteRequests(variables?: RequestListVariables, options?: 
         throw error;
       }
     },
-    getNextPageParam: (lastPage) =>
-      lastPage.pageInfo.hasNextPage ? (lastPage.pageInfo.endCursor ?? undefined) : undefined,
+    getNextPageParam: (lastPage) => (lastPage.pageInfo.hasNextPage ? (lastPage.pageInfo.endCursor ?? undefined) : undefined),
     enabled,
     refetchOnWindowFocus: false,
   });
@@ -409,9 +423,7 @@ export function useRequest(
         const previousRequest = queryClient.getQueryData<Request>(queryKey);
         const shouldUseLightweightPolling = previousRequest?.status === 'processing';
 
-        const query = shouldUseLightweightPolling
-          ? buildRequestDetailPollingQuery(permissions)
-          : buildRequestDetailQuery(permissions);
+        const query = shouldUseLightweightPolling ? buildRequestDetailPollingQuery(permissions) : buildRequestDetailQuery(permissions);
 
         const data = await graphqlRequest<{ node: Request }>(query, { id }, headers);
         if (!data.node) {
@@ -472,9 +484,7 @@ export async function fetchAdjacentRequestPage(params: {
 }): Promise<{ requests: Request[]; pageInfo: RequestConnection['pageInfo'] }> {
   const query = buildRequestsQuery(params.permissions);
   const variables =
-    params.direction === 'older'
-      ? { first: params.pageSize, after: params.cursor }
-      : { last: params.pageSize, before: params.cursor };
+    params.direction === 'older' ? { first: params.pageSize, after: params.cursor } : { last: params.pageSize, before: params.cursor };
 
   const headers = params.projectId ? { 'X-Project-ID': params.projectId } : undefined;
   const data = await graphqlRequest<{ requests: RequestConnection }>(

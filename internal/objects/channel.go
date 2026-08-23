@@ -256,6 +256,9 @@ type ChannelSettings struct {
 type DisabledModelAPIFormat struct {
 	Model      string   `json:"model"`
 	APIFormats []string `json:"apiFormats"`
+	// Clients scopes this restriction to classified request clients. An omitted
+	// or empty list preserves the legacy behaviour of applying to every client.
+	Clients []string `json:"clients,omitempty"`
 }
 
 type RetryableErrorPattern struct {

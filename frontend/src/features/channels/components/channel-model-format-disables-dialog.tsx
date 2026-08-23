@@ -30,13 +30,10 @@ export function ChannelModelFormatDisablesDialog({ open, onOpenChange, channel }
     }
   }, [channel.settings?.disabledModelApiFormats, open]);
 
-  const formatLabels = useMemo(
-    () => new Map(channelTestAPIFormats.map((format) => [format.endpointFormat, t(format.labelKey)])),
-    [t]
-  );
+  const formatLabels = useMemo(() => new Map(channelTestAPIFormats.map((format) => [format.endpointFormat, t(format.labelKey)])), [t]);
 
-  const handleEnable = async (model: string, endpointFormat: string) => {
-    const nextDisabledModelAPIFormats = enableModelAPIFormat(disabledModelAPIFormats, model, endpointFormat);
+  const handleEnable = async (model: string, endpointFormat: string, clients?: string[] | null) => {
+    const nextDisabledModelAPIFormats = enableModelAPIFormat(disabledModelAPIFormats, model, endpointFormat, clients ?? undefined);
 
     try {
       await updateChannel.mutateAsync({
@@ -72,24 +69,32 @@ export function ChannelModelFormatDisablesDialog({ open, onOpenChange, channel }
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('channels.dialogs.modelFormatDisables.model')}</TableHead>
+                  <TableHead>{t('channels.dialogs.modelFormatDisables.clients')}</TableHead>
                   <TableHead>{t('channels.dialogs.modelFormatDisables.apiFormats')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {disabledModelAPIFormats.map(({ model, apiFormats }) => (
-                  <TableRow key={model}>
+                {disabledModelAPIFormats.map(({ model, apiFormats, clients }) => (
+                  <TableRow key={`${model}:${(clients ?? []).join(',')}`}>
                     <TableCell className='align-top font-medium'>{model}</TableCell>
+                    <TableCell className='align-top'>
+                      <Badge variant='secondary'>
+                        {(clients?.length ?? 0) === 0
+                          ? t('channels.dialogs.modelFormatDisables.allClients')
+                          : clients?.map((client) => t(`channels.dialogs.modelFormatDisables.client.${client}`)).join(', ')}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className='flex flex-wrap gap-2'>
                         {apiFormats.map((endpointFormat) => (
-                          <Badge key={endpointFormat} variant='outline' className='h-8 gap-1.5 pl-2.5 pr-1'>
+                          <Badge key={endpointFormat} variant='outline' className='h-8 gap-1.5 pr-1 pl-2.5'>
                             {formatLabels.get(endpointFormat) ?? endpointFormat}
                             <Button
                               type='button'
                               variant='ghost'
                               size='icon'
                               className='h-6 w-6'
-                              onClick={() => handleEnable(model, endpointFormat)}
+                              onClick={() => handleEnable(model, endpointFormat, clients)}
                               disabled={updateChannel.isPending}
                               aria-label={t('channels.dialogs.modelFormatDisables.enable')}
                             >

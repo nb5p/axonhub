@@ -912,6 +912,7 @@ func (c *PromptProtectionRuleUpdateOne) SetInput(i UpdatePromptProtectionRuleInp
 // CreateRequestInput represents a mutation input for creating requests.
 type CreateRequestInput struct {
 	Source                     *request.Source
+	Client                     *request.Client
 	ModelID                    string
 	ReasoningEffort            *string
 	Format                     *string
@@ -941,6 +942,9 @@ type CreateRequestInput struct {
 func (i *CreateRequestInput) Mutate(m *RequestMutation) {
 	if v := i.Source; v != nil {
 		m.SetSource(*v)
+	}
+	if v := i.Client; v != nil {
+		m.SetClient(*v)
 	}
 	m.SetModelID(i.ModelID)
 	if v := i.ReasoningEffort; v != nil {

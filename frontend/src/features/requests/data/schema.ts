@@ -12,6 +12,9 @@ export type RequestStatus = z.infer<typeof requestStatusSchema>;
 export const requestSourceSchema = z.enum(['api', 'playground', 'test']);
 export type RequestSource = z.infer<typeof requestSourceSchema>;
 
+export const requestClientSchema = z.enum(['unknown', 'other', 'codex']);
+export type RequestClient = z.infer<typeof requestClientSchema>;
+
 // Request Execution Status
 export const requestExecutionStatusSchema = z.enum(['pending', 'processing', 'completed', 'failed', 'canceled']);
 export type RequestExecutionStatus = z.infer<typeof requestExecutionStatusSchema>;
@@ -53,6 +56,7 @@ export const requestSchema = z.object({
   // channelID: z.string().optional().nullable(),
   channel: channelSchema.partial().nullable().optional(),
   source: requestSourceSchema,
+  client: requestClientSchema.optional(),
   modelID: z.string(),
   reasoningEffort: z.string().nullable().optional(),
   contentSaved: z.boolean().optional(),

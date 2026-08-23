@@ -3,8 +3,8 @@
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import { IconArrowsJoin2, IconRoute } from '@tabler/icons-react';
-import { Ban, FileText } from 'lucide-react';
 import { zhCN, enUS } from 'date-fns/locale';
+import { Ban, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { extractNumberID } from '@/lib/utils';
@@ -198,7 +198,9 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
                     <IconRoute className='h-3.5 w-3.5' />
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>{t(passThroughApplied ? 'requests.tooltips.passThroughApplied' : 'requests.tooltips.passThroughNotApplied')}</TooltipContent>
+                <TooltipContent>
+                  {t(passThroughApplied ? 'requests.tooltips.passThroughApplied' : 'requests.tooltips.passThroughNotApplied')}
+                </TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -228,6 +230,17 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       enableHiding: false,
       filterFn: (row, id, value) => value.includes(row.getValue(id)),
       cell: () => null,
+    },
+    {
+      id: 'client',
+      accessorKey: 'client',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('requests.columns.client')} />,
+      enableSorting: false,
+      enableHiding: true,
+      cell: ({ row }) => {
+        const client = row.original.client ?? 'unknown';
+        return <Badge variant='secondary'>{t(`requests.client.${client}`)}</Badge>;
+      },
     },
     {
       id: 'clientIP',
@@ -584,13 +597,21 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
         }
 
         if (!request.stream) {
-          return <span className='font-mono text-xs'>{t('requests.duration.total', { duration: formatDuration(request.metricsLatencyMs) })}</span>;
+          return (
+            <span className='font-mono text-xs'>
+              {t('requests.duration.total', { duration: formatDuration(request.metricsLatencyMs) })}
+            </span>
+          );
         }
 
         return (
           <div className='min-w-[128px] font-mono text-xs'>
-            {request.metricsFirstTokenLatencyMs != null && <div>{t('requests.duration.firstToken', { duration: formatDuration(request.metricsFirstTokenLatencyMs) })}</div>}
-            <div className='text-muted-foreground'>{t('requests.duration.total', { duration: formatDuration(request.metricsLatencyMs) })}</div>
+            {request.metricsFirstTokenLatencyMs != null && (
+              <div>{t('requests.duration.firstToken', { duration: formatDuration(request.metricsFirstTokenLatencyMs) })}</div>
+            )}
+            <div className='text-muted-foreground'>
+              {t('requests.duration.total', { duration: formatDuration(request.metricsLatencyMs) })}
+            </div>
           </div>
         );
       },
@@ -611,9 +632,7 @@ export function useRequestsColumns(options?: UseRequestsColumnsOptions): ColumnD
       enableSorting: true,
       enableHiding: true,
       cell: ({ row }) => (
-        <span className='text-xs whitespace-nowrap'>
-          {format(new Date(row.original.createdAt), 'yyyy-MM-dd HH:mm:ss', { locale })}
-        </span>
+        <span className='text-xs whitespace-nowrap'>{format(new Date(row.original.createdAt), 'yyyy-MM-dd HH:mm:ss', { locale })}</span>
       ),
     },
     {

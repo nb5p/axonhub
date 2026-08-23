@@ -57,6 +57,11 @@ func (Request) Fields() []ent.Field {
 			Immutable().
 			Comment("Data Storage ID that this request belongs to"),
 		field.Enum("source").Values("api", "playground", "test").Default("api").Immutable(),
+		field.Enum("client").
+			Values("unknown", "other", "codex").
+			Default("unknown").
+			Immutable().
+			Comment("Classified request client derived from the inbound User-Agent"),
 		field.String("model_id").Immutable(),
 		field.String("reasoning_effort").
 			Optional().

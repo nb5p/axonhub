@@ -533,6 +533,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("CURRENT_TIMESTAMP")},
 		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("CURRENT_TIMESTAMP")},
 		{Name: "source", Type: field.TypeEnum, Enums: []string{"api", "playground", "test"}, Default: "api"},
+		{Name: "client", Type: field.TypeEnum, Enums: []string{"unknown", "other", "codex"}, Default: "unknown"},
 		{Name: "model_id", Type: field.TypeString},
 		{Name: "reasoning_effort", Type: field.TypeString, Nullable: true},
 		{Name: "format", Type: field.TypeString, Default: "openai/chat_completions"},
@@ -565,31 +566,31 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "requests_api_keys_requests",
-				Columns:    []*schema.Column{RequestsColumns[22]},
+				Columns:    []*schema.Column{RequestsColumns[23]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "requests_channels_requests",
-				Columns:    []*schema.Column{RequestsColumns[23]},
+				Columns:    []*schema.Column{RequestsColumns[24]},
 				RefColumns: []*schema.Column{ChannelsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "requests_data_storages_requests",
-				Columns:    []*schema.Column{RequestsColumns[24]},
+				Columns:    []*schema.Column{RequestsColumns[25]},
 				RefColumns: []*schema.Column{DataStoragesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "requests_projects_requests",
-				Columns:    []*schema.Column{RequestsColumns[25]},
+				Columns:    []*schema.Column{RequestsColumns[26]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "requests_traces_requests",
-				Columns:    []*schema.Column{RequestsColumns[26]},
+				Columns:    []*schema.Column{RequestsColumns[27]},
 				RefColumns: []*schema.Column{TracesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -598,22 +599,22 @@ var (
 			{
 				Name:    "requests_by_api_key_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{RequestsColumns[22], RequestsColumns[1]},
+				Columns: []*schema.Column{RequestsColumns[23], RequestsColumns[1]},
 			},
 			{
 				Name:    "requests_by_project_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{RequestsColumns[25], RequestsColumns[1]},
+				Columns: []*schema.Column{RequestsColumns[26], RequestsColumns[1]},
 			},
 			{
 				Name:    "requests_by_channel_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{RequestsColumns[23], RequestsColumns[1]},
+				Columns: []*schema.Column{RequestsColumns[24], RequestsColumns[1]},
 			},
 			{
 				Name:    "requests_by_trace_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{RequestsColumns[26], RequestsColumns[1]},
+				Columns: []*schema.Column{RequestsColumns[27], RequestsColumns[1]},
 			},
 			{
 				Name:    "requests_by_created_at",

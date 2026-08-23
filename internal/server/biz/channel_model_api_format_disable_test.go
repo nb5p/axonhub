@@ -27,6 +27,29 @@ func TestNormalizeDisabledModelAPIFormats(t *testing.T) {
 	}}, settings.DisabledModelAPIFormats)
 }
 
+func TestNormalizeDisabledModelAPIFormatsKeepsGlobalAndCodexRulesSeparate(t *testing.T) {
+	settings := &objects.ChannelSettings{DisabledModelAPIFormats: []objects.DisabledModelAPIFormat{
+		{Model: "glm-5.2", APIFormats: []string{"openai/responses"}},
+		{Model: "glm-5.2", APIFormats: []string{"openai/responses"}, Clients: []string{" Codex ", "codex"}},
+	}}
+
+	require.NoError(t, NormalizeDisabledModelAPIFormats(settings))
+	require.Equal(t, []objects.DisabledModelAPIFormat{
+		{Model: "glm-5.2", APIFormats: []string{"openai/responses"}},
+		{Model: "glm-5.2", APIFormats: []string{"openai/responses"}, Clients: []string{"codex"}},
+	}, settings.DisabledModelAPIFormats)
+}
+
+func TestNormalizeDisabledModelAPIFormatsRejectsUnsupportedClient(t *testing.T) {
+	settings := &objects.ChannelSettings{DisabledModelAPIFormats: []objects.DisabledModelAPIFormat{{
+		Model:      "glm-5.2",
+		APIFormats: []string{"openai/responses"},
+		Clients:    []string{"unknown-client"},
+	}}}
+
+	require.EqualError(t, NormalizeDisabledModelAPIFormats(settings), "disabled model API format entry 1 has unsupported client \"unknown-client\"")
+}
+
 func TestNormalizeDisabledModelAPIFormatsRejectsEmptyRestriction(t *testing.T) {
 	settings := &objects.ChannelSettings{DisabledModelAPIFormats: []objects.DisabledModelAPIFormat{{
 		Model:      "glm-5.2",

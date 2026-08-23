@@ -10,6 +10,7 @@ import (
 	"github.com/looplj/axonhub/internal/dumper"
 	"github.com/looplj/axonhub/internal/ent"
 	"github.com/looplj/axonhub/internal/log"
+	"github.com/looplj/axonhub/internal/pkg/requestclient"
 	"github.com/looplj/axonhub/internal/server/biz"
 	"github.com/looplj/axonhub/llm"
 	"github.com/looplj/axonhub/llm/httpclient"
@@ -342,6 +343,7 @@ func (p *PersistentInboundTransformer) TransformRequest(ctx context.Context, req
 	}
 
 	llmRequest.RawRequest = request
+	llmRequest.Client = requestclient.Detect(request.Headers)
 	p.state.RawRequest = request
 	p.state.LlmRequest = llmRequest
 	p.state.OriginalRequestStream = llmRequest.Stream

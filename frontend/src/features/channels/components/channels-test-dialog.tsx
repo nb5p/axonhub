@@ -10,17 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChannelTestFailureBadge } from './channel-test-failure-badge';
-import { ChannelTestFormatSelector } from './channel-test-format-selector';
+import { ChannelTestAPIFormat, getChannelTestAPIFormat, getDefaultAvailableChannelTestAPIFormats } from '../data/channel-test-api-formats';
 import { useTestChannel, useUpdateChannel } from '../data/channels';
-import {
-  ChannelTestAPIFormat,
-  getChannelTestAPIFormat,
-  getDefaultAvailableChannelTestAPIFormats,
-} from '../data/channel-test-api-formats';
 import { Channel } from '../data/schema';
 import { mergeChannelSettingsForUpdate } from '../utils/merge';
 import { disableModelAPIFormat, isModelAPIFormatDisabled } from '../utils/model-api-format-disables';
+import { ChannelTestFailureBadge } from './channel-test-failure-badge';
+import { ChannelTestFormatSelector } from './channel-test-format-selector';
 
 type TestStatus = 'not_started' | 'testing' | 'success' | 'failed' | 'skipped' | 'disabled';
 
@@ -55,6 +51,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
   const [selectedAPIFormats, setSelectedAPIFormats] = useState<ChannelTestAPIFormat[]>([]);
   const [isTesting, setIsTesting] = useState(false);
   const [isRemovePopoverOpen, setIsRemovePopoverOpen] = useState(false);
+  const [disableScope, setDisableScope] = useState<{ model: string; format: ChannelTestAPIFormat } | null>(null);
   const [disabledModelAPIFormats, setDisabledModelAPIFormats] = useState(channel.settings?.disabledModelApiFormats ?? []);
   const testChannel = useTestChannel();
   const updateChannel = useUpdateChannel();
@@ -184,7 +181,11 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
       case 'skipped':
         return <Badge variant='outline'>{t('channels.dialogs.test.formatUnavailable')}</Badge>;
       case 'disabled':
-        return <Badge variant='outline' className='border-muted-foreground/20 bg-muted text-muted-foreground'>{t('channels.dialogs.modelFormatDisables.disabled')}</Badge>;
+        return (
+          <Badge variant='outline' className='border-muted-foreground/20 bg-muted text-muted-foreground'>
+            {t('channels.dialogs.modelFormatDisables.disabled')}
+          </Badge>
+        );
       default:
         return <Badge variant='outline'>{t('channels.dialogs.test.notStarted')}</Badge>;
     }
@@ -212,11 +213,12 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
     }
   };
 
-  const handleDisableModelFormat = async (modelName: string, format: ChannelTestAPIFormat) => {
+  const handleDisableModelFormat = async (modelName: string, format: ChannelTestAPIFormat, clients?: string[]) => {
     const nextDisabledModelAPIFormats = disableModelAPIFormat(
       disabledModelAPIFormats,
       modelName,
-      getChannelTestAPIFormat(format).endpointFormat
+      getChannelTestAPIFormat(format).endpointFormat,
+      clients
     );
 
     try {
@@ -229,7 +231,7 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
         },
       });
       setDisabledModelAPIFormats(nextDisabledModelAPIFormats);
-      setTestResult(modelName, format, { status: 'disabled' });
+      if (!clients?.length) setTestResult(modelName, format, { status: 'disabled' });
     } catch {
       // Errors are handled by useUpdateChannel toast.
     }
@@ -241,7 +243,9 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
         <DialogHeader>
           <DialogTitle className='text-lg sm:text-xl'>{t('channels.dialogs.test.title')}</DialogTitle>
           <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-            <DialogDescription className='text-sm sm:text-base'>{t('channels.dialogs.test.description', { name: channel.name })}</DialogDescription>
+            <DialogDescription className='text-sm sm:text-base'>
+              {t('channels.dialogs.test.description', { name: channel.name })}
+            </DialogDescription>
             <ChannelTestFormatSelector
               value={selectedAPIFormats}
               onChange={handleAPIFormatsChange}
@@ -290,7 +294,11 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                   {filteredModels.map((model) => (
                     <TableRow key={model} className='align-top'>
                       <TableCell>
-                        <Checkbox checked={selectedModels.includes(model)} onCheckedChange={(checked) => handleModelSelect(model, !!checked)} className='scale-100 sm:scale-75' />
+                        <Checkbox
+                          checked={selectedModels.includes(model)}
+                          onCheckedChange={(checked) => handleModelSelect(model, !!checked)}
+                          className='scale-100 sm:scale-75'
+                        />
                       </TableCell>
                       <TableCell className='pr-4 font-medium sm:pr-8'>{model}</TableCell>
                       {selectedAPIFormats.map((format) => {
@@ -305,7 +313,9 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                           <TableCell key={format} className='min-w-52 align-top'>
                             <div className='space-y-2'>
                               {getStatusBadge(disabled ? 'disabled' : available ? result?.status || 'not_started' : 'skipped', result)}
-                              {typeof result?.latency === 'number' && <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>}
+                              {typeof result?.latency === 'number' && (
+                                <div className='text-muted-foreground text-xs'>{result.latency.toFixed(2)}s</div>
+                              )}
                               <Button
                                 size='sm'
                                 variant='outline'
@@ -313,19 +323,48 @@ export function ChannelsTestDialog({ open, onOpenChange, channel }: Props) {
                                 disabled={!available || disabled || result?.status === 'testing' || isTesting || updateChannel.isPending}
                               >
                                 <IconPlayerPlay className='h-3 w-3' />
-                                {result?.status === 'testing' ? t('channels.dialogs.test.testingModel') : t('channels.dialogs.test.testModel')}
+                                {result?.status === 'testing'
+                                  ? t('channels.dialogs.test.testingModel')
+                                  : t('channels.dialogs.test.testModel')}
                               </Button>
                               {result?.status === 'failed' && !disabled && (
-                                <Button
-                                  size='sm'
-                                  variant='outline'
-                                  className='border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive'
-                                  onClick={() => handleDisableModelFormat(model, format)}
-                                  disabled={isTesting || updateChannel.isPending}
+                                <Popover
+                                  open={disableScope?.model === model && disableScope.format === format}
+                                  onOpenChange={(isOpen) => setDisableScope(isOpen ? { model, format } : null)}
                                 >
-                                  <IconCircleOff className='h-3 w-3' />
-                                  {t('channels.dialogs.modelFormatDisables.disableThisFormat')}
-                                </Button>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      size='sm'
+                                      variant='outline'
+                                      className='border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive'
+                                      disabled={isTesting || updateChannel.isPending}
+                                    >
+                                      <IconCircleOff className='h-3 w-3' />
+                                      {t('channels.dialogs.modelFormatDisables.disableThisFormat')}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent container={dialogContent} className='grid w-72 gap-2'>
+                                    <p className='text-muted-foreground text-sm'>
+                                      {t('channels.dialogs.modelFormatDisables.selectClients')}
+                                    </p>
+                                    <Button
+                                      size='sm'
+                                      variant='outline'
+                                      onClick={() => void handleDisableModelFormat(model, format)}
+                                      disabled={updateChannel.isPending}
+                                    >
+                                      {t('channels.dialogs.modelFormatDisables.allClients')}
+                                    </Button>
+                                    <Button
+                                      size='sm'
+                                      variant='outline'
+                                      onClick={() => void handleDisableModelFormat(model, format, ['codex'])}
+                                      disabled={updateChannel.isPending}
+                                    >
+                                      {t('channels.dialogs.modelFormatDisables.codexOnly')}
+                                    </Button>
+                                  </PopoverContent>
+                                </Popover>
                               )}
                             </div>
                           </TableCell>
