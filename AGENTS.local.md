@@ -142,6 +142,28 @@ jq -r '.backends.active' \
 
 结果必须是 `blue` 或 `green`。状态文件还含有密码、密钥和后端信息，禁止 `cat`、完整打印、复制到日志或在回复中展示其内容。
 
+#### 1a. `/Volumes/docker` 缺失时恢复群晖挂载
+
+`/Volumes/docker` 不存在、不是目录或不可读，不表示当前流量在蓝色或绿色；它只表示无法读取 Axon Switch 的权威状态。此时不得重建绿色、停止容器、切换流量或进行其他可能中断服务的操作。
+
+本机群晖 SMB 服务名为 `Synology.local`，共享名为 `docker`。优先通过 macOS 的 Finder 挂载入口恢复固定路径：
+
+```sh
+open 'smb://Synology.local/docker'
+```
+
+该命令会由 Finder 创建 `/Volumes/docker`，并在需要时显示系统认证弹窗或使用钥匙串中已有凭据。密码、用户名和令牌不得放入命令行、脚本、文档、终端历史、日志或聊天中。不要先执行 `mkdir -p /Volumes/docker` 再直接调用 `mount_smbfs`：macOS 通常不允许普通用户手工创建 `/Volumes` 下的挂载点，Finder 方式可避免这一权限问题。
+
+挂载完成后，只做以下最小验证，再恢复读取状态的流程：
+
+```sh
+test -r '/Volumes/docker/axon-switch/volumes/axon-switch%data/state.json'
+jq -r '.backends.active' \
+  '/Volumes/docker/axon-switch/volumes/axon-switch%data/state.json'
+```
+
+若 Finder 未能挂载、`Synology.local` 无法解析，或用户没有该共享的访问权限，报告“当前槽位无法可靠判定”并请求用户在 Finder 中重新连接或提供已获授权的 SMB 主机与共享名；不得猜测地址、共享名或凭据，也不得绕过认证。
+
 #### 2. 交叉检查健康接口
 
 ```sh
